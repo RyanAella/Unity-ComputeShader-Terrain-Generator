@@ -1,1 +1,3 @@
 # Unity-ComputeShader-Terrain-Generator
+
+The aim of this work is to investigate and demonstrate the integration of Compute Shader, Fractional Brownian Motion (FBM), and Domain Warping for procedural terrain generation in Unity. The goal is to explore how these techniques can collaborate to produce realistic and diverse terrain deformations. The focus lies on understanding the functionality and collaboration of the components, as well as identifying and addressing potential integration challenges. To achieve the required performance, a combination of GPU and CPU processing is utilized, where the GPU efficiently calculates values required for the mesh, and the CPU handles processing and interaction with the generated terrain.
