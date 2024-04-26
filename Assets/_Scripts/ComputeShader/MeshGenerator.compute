@@ -1,0 +1,26 @@
+/*
+* Author: Rebecca Biebl
+ * Creation Date: 26-04-2024
+ * Description: A brief description of the script.
+ * License: Licence
+ */
+
+#pragma kernel NoiseGenerator
+
+#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
+
+int map_width;
+int map_height;
+
+RWStructuredBuffer<float> NoiseMap;
+
+[numthreads(1,1,1)]
+void NoiseGenerator(uint3 id : SV_DispatchThreadID)
+{
+    float noise_height = 1.0;
+
+    float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
+    noise_height += SimplexNoise(uv);
+    
+    NoiseMap[id.y * map_width + id.x] = noise_height;
+}
