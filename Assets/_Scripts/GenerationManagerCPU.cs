@@ -31,6 +31,7 @@ namespace _Scripts
         {
             _mesh = new Mesh();
             GetComponent<MeshFilter>().sharedMesh = _mesh;
+            _mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
             CreateShape();
             UpdateMesh();

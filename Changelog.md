@@ -1,11 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
-## [0.0.1] - 2024-04-26
+## [0.1.0] - 2024-04-26
 ## Added
 
 - OpenSimplexNoise.cs from https://gist.github.com/digitalshadow/134a3a02b67cecd72181
-- GenerationManager.cs - normal mesh generation
 - GenerationManagerComputeShader.cs - mesh generation with Compute Shader
+- ComputeShaderManager.cs
+- MeshGenerator.cs
+- MeshGenerator.compute
+- URP Integration
+
+## Changed
+- GenerationManager.cs -> GenerationManagerCPU.cs
 
 ## [0.0.0] - 2024-04-17
 ## Added
