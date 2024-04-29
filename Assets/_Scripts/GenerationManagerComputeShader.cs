@@ -5,89 +5,75 @@
  * License: Licence
  */
 
-
-using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace _Scripts
 {
+    /// <summary>
+    /// This class is responsible for managing the generation of a mesh using a compute shader.
+    /// It initializes a compute buffer, generates a noise map, and then uses that noise map to generate a mesh.
+    /// </summary>
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class GenerationManagerComputeShader : MonoBehaviour
     {
         #region Variables
 
+        // General settings for the mesh generation.
         [Header("General Settings")] [SerializeField]
         private Vector2Int resolution = new(20, 20);
 
-        [SerializeField] private Vector2Int totalResolutionPerMesh = new(64, 64);
-
+        // Reference to the compute shader used for generating the vertices and triangles.
         [Header("Compute Shader Settings")] [SerializeField]
         private ComputeShader computeShader;
 
-
-        // [SerializeField] private MeshRenderer renderer;
-
-        private Vector3[] _noiseMap;
-
+        // Manager for handling compute shader operations and mesh generation.
         public ComputeShaderManager computeShaderManager;
-        public MeshGenerator meshGenerator;
+        public MeshGenerationManager meshGenerationManager;
 
-        private MeshFilter meshFilter;
+        /*[HideInInspector]*/
+        public Vector3[] vertices;
+
+        /*[HideInInspector]*/
+        public int[] triangles;
+
+        // Reference to the MeshFilter component attached to the GameObject.
+        private MeshFilter _meshFilter;
+
         #endregion
 
         #region Unity Methods
 
         private void Awake()
         {
+            // Initialize the compute shader manager and mesh generation manager.
             computeShaderManager = new ComputeShaderManager();
-            meshGenerator = new MeshGenerator();
+            meshGenerationManager = new MeshGenerationManager();
 
-            meshFilter = GetComponent<MeshFilter>();
+            // Get the MeshFilter component attached to the GameObject.
+            _meshFilter = GetComponent<MeshFilter>();
 
-            computeShaderManager.InitializeBuffer(resolution);
-            // meshGenerator.InitializeMesh(meshFilter, totalResolutionPerMesh);
+            // Initialize the compute buffers with the specified resolution.
+            computeShaderManager.InitializeBuffers(resolution);
         }
 
         private void Start()
         {
-            _noiseMap = computeShaderManager.GenerateNoiseMap(computeShader, resolution, meshFilter);
+            // Generate the mesh using the compute shader and the specified resolution.
+            vertices = new Vector3[resolution.x * resolution.y];
+            triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
-            // meshGenerator.DrawNoiseMap(_noiseMap, resolution);
-            
-            Debug.Log(_noiseMap.Length);
-            for (int i = 0; i < _noiseMap.Length; i++)
-            {
-                Debug.Log(_noiseMap[i]);
-            }
+            // Use the compute shader to generate mesh parameters (vertices and triangles).
+            computeShaderManager.GenerateMeshParameters(computeShader, resolution, vertices, triangles);
+
+            // Create the mesh using the generated vertices and triangles.
+            meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
         }
-
-        // private void Update()
-        // {
-        //     meshGenerator.UpdateMesh();
-        // }
 
         private void OnDestroy()
         {
-            computeShaderManager.ReleaseBuffer();
+            // Release the compute buffers when the GameObject is destroyed.
+            computeShaderManager.ReleaseBuffers();
         }
-
-        private void OnDrawGizmos()
-        {
-            if (_noiseMap == null || _noiseMap.Length == 0)
-            {
-                return;
-            }
-
-            for (int i = 0; i < _noiseMap.Length; i++)
-            {
-                Gizmos.DrawSphere(_noiseMap[i], .1f);
-            }
-        }
-
-        #endregion
-
-        #region Methods
 
         #endregion
     }

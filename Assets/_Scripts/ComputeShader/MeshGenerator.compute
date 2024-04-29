@@ -1,21 +1,23 @@
 /*
 * Author: Rebecca Biebl
- * Creation Date: 26-04-2024
- * Description: A brief description of the script.
- * License: Licence
- */
+* Creation Date: 26-04-2024
+* Description: A brief description of the script.
+* License: Licence
+*/
 
 #pragma kernel NoiseGenerator
-// #pragma kernel MeshGenerator
 
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 
-int map_width;
-int map_height;
+// Unsigned integer variables for map dimensions.
+uint map_width;
+uint map_height;
 
-RWStructuredBuffer<float3> NoiseBuffer;
-RWStructuredBuffer<int> TrianglesBuffer;
+// Read-write structured buffers for storing noise data and triangle indices.
+RWStructuredBuffer<float3> VertexBuffer;
+RWStructuredBuffer<int> TriangleBuffer;
 
+// Thread group size for the compute shader.
 [numthreads(8,8,1)]
 void NoiseGenerator(uint3 id : SV_DispatchThreadID)
 {
@@ -47,32 +49,50 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
     //     }
     // }
 
+    // Check if the current thread ID is within the bounds of the map dimensions.
     if (id.y < map_height)
     {
         if (id.x < map_width)
         {
+            // Initialize noise height to 0.
+            float noise_height = 0.0;
+
+            // Calculate the vertex index based on the thread ID.
             int vertexIndex = id.y * map_width + id.x;
-            NoiseBuffer[vertexIndex] = float3(id.x, 0.0, id.y);
+
+            // Normalize the thread ID to a UV coordinate for noise generation.
+            float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
+            // Generate noise value and scale it.
+            noise_height += SimplexNoise(uv);
+            noise_height *= 64;
+
+            // Store the noise value in the NoiseBuffer.
+            VertexBuffer[vertexIndex] = float3(id.x, noise_height, id.y);
         }
     }
-    
+
+    // Check if the current thread ID is within the bounds of the map dimensions minus one.
     if (id.y < map_height - 1)
     {
         if (id.x < map_width - 1)
         {
+            // Calculate the index for the triangles buffer based on the thread ID.
             int index = (id.y * (map_width - 1) + id.x) * 6;
             int vertexIndex = id.y * map_width + id.x;
-    
-            TrianglesBuffer[index + 0] = vertexIndex + 0;
-            TrianglesBuffer[index + 1] = vertexIndex + map_width;
-            TrianglesBuffer[index + 2] = vertexIndex + 1;
-            TrianglesBuffer[index + 3] = vertexIndex + 1;
-            TrianglesBuffer[index + 4] = vertexIndex + map_width;
-            TrianglesBuffer[index + 5] = vertexIndex + map_width + 1;
+
+            // Store the triangle indices in the TrianglesBuffer.
+            TriangleBuffer[index + 0] = vertexIndex + 0;
+            TriangleBuffer[index + 1] = vertexIndex + map_width;
+            TriangleBuffer[index + 2] = vertexIndex + 1;
+            TriangleBuffer[index + 3] = vertexIndex + 1;
+            TriangleBuffer[index + 4] = vertexIndex + map_width;
+            TriangleBuffer[index + 5] = vertexIndex + map_width + 1;
         }
     }
-
 }
+
+// The commented-out section below is an alternative approach for mesh generation.
+// It is not used in the current implementation but could be considered for future development.
 
 // RWStructuredBuffer<float3> VerticesBuffer;
 // RWStructuredBuffer<int> TrianglesBuffer;

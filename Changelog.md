@@ -3,8 +3,12 @@
 
 ## [0.2.0] - 2024-04-29
 
+## Added
+- Code Comments
+
 ## Changed
 - Vertex and Triangle generation now runs on the GPU
+- Code Refactoring and Cleanup
 
 
 ## [0.1.0] - 2024-04-26
