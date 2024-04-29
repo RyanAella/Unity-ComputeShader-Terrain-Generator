@@ -21,18 +21,19 @@ namespace _Scripts
         private Vector2Int resolution = new(20, 20);
 
         [SerializeField] private Vector2Int totalResolutionPerMesh = new(64, 64);
-        
-        [Header("Compute Shader Settings")] 
-        [SerializeField] private ComputeShader computeShader;
+
+        [Header("Compute Shader Settings")] [SerializeField]
+        private ComputeShader computeShader;
 
 
         // [SerializeField] private MeshRenderer renderer;
 
-        private float[,] _noiseMap;
+        private Vector3[] _noiseMap;
 
         public ComputeShaderManager computeShaderManager;
         public MeshGenerator meshGenerator;
 
+        private MeshFilter meshFilter;
         #endregion
 
         #region Unity Methods
@@ -42,27 +43,46 @@ namespace _Scripts
             computeShaderManager = new ComputeShaderManager();
             meshGenerator = new MeshGenerator();
 
-            MeshFilter meshFilter = GetComponent<MeshFilter>();
+            meshFilter = GetComponent<MeshFilter>();
 
             computeShaderManager.InitializeBuffer(resolution);
-            meshGenerator.InitializeMesh(meshFilter, totalResolutionPerMesh);
+            // meshGenerator.InitializeMesh(meshFilter, totalResolutionPerMesh);
         }
 
         private void Start()
         {
-            _noiseMap = computeShaderManager.GenerateNoiseMap(computeShader, resolution);
+            _noiseMap = computeShaderManager.GenerateNoiseMap(computeShader, resolution, meshFilter);
 
-            meshGenerator.DrawNoiseMap(_noiseMap);
+            // meshGenerator.DrawNoiseMap(_noiseMap, resolution);
+            
+            Debug.Log(_noiseMap.Length);
+            for (int i = 0; i < _noiseMap.Length; i++)
+            {
+                Debug.Log(_noiseMap[i]);
+            }
         }
 
-        private void Update()
-        {
-            meshGenerator.UpdateMesh();
-        }
+        // private void Update()
+        // {
+        //     meshGenerator.UpdateMesh();
+        // }
 
         private void OnDestroy()
         {
             computeShaderManager.ReleaseBuffer();
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (_noiseMap == null || _noiseMap.Length == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _noiseMap.Length; i++)
+            {
+                Gizmos.DrawSphere(_noiseMap[i], .1f);
+            }
         }
 
         #endregion

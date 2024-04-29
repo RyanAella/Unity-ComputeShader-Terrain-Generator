@@ -34,18 +34,24 @@ namespace _Scripts
             _mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         }
 
-        public void DrawNoiseMap(float[,] noiseMap)
+        public void DrawNoiseMap(Vector3[] noiseMap, Vector2Int resolution)
         {
+            Debug.Log(noiseMap.Length);
+            for (int i = 0; i < noiseMap.Length; i++)
+            {
+                Debug.Log(noiseMap[i]);
+            }
+            
             if (noiseMap != null)
             {
-                var width = noiseMap.GetLength(0);
-                var height = noiseMap.GetLength(1);
+                var width = resolution.x/*noiseMap.GetLength(0)*/;
+                var height = resolution.y/*noiseMap.GetLength(1)*/;
 
-                _vertices = new Vector3[(width + 1) * (height + 1)];
+                _vertices = new Vector3[width * height];
 
                 for (var z = 0; z < height; z++)
                 for (var x = 0; x < width; x++)
-                    _vertices[z * width + x] = new Vector3(x, noiseMap[x, z], z);
+                    _vertices[z * width + x] = noiseMap[z * width + x];
 
                 _triangles = new int[(width - 1) * (height - 1) * 6];
 

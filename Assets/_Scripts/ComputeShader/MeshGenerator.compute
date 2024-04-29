@@ -6,21 +6,93 @@
  */
 
 #pragma kernel NoiseGenerator
+// #pragma kernel MeshGenerator
 
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 
 int map_width;
 int map_height;
 
-RWStructuredBuffer<float> NoiseMap;
+RWStructuredBuffer<float3> NoiseBuffer;
+RWStructuredBuffer<int> TrianglesBuffer;
 
 [numthreads(8,8,1)]
 void NoiseGenerator(uint3 id : SV_DispatchThreadID)
 {
-    float noise_height = 1.0;
+    // // if (id.x > map_width + 1 || id.y > map_height + 1) return;
+    //
+    // for (int y = 0; y <= id.y; y++)
+    // {
+    //     for (int x = 0; x <= id.x; x++)
+    //     {
+    //         float noise_height = 1.0;
+    //
+    //         // var value = 0.0f;
+    //         // var frequency = 1.0f;
+    //         // var amplitude = 1.0f;
+    //         //
+    //         // for (var l = 0; l < noiseSettings.octaves; l++)
+    //         // {
+    //         //     // calculate noise value with modified amplitude and frequency
+    //         //     value += amplitude * GenerateNoiseValue(noiseSettings, x * frequency, y * frequency);
+    //         //
+    //         //     frequency *= noiseSettings.lacunarity; // double the frequency each octave
+    //         //     amplitude *= noiseSettings.persistence; // half the amplitude
+    //         // }
+    //
+    //         // float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
+    //         // noise_height += SimplexNoise(uv);
+    //
+    //         NoiseBuffer[y * map_width + x] = float3(x, noise_height, y) /** 160*/;
+    //     }
+    // }
 
-    float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
-    noise_height += SimplexNoise(uv);
+    if (id.y < map_height)
+    {
+        if (id.x < map_width)
+        {
+            int vertexIndex = id.y * map_width + id.x;
+            NoiseBuffer[vertexIndex] = float3(id.x, 0.0, id.y);
+        }
+    }
     
-    NoiseMap[id.y * map_width + id.x] = noise_height * 160;
+    if (id.y < map_height - 1)
+    {
+        if (id.x < map_width - 1)
+        {
+            int index = (id.y * (map_width - 1) + id.x) * 6;
+            int vertexIndex = id.y * map_width + id.x;
+    
+            TrianglesBuffer[index + 0] = vertexIndex + 0;
+            TrianglesBuffer[index + 1] = vertexIndex + map_width;
+            TrianglesBuffer[index + 2] = vertexIndex + 1;
+            TrianglesBuffer[index + 3] = vertexIndex + 1;
+            TrianglesBuffer[index + 4] = vertexIndex + map_width;
+            TrianglesBuffer[index + 5] = vertexIndex + map_width + 1;
+        }
+    }
+
 }
+
+// RWStructuredBuffer<float3> VerticesBuffer;
+// RWStructuredBuffer<int> TrianglesBuffer;
+//
+// [numthreads(1,1,1)]
+// void MeshGenerator(uint3 id : SV_DispatchThreadID)
+// {
+//     if (id.x > map_width + 1 || id.y > map_height + 1) return;
+//
+//     int vertexIndex = id.y * map_width + id.x;
+//     VerticesBuffer[vertexIndex] = float3(id.x, NoiseBuffer[vertexIndex], id.y);
+//
+//     if (id.x < map_width && id.y < map_height)
+//     {
+//         int triangleIndex = (id.y * map_width + id.x) * 6;
+//         TrianglesBuffer[triangleIndex + 0] = vertexIndex + 0;
+//         TrianglesBuffer[triangleIndex + 1] = vertexIndex + map_width;
+//         TrianglesBuffer[triangleIndex + 2] = vertexIndex + map_width + 1;
+//         TrianglesBuffer[triangleIndex + 3] = vertexIndex + 0;
+//         TrianglesBuffer[triangleIndex + 4] = vertexIndex + map_width + 1;
+//         TrianglesBuffer[triangleIndex + 5] = vertexIndex + 1;
+//     }
+// }
