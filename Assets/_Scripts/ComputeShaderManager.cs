@@ -6,6 +6,7 @@
  */
 
 using System;
+using _Scripts.ScriptableObjects;
 using UnityEngine;
 
 namespace _Scripts
@@ -25,6 +26,10 @@ namespace _Scripts
         // Shader property IDs for map dimensions and buffers.
         private static readonly int MapWidth = Shader.PropertyToID("map_width");
         private static readonly int MapHeight = Shader.PropertyToID("map_height");
+        private static readonly int NoiseScale = Shader.PropertyToID("noise_scale");
+        private static readonly int Octaves = Shader.PropertyToID("octaves");
+        private static readonly int Lacunarity = Shader.PropertyToID("lacunarity");
+        private static readonly int Persistence = Shader.PropertyToID("persistence");
         private static readonly int VertexBuffer = Shader.PropertyToID("VertexBuffer");
         private static readonly int TriangleBuffer = Shader.PropertyToID("TriangleBuffer");
 
@@ -58,9 +63,10 @@ namespace _Scripts
         /// </summary>
         /// <param name="computeShader">The compute shader to use for generating the mesh.</param>
         /// <param name="resolution">The resolution of the mesh to be generated.</param>
+        /// <param name="noiseSettings"></param>
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
-        public void GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution, Vector3[] vertices, int[] triangles)
+        public void GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution, NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles)
         {
             // Find the kernel in the compute shader.
             var noiseKernel = computeShader.FindKernel("NoiseGenerator");
@@ -68,6 +74,11 @@ namespace _Scripts
             // Set shader properties for map dimensions.
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
+            
+            computeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
+            computeShader.SetInt(Octaves, noiseSettings.octaves);
+            computeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
+            computeShader.SetFloat(Persistence, noiseSettings.persistence);
 
             // Set the compute buffers for the vertices and triangles.
             computeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);

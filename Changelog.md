@@ -1,6 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
 
+## [0.3.0] - 2024-04-30
+
+## Added
+
+- NoiseSettings.cs
+  - noise_scale
+  - octaves
+  - Persistence
+  - Lacunarity
+
+
 ## [0.2.0] - 2024-04-29
 
 ## Added

@@ -5,6 +5,7 @@
  * License: Licence
  */
 
+using _Scripts.ScriptableObjects;
 using UnityEngine;
 
 namespace _Scripts
@@ -25,6 +26,8 @@ namespace _Scripts
         // Reference to the compute shader used for generating the vertices and triangles.
         [Header("Compute Shader Settings")] [SerializeField]
         private ComputeShader computeShader;
+
+        [SerializeField] private NoiseSettings noiseSettings;
 
         // Manager for handling compute shader operations and mesh generation.
         public ComputeShaderManager computeShaderManager;
@@ -63,7 +66,7 @@ namespace _Scripts
             triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
-            computeShaderManager.GenerateMeshParameters(computeShader, resolution, vertices, triangles);
+            computeShaderManager.GenerateMeshParameters(computeShader, resolution, noiseSettings, vertices, triangles);
 
             // Create the mesh using the generated vertices and triangles.
             meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);

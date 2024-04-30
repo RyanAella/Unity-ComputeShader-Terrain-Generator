@@ -13,6 +13,12 @@
 uint map_width;
 uint map_height;
 
+float noise_scale;
+
+int octaves;
+float lacunarity;
+float persistence;
+
 // Read-write structured buffers for storing noise data and triangle indices.
 RWStructuredBuffer<float3> VertexBuffer;
 RWStructuredBuffer<int> TriangleBuffer;
@@ -21,34 +27,6 @@ RWStructuredBuffer<int> TriangleBuffer;
 [numthreads(8,8,1)]
 void NoiseGenerator(uint3 id : SV_DispatchThreadID)
 {
-    // // if (id.x > map_width + 1 || id.y > map_height + 1) return;
-    //
-    // for (int y = 0; y <= id.y; y++)
-    // {
-    //     for (int x = 0; x <= id.x; x++)
-    //     {
-    //         float noise_height = 1.0;
-    //
-    //         // var value = 0.0f;
-    //         // var frequency = 1.0f;
-    //         // var amplitude = 1.0f;
-    //         //
-    //         // for (var l = 0; l < noiseSettings.octaves; l++)
-    //         // {
-    //         //     // calculate noise value with modified amplitude and frequency
-    //         //     value += amplitude * GenerateNoiseValue(noiseSettings, x * frequency, y * frequency);
-    //         //
-    //         //     frequency *= noiseSettings.lacunarity; // double the frequency each octave
-    //         //     amplitude *= noiseSettings.persistence; // half the amplitude
-    //         // }
-    //
-    //         // float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
-    //         // noise_height += SimplexNoise(uv);
-    //
-    //         NoiseBuffer[y * map_width + x] = float3(x, noise_height, y) /** 160*/;
-    //     }
-    // }
-
     // Check if the current thread ID is within the bounds of the map dimensions.
     if (id.y < map_height)
     {
@@ -56,18 +34,26 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
         {
             // Initialize noise height to 0.
             float noise_height = 0.0;
+            float amplitude = 1.0;
+            float frequency = 1.0;
 
             // Calculate the vertex index based on the thread ID.
-            int vertexIndex = id.y * map_width + id.x;
+            int vertex_index = id.y * map_width + id.x;
 
-            // Normalize the thread ID to a UV coordinate for noise generation.
-            float2 uv = float2(id.x, id.y) / float2(map_width, map_height);
-            // Generate noise value and scale it.
-            noise_height += SimplexNoise(uv);
-            noise_height *= 64;
+            for (int o = 0; o < octaves; o++)
+            {
+                // Calculate noise value with modified amplitude and frequency.
+                // Normalize the thread ID to a UV coordinate for noise generation.
+                float2 uv = float2(id.x / noise_scale * frequency, id.y / noise_scale * frequency) / float2(
+                    map_width, map_height);
+                // Generate noise value and scale it.
+                noise_height += amplitude * SimplexNoise(uv);
 
+                amplitude *= persistence;
+                frequency *= lacunarity;
+            }
             // Store the noise value in the NoiseBuffer.
-            VertexBuffer[vertexIndex] = float3(id.x, noise_height, id.y);
+            VertexBuffer[vertex_index] = float3(id.x, noise_height, id.y);
         }
     }
 

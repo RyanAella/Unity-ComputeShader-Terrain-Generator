@@ -34,11 +34,13 @@ namespace _Scripts
         public void CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles)
         {
             // Creates a new Mesh object.
-            _mesh = new Mesh();
             // Sets the mesh of the MeshFilter to the newly created mesh.
-            filter.sharedMesh = _mesh;
-            // Sets the index format of the mesh to UInt32, which is required for large meshes.
-            _mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            filter.mesh = _mesh = new Mesh
+            {
+                // Sets the index format of the mesh to UInt32, which is required for large meshes.
+                indexFormat = UnityEngine.Rendering.IndexFormat.UInt32,
+                name = "Procedural Mesh GPU",
+            };
 
             // Clears all previous data in the mesh.
             _mesh.Clear();
