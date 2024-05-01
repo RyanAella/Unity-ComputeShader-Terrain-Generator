@@ -11,8 +11,8 @@ using UnityEngine;
 namespace _Scripts
 {
     /// <summary>
-    /// This class is responsible for managing the generation of a mesh using a compute shader.
-    /// It initializes a compute buffer, generates a noise map, and then uses that noise map to generate a mesh.
+    ///     This class is responsible for managing the generation of a mesh using a compute shader.
+    ///     It initializes a compute buffer, generates a noise map, and then uses that noise map to generate a mesh.
     /// </summary>
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class GenerationManagerComputeShader : MonoBehaviour
@@ -25,13 +25,20 @@ namespace _Scripts
 
         // Reference to the compute shader used for generating the vertices and triangles.
         [Header("Compute Shader Settings")] [SerializeField]
-        private ComputeShader computeShader;
+        private ComputeShader noiseShader;
+
+        [SerializeField] private ComputeShader colourShader;
 
         [SerializeField] private NoiseSettings noiseSettings;
+
+        [SerializeField] private Gradient colourGradient;
+        [SerializeField] private float maxTerrainHeight = 8;
 
         // Manager for handling compute shader operations and mesh generation.
         public ComputeShaderManager computeShaderManager;
         public MeshGenerationManager meshGenerationManager;
+
+        public ColourGenerator ColourGenerator;
 
         /*[HideInInspector]*/
         public Vector3[] vertices;
@@ -52,6 +59,8 @@ namespace _Scripts
             computeShaderManager = new ComputeShaderManager();
             meshGenerationManager = new MeshGenerationManager();
 
+            ColourGenerator = new ColourGenerator();
+
             // Get the MeshFilter component attached to the GameObject.
             _meshFilter = GetComponent<MeshFilter>();
 
@@ -63,19 +72,24 @@ namespace _Scripts
         {
             // Generate the mesh using the compute shader and the specified resolution.
             vertices = new Vector3[resolution.x * resolution.y];
+            var clamped = new Vector3[resolution.x * resolution.y];
             triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
-            computeShaderManager.GenerateMeshParameters(computeShader, resolution, noiseSettings, vertices, triangles);
+            computeShaderManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices, triangles);
 
             // Create the mesh using the generated vertices and triangles.
-            meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+            var mesh = meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+
+            // ColourGenerator.InitializeBuffers(mesh.vertexCount);
+            // ColourGenerator.AssignColor(colourShader, resolution, colourGradient, mesh, maxTerrainHeight);
         }
 
         private void OnDestroy()
         {
             // Release the compute buffers when the GameObject is destroyed.
             computeShaderManager.ReleaseBuffers();
+            // ColourGenerator.ReleaseBuffers();
         }
 
         #endregion

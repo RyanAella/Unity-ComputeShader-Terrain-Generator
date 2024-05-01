@@ -1,10 +1,16 @@
 # Changelog Unity Compute Shader Terrain Generator
 
 
-## [0.3.0] - 2024-04-30
+## [0.4.0] - 2024-05-01
 
 ## Added
 
+- Compare vertices and get min and max height value (On GPU)
+
+
+## [0.3.0] - 2024-04-30
+
+## Added
 - NoiseSettings.cs
   - noise_scale
   - octaves

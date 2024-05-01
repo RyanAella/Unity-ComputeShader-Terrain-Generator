@@ -6,8 +6,6 @@
  * and heavily refactored to improve performance. */
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace _Scripts.Helper
@@ -24,20 +22,15 @@ namespace _Scripts.Helper
         private const double NORM_3D = 1.0 / 103.0;
         private const double NORM_4D = 1.0 / 30.0;
 
-        private byte[] perm;
-        private byte[] perm2D;
-        private byte[] perm3D;
-        private byte[] perm4D;
-
-        private static double[] gradients2D = new double[]
+        private static readonly double[] gradients2D =
         {
             5, 2, 2, 5,
             -5, 2, -2, 5,
             5, -2, 2, -5,
-            -5, -2, -2, -5,
+            -5, -2, -2, -5
         };
 
-        private static double[] gradients3D =
+        private static readonly double[] gradients3D =
         {
             -11, 4, 4, -4, 11, 4, -4, 4, 11,
             11, 4, 4, 4, 11, 4, 4, 4, 11,
@@ -46,10 +39,10 @@ namespace _Scripts.Helper
             -11, 4, -4, -4, 11, -4, -4, 4, -11,
             11, 4, -4, 4, 11, -4, 4, 4, -11,
             -11, -4, -4, -4, -11, -4, -4, -4, -11,
-            11, -4, -4, 4, -11, -4, 4, -4, -11,
+            11, -4, -4, 4, -11, -4, 4, -4, -11
         };
 
-        private static double[] gradients4D =
+        private static readonly double[] gradients4D =
         {
             3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3,
             -3, 1, 1, 1, -1, 3, 1, 1, -1, 1, 3, 1, -1, 1, 1, 3,
@@ -66,40 +59,41 @@ namespace _Scripts.Helper
             3, 1, -1, -1, 1, 3, -1, -1, 1, 1, -3, -1, 1, 1, -1, -3,
             -3, 1, -1, -1, -1, 3, -1, -1, -1, 1, -3, -1, -1, 1, -1, -3,
             3, -1, -1, -1, 1, -3, -1, -1, 1, -1, -3, -1, 1, -1, -1, -3,
-            -3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3,
+            -3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3
         };
 
-        private static Contribution2[] lookup2D;
-        private static Contribution3[] lookup3D;
-        private static Contribution4[] lookup4D;
+        private static readonly Contribution2[] lookup2D;
+        private static readonly Contribution3[] lookup3D;
+        private static readonly Contribution4[] lookup4D;
+
+        private readonly byte[] perm;
+        private readonly byte[] perm2D;
+        private readonly byte[] perm3D;
+        private readonly byte[] perm4D;
 
         static OpenSimplexNoise()
         {
-            var base2D = new int[][]
+            var base2D = new[]
             {
-                new int[] { 1, 1, 0, 1, 0, 1, 0, 0, 0 },
-                new int[] { 1, 1, 0, 1, 0, 1, 2, 1, 1 }
+                new[] { 1, 1, 0, 1, 0, 1, 0, 0, 0 },
+                new[] { 1, 1, 0, 1, 0, 1, 2, 1, 1 }
             };
-            var p2D = new int[] { 0, 0, 1, -1, 0, 0, -1, 1, 0, 2, 1, 1, 1, 2, 2, 0, 1, 2, 0, 2, 1, 0, 0, 0 };
-            var lookupPairs2D = new int[]
+            var p2D = new[] { 0, 0, 1, -1, 0, 0, -1, 1, 0, 2, 1, 1, 1, 2, 2, 0, 1, 2, 0, 2, 1, 0, 0, 0 };
+            var lookupPairs2D = new[]
                 { 0, 1, 1, 0, 4, 1, 17, 0, 20, 2, 21, 2, 22, 5, 23, 5, 26, 4, 39, 3, 42, 4, 43, 3 };
 
             var contributions2D = new Contribution2[p2D.Length / 4];
-            for (int i = 0; i < p2D.Length; i += 4)
+            for (var i = 0; i < p2D.Length; i += 4)
             {
                 var baseSet = base2D[p2D[i]];
                 Contribution2 previous = null, current = null;
-                for (int k = 0; k < baseSet.Length; k += 3)
+                for (var k = 0; k < baseSet.Length; k += 3)
                 {
                     current = new Contribution2(baseSet[k], baseSet[k + 1], baseSet[k + 2]);
                     if (previous == null)
-                    {
                         contributions2D[i / 4] = current;
-                    }
                     else
-                    {
                         previous.Next = current;
-                    }
 
                     previous = current;
                 }
@@ -109,18 +103,16 @@ namespace _Scripts.Helper
 
             lookup2D = new Contribution2[64];
             for (var i = 0; i < lookupPairs2D.Length; i += 2)
-            {
                 lookup2D[lookupPairs2D[i]] = contributions2D[lookupPairs2D[i + 1]];
-            }
 
 
-            var base3D = new int[][]
+            var base3D = new[]
             {
-                new int[] { 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1 },
-                new int[] { 2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1, 3, 1, 1, 1 },
-                new int[] { 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1 }
+                new[] { 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1 },
+                new[] { 2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1, 3, 1, 1, 1 },
+                new[] { 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1 }
             };
-            var p3D = new int[]
+            var p3D = new[]
             {
                 0, 0, 1, -1, 0, 0, 1, 0, -1, 0, 0, -1, 1, 0, 0, 0, 1, -1, 0, 0, -1, 0, 1, 0, 0, -1, 1, 0, 2, 1, 1, 0, 1,
                 1, 1, -1, 0, 2, 1, 0, 1, 1, 1, -1, 1, 0, 2, 0, 1, 1, 1, -1, 1, 1, 1, 3, 2, 1, 0, 3, 1, 2, 0, 1, 3, 2, 0,
@@ -130,7 +122,7 @@ namespace _Scripts.Helper
                 2, 2, 1, 1, -1, 1, 2, 2, 0, 0, 2, 1, -1, 1, 1, 2, 0, 0, 2, 2, 1, -1, 1, 1, 2, 0, 2, 0, 2, 1, 1, 1, -1,
                 2, 2, 0, 0, 2, 1, 1, 1, -1, 2, 0, 2, 0
             };
-            var lookupPairs3D = new int[]
+            var lookupPairs3D = new[]
             {
                 0, 2, 1, 1, 2, 2, 5, 1, 6, 0, 7, 0, 32, 2, 34, 2, 129, 1, 133, 1, 160, 5, 161, 5, 518, 0, 519, 0, 546,
                 4, 550, 4, 645, 3, 647, 3, 672, 5, 673, 5, 674, 4, 677, 3, 678, 4, 679, 3, 680, 13, 681, 13, 682, 12,
@@ -142,21 +134,17 @@ namespace _Scripts.Helper
             };
 
             var contributions3D = new Contribution3[p3D.Length / 9];
-            for (int i = 0; i < p3D.Length; i += 9)
+            for (var i = 0; i < p3D.Length; i += 9)
             {
                 var baseSet = base3D[p3D[i]];
                 Contribution3 previous = null, current = null;
-                for (int k = 0; k < baseSet.Length; k += 4)
+                for (var k = 0; k < baseSet.Length; k += 4)
                 {
                     current = new Contribution3(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3]);
                     if (previous == null)
-                    {
                         contributions3D[i / 9] = current;
-                    }
                     else
-                    {
                         previous.Next = current;
-                    }
 
                     previous = current;
                 }
@@ -167,26 +155,24 @@ namespace _Scripts.Helper
 
             lookup3D = new Contribution3[2048];
             for (var i = 0; i < lookupPairs3D.Length; i += 2)
-            {
                 lookup3D[lookupPairs3D[i]] = contributions3D[lookupPairs3D[i + 1]];
-            }
 
-            var base4D = new int[][]
+            var base4D = new[]
             {
-                new int[] { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1 },
-                new int[] { 3, 1, 1, 1, 0, 3, 1, 1, 0, 1, 3, 1, 0, 1, 1, 3, 0, 1, 1, 1, 4, 1, 1, 1, 1 },
-                new int[]
+                new[] { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1 },
+                new[] { 3, 1, 1, 1, 0, 3, 1, 1, 0, 1, 3, 1, 0, 1, 1, 3, 0, 1, 1, 1, 4, 1, 1, 1, 1 },
+                new[]
                 {
                     1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 2, 1, 1, 0, 0, 2, 1, 0, 1, 0, 2, 1, 0,
                     0, 1, 2, 0, 1, 1, 0, 2, 0, 1, 0, 1, 2, 0, 0, 1, 1
                 },
-                new int[]
+                new[]
                 {
                     3, 1, 1, 1, 0, 3, 1, 1, 0, 1, 3, 1, 0, 1, 1, 3, 0, 1, 1, 1, 2, 1, 1, 0, 0, 2, 1, 0, 1, 0, 2, 1, 0,
                     0, 1, 2, 0, 1, 1, 0, 2, 0, 1, 0, 1, 2, 0, 0, 1, 1
                 }
             };
-            var p4D = new int[]
+            var p4D = new[]
             {
                 0, 0, 1, -1, 0, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 1, 0, -1, 0,
                 0, -1, 0, 1, 0, 0, 0, -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, -1, 0, 0, 1, 0, 0, -1, 0, 1, 0, 0, 0, -1, 1, 0, 2,
@@ -227,7 +213,7 @@ namespace _Scripts.Helper
                 3, 0, 0, 2, 1, 3, 0, 0, 1, 2, 2, 1, -1, 1, 1, 3, 3, 0, 2, 1, 0, 3, 0, 1, 2, 0, 2, -1, 1, 1, 1, 3, 3, 0,
                 2, 0, 1, 3, 0, 1, 0, 2, 2, -1, 1, 1, 1, 3, 3, 0, 0, 2, 1, 3, 0, 0, 1, 2, 2, -1, 1, 1, 1
             };
-            var lookupPairs4D = new int[]
+            var lookupPairs4D = new[]
             {
                 0, 3, 1, 2, 2, 3, 5, 2, 6, 1, 7, 1, 8, 3, 9, 2, 10, 3, 13, 2, 16, 3, 18, 3, 22, 1, 23, 1, 24, 3, 26, 3,
                 33, 2, 37, 2, 38, 1, 39, 1, 41, 2, 45, 2, 54, 1, 55, 1, 56, 0, 57, 0, 58, 0, 59, 0, 60, 0, 61, 0, 62, 0,
@@ -294,22 +280,18 @@ namespace _Scripts.Helper
                 599293, 10, 599294, 11, 599295, 10
             };
             var contributions4D = new Contribution4[p4D.Length / 16];
-            for (int i = 0; i < p4D.Length; i += 16)
+            for (var i = 0; i < p4D.Length; i += 16)
             {
                 var baseSet = base4D[p4D[i]];
                 Contribution4 previous = null, current = null;
-                for (int k = 0; k < baseSet.Length; k += 5)
+                for (var k = 0; k < baseSet.Length; k += 5)
                 {
                     current = new Contribution4(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3],
                         baseSet[k + 4]);
                     if (previous == null)
-                    {
                         contributions4D[i / 16] = current;
-                    }
                     else
-                    {
                         previous.Next = current;
-                    }
 
                     previous = current;
                 }
@@ -322,16 +304,7 @@ namespace _Scripts.Helper
 
             lookup4D = new Contribution4[1048576];
             for (var i = 0; i < lookupPairs4D.Length; i += 2)
-            {
                 lookup4D[lookupPairs4D[i]] = contributions4D[lookupPairs4D[i + 1]];
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int FastFloor(double x)
-        {
-            var xi = (int)x;
-            return x < xi ? xi - 1 : xi;
         }
 
         public OpenSimplexNoise()
@@ -346,29 +319,30 @@ namespace _Scripts.Helper
             perm3D = new byte[256];
             perm4D = new byte[256];
             var source = new byte[256];
-            for (int i = 0; i < 256; i++)
-            {
-                source[i] = (byte)i;
-            }
+            for (var i = 0; i < 256; i++) source[i] = (byte)i;
 
             seed = seed * 6364136223846793005L + 1442695040888963407L;
             seed = seed * 6364136223846793005L + 1442695040888963407L;
             seed = seed * 6364136223846793005L + 1442695040888963407L;
-            for (int i = 255; i >= 0; i--)
+            for (var i = 255; i >= 0; i--)
             {
                 seed = seed * 6364136223846793005L + 1442695040888963407L;
-                int r = (int)((seed + 31) % (i + 1));
-                if (r < 0)
-                {
-                    r += (i + 1);
-                }
+                var r = (int)((seed + 31) % (i + 1));
+                if (r < 0) r += i + 1;
 
                 perm[i] = source[r];
                 perm2D[i] = (byte)(perm[i] & 0x0E);
-                perm3D[i] = (byte)((perm[i] % 24) * 3);
+                perm3D[i] = (byte)(perm[i] % 24 * 3);
                 perm4D[i] = (byte)(perm[i] & 0xFC);
                 source[r] = source[i];
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FastFloor(double x)
+        {
+            var xi = (int)x;
+            return x < xi ? xi - 1 : xi;
         }
 
         public double Evaluate(double x, double y)
@@ -391,9 +365,9 @@ namespace _Scripts.Helper
 
             var hash =
                 (int)(xins - yins + 1) |
-                (int)(inSum) << 1 |
-                (int)(inSum + yins) << 2 |
-                (int)(inSum + xins) << 4;
+                ((int)inSum << 1) |
+                ((int)(inSum + yins) << 2) |
+                ((int)(inSum + xins) << 4);
 
             var c = lookup2D[hash];
 
@@ -445,12 +419,12 @@ namespace _Scripts.Helper
 
             var hash =
                 (int)(yins - zins + 1) |
-                (int)(xins - yins + 1) << 1 |
-                (int)(xins - zins + 1) << 2 |
-                (int)inSum << 3 |
-                (int)(inSum + zins) << 5 |
-                (int)(inSum + yins) << 7 |
-                (int)(inSum + xins) << 9;
+                ((int)(xins - yins + 1) << 1) |
+                ((int)(xins - zins + 1) << 2) |
+                ((int)inSum << 3) |
+                ((int)(inSum + zins) << 5) |
+                ((int)(inSum + yins) << 7) |
+                ((int)(inSum + xins) << 9);
 
             var c = lookup3D[hash];
 
@@ -508,16 +482,16 @@ namespace _Scripts.Helper
 
             var hash =
                 (int)(zins - wins + 1) |
-                (int)(yins - zins + 1) << 1 |
-                (int)(yins - wins + 1) << 2 |
-                (int)(xins - yins + 1) << 3 |
-                (int)(xins - zins + 1) << 4 |
-                (int)(xins - wins + 1) << 5 |
-                (int)inSum << 6 |
-                (int)(inSum + wins) << 8 |
-                (int)(inSum + zins) << 11 |
-                (int)(inSum + yins) << 14 |
-                (int)(inSum + xins) << 17;
+                ((int)(yins - zins + 1) << 1) |
+                ((int)(yins - wins + 1) << 2) |
+                ((int)(xins - yins + 1) << 3) |
+                ((int)(xins - zins + 1) << 4) |
+                ((int)(xins - wins + 1) << 5) |
+                ((int)inSum << 6) |
+                ((int)(inSum + wins) << 8) |
+                ((int)(inSum + zins) << 11) |
+                ((int)(inSum + yins) << 14) |
+                ((int)(inSum + xins) << 17);
 
             var c = lookup4D[hash];
 
@@ -552,9 +526,11 @@ namespace _Scripts.Helper
 
         private class Contribution2
         {
-            public double dx, dy;
-            public int xsb, ysb;
+            public readonly double dx;
+            public readonly double dy;
             public Contribution2 Next;
+            public readonly int xsb;
+            public readonly int ysb;
 
             public Contribution2(double multiplier, int xsb, int ysb)
             {
@@ -567,9 +543,13 @@ namespace _Scripts.Helper
 
         private class Contribution3
         {
-            public double dx, dy, dz;
-            public int xsb, ysb, zsb;
+            public readonly double dx;
+            public readonly double dy;
+            public readonly double dz;
             public Contribution3 Next;
+            public readonly int xsb;
+            public readonly int ysb;
+            public readonly int zsb;
 
             public Contribution3(double multiplier, int xsb, int ysb, int zsb)
             {
@@ -584,9 +564,15 @@ namespace _Scripts.Helper
 
         private class Contribution4
         {
-            public double dx, dy, dz, dw;
-            public int xsb, ysb, zsb, wsb;
+            public readonly double dx;
+            public readonly double dy;
+            public readonly double dz;
+            public readonly double dw;
             public Contribution4 Next;
+            public readonly int xsb;
+            public readonly int ysb;
+            public readonly int zsb;
+            public readonly int wsb;
 
             public Contribution4(double multiplier, int xsb, int ysb, int zsb, int wsb)
             {

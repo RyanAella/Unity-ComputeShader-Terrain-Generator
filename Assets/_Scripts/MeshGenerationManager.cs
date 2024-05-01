@@ -7,11 +7,12 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace _Scripts
 {
     /// <summary>
-    /// Class for managing mesh generation.
+    ///     Class for managing mesh generation.
     /// </summary>
     [Serializable]
     public class MeshGenerationManager
@@ -26,21 +27,23 @@ namespace _Scripts
         #region Methods
 
         /// <summary>
-        /// Creates a new mesh based on the given vertices and triangles.
+        ///     Creates a new mesh based on the given vertices and triangles.
         /// </summary>
         /// <param name="filter">The MeshFilter that uses the mesh.</param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        public void CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles)
+        public Mesh CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles)
         {
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
             filter.mesh = _mesh = new Mesh
             {
                 // Sets the index format of the mesh to UInt32, which is required for large meshes.
-                indexFormat = UnityEngine.Rendering.IndexFormat.UInt32,
-                name = "Procedural Mesh GPU",
+                indexFormat = IndexFormat.UInt32,
+                name = "Procedural Mesh GPU"
             };
+            filter.sharedMesh = null;
+            filter.sharedMesh = _mesh;
 
             // Clears all previous data in the mesh.
             _mesh.Clear();
@@ -51,6 +54,8 @@ namespace _Scripts
 
             // Recalculates the normals of the mesh based on the vertices and triangles.
             _mesh.RecalculateNormals();
+
+            return _mesh;
         }
 
         #endregion
