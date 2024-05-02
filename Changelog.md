@@ -1,10 +1,15 @@
 # Changelog Unity Compute Shader Terrain Generator
 
 
+[0.5.0] - 2024-05-02
+
+## Added
+- Clamping height values (On GPU)
+
+
 ## [0.4.0] - 2024-05-01
 
 ## Added
-
 - Compare vertices and get min and max height value (On GPU)
 
 

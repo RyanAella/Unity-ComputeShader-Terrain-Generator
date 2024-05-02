@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: NoiseSettings
   m_EditorClassIdentifier: 
   noiseScale: 0.0768
+  noiseHeight: 1
   octaves: 8
   persistence: 0.5
   lacunarity: 2.01
