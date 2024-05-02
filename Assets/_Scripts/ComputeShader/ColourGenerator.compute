@@ -1,0 +1,51 @@
+/*
+* Author: Rebecca Biebl
+* Creation Date: 02-05-2024
+* Description: 
+* License: Licence
+*/
+
+#pragma kernel ColourMesh 0
+
+// Buffer for storing the vertices
+RWStructuredBuffer<float3> VertexBuffer;
+
+// Buffer for storing the colours
+RWStructuredBuffer<float4> ColourBuffer;
+
+int map_width;
+int map_height;
+
+float min_height;
+float max_height;
+
+int vertices_buffer_length; // Total length of the vertex buffer
+
+// Function to interpolate colour based on height
+float4 InterpolateColor(float value, float min, float max)
+{
+    const float t = (value - min) / (max - min);
+    return lerp(float4(0, 0, 0, 1), float4(1, 1, 1, 1), t); // Black to white gradient
+}
+
+[numthreads(8, 8, 1)]
+void ColourMesh(uint3 id : SV_DispatchThreadID)
+{
+    // Calculate the index based on the thread ID
+    const int index = id.y * map_width + id.x;
+
+    // Prevent out-of-bounds access
+    if (index >= vertices_buffer_length)
+    {
+        return; // Exit early to avoid errors
+    }
+
+    // Get the height of the vertex
+    const float height = VertexBuffer[index].y;
+
+    // Calculate the interpolated color
+    const float4 colour = InterpolateColor(height, min_height, max_height);
+
+    // Store the color in the ColorBuffer
+    ColourBuffer[index] = colour;
+}

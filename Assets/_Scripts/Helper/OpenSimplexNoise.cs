@@ -528,9 +528,9 @@ namespace _Scripts.Helper
         {
             public readonly double dx;
             public readonly double dy;
-            public Contribution2 Next;
             public readonly int xsb;
             public readonly int ysb;
+            public Contribution2 Next;
 
             public Contribution2(double multiplier, int xsb, int ysb)
             {
@@ -546,10 +546,10 @@ namespace _Scripts.Helper
             public readonly double dx;
             public readonly double dy;
             public readonly double dz;
-            public Contribution3 Next;
             public readonly int xsb;
             public readonly int ysb;
             public readonly int zsb;
+            public Contribution3 Next;
 
             public Contribution3(double multiplier, int xsb, int ysb, int zsb)
             {
@@ -564,15 +564,15 @@ namespace _Scripts.Helper
 
         private class Contribution4
         {
+            public readonly double dw;
             public readonly double dx;
             public readonly double dy;
             public readonly double dz;
-            public readonly double dw;
-            public Contribution4 Next;
+            public readonly int wsb;
             public readonly int xsb;
             public readonly int ysb;
             public readonly int zsb;
-            public readonly int wsb;
+            public Contribution4 Next;
 
             public Contribution4(double multiplier, int xsb, int ysb, int zsb, int wsb)
             {

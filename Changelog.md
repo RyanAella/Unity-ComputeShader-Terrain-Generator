@@ -5,6 +5,8 @@
 
 ## Added
 - Clamping height values (On GPU)
+- Coloring based on height (On GPU)
+  - Lerp between black and white
 
 
 ## [0.4.0] - 2024-05-01

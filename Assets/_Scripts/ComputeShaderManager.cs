@@ -25,7 +25,7 @@ namespace _Scripts
 
         private ComputeBuffer _localMinMaxBuffer;
         private ComputeBuffer _globalMinMaxBuffer;
-        
+
         private ComputeBuffer _clampedVerticesBuffer;
 
         // Shader property IDs
@@ -46,7 +46,7 @@ namespace _Scripts
         private static readonly int LocalMinMaxBuffer = Shader.PropertyToID("LocalMinMaxBuffer");
         private static readonly int GlobalMinMaxBuffer = Shader.PropertyToID("GlobalMinMaxBuffer");
         private static readonly int ClampedVertexBuffer = Shader.PropertyToID("ClampedBuffer");
-        
+
         #endregion
 
         #region Methods
@@ -74,9 +74,10 @@ namespace _Scripts
         {
             _verticesBuffer.Release();
             _trianglesBuffer.Release();
-            
+
             _localMinMaxBuffer.Release();
             _globalMinMaxBuffer.Release();
+            _clampedVerticesBuffer.Release();
         }
 
         /// <summary>
@@ -87,11 +88,11 @@ namespace _Scripts
         /// <param name="noiseSettings"></param>
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
-        public void GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
+        public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
             NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles)
         {
             if (noiseSettings.noiseScale <= 0) noiseSettings.noiseScale = 0.0001f;
-            
+
             // Find the kernel in the compute shader.
             var noiseKernel = computeShader.FindKernel("NoiseGenerator");
 
@@ -120,16 +121,20 @@ namespace _Scripts
             // Retrieve the generated vertices and triangles from the compute buffers.
             _verticesBuffer.GetData(vertices);
             _trianglesBuffer.GetData(triangles);
+            
+            float[] minMax = CompareHeightValues(resolution, computeShader, vertices);
 
-            var minMax = CompareHeightValues(resolution, computeShader, vertices);
+            // ClampHeightValues(computeShader, resolution, vertices, minMax);
+            //
+            // float[] clampedMinMax = CompareHeightValues(resolution, computeShader, vertices);
 
-            ClampHeightValues(computeShader, resolution, vertices, minMax);
+            return minMax;
         }
 
         private float[] CompareHeightValues(Vector2Int resolution, ComputeShader computeShader, Vector3[] vertices)
         {
             var localMinMax = ComputeLocalMinMax(resolution, computeShader, vertices);
-            
+
             return ComputeGlobalMinMax(resolution, computeShader, localMinMax);
         }
 
@@ -148,16 +153,16 @@ namespace _Scripts
 
             computeShader.SetBuffer(computeLocal, LocalMinMaxBuffer, _localMinMaxBuffer);
 
-            int dispatchX = Mathf.Max(1, Mathf.CeilToInt((float)resolution.x / 8));
-            int dispatchY = Mathf.Max(1, Mathf.CeilToInt((float)resolution.y / 8));
+            var dispatchX = Mathf.Max(1, Mathf.CeilToInt((float)resolution.x / 8));
+            var dispatchY = Mathf.Max(1, Mathf.CeilToInt((float)resolution.y / 8));
 
             computeShader.Dispatch(computeLocal, dispatchX, dispatchY, 1);
 
-            float[] localMinMax = new float[2];
+            var localMinMax = new float[2];
             _localMinMaxBuffer.GetData(localMinMax);
             return localMinMax;
         }
-        
+
         private float[] ComputeGlobalMinMax(Vector2Int resolution, ComputeShader computeShader, float[] localMinMax)
         {
             var computeGlobal = computeShader.FindKernel("ComputeGlobalMinMax");
@@ -173,41 +178,42 @@ namespace _Scripts
 
             computeShader.Dispatch(computeGlobal, 1, 1, 1);
 
-            float[] globalMinMax = new float[2];
+            var globalMinMax = new float[2];
             _globalMinMaxBuffer.GetData(globalMinMax);
 
             return globalMinMax;
         }
 
-        private void ClampHeightValues(ComputeShader computeShader, Vector2Int resolution, Vector3[] vertices, float[] minMax)
+        private void ClampHeightValues(ComputeShader computeShader, Vector2Int resolution, Vector3[] vertices,
+            float[] minMax)
         {
             var clampKernel = computeShader.FindKernel("ClampHeightValues");
-            
+
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
-            
+
             _globalMinMaxBuffer.SetData(minMax);
             computeShader.SetBuffer(clampKernel, GlobalMinMaxBuffer, _globalMinMaxBuffer);
-            
+
             _verticesBuffer.SetData(vertices);
             computeShader.SetBuffer(clampKernel, VertexBuffer, _verticesBuffer);
-            
+
             computeShader.SetBuffer(clampKernel, ClampedVertexBuffer, _clampedVerticesBuffer);
-            
+
             // Calculate the number of thread groups to dispatch.
             var dispatchX = Mathf.CeilToInt(resolution.x);
             var dispatchY = Mathf.CeilToInt(resolution.y);
 
             // Dispatch the compute shader to generate the mesh parameters.
             computeShader.Dispatch(clampKernel, dispatchX, dispatchY, 1);
-            
+
             // foreach (var vector3 in vertices)
             // {
             //     Debug.Log("Before Clamp: " + vector3);
             // }
-            
+
             _clampedVerticesBuffer.GetData(vertices);
-            
+
             // foreach (var vector3 in vertices)
             // {
             //     Debug.Log("After Clamp: " + vector3);

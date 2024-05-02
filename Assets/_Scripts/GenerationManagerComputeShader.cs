@@ -31,25 +31,24 @@ namespace _Scripts
 
         [SerializeField] private NoiseSettings noiseSettings;
 
-        [SerializeField] private Gradient colourGradient;
-        [SerializeField] private float maxTerrainHeight = 8;
-
         // Manager for handling compute shader operations and mesh generation.
-        public ComputeShaderManager computeShaderManager;
-        public MeshGenerationManager meshGenerationManager;
+        [SerializeField] private ComputeShaderManager computeShaderManager;
 
-        public ColourGenerator ColourGenerator;
+        [SerializeField] private MeshGenerationManager meshGenerationManager;
 
-        /*[HideInInspector]*/
+        // Public arrays for mesh data.
         public Vector3[] vertices;
-
-        /*[HideInInspector]*/
         public int[] triangles;
 
         // Reference to the MeshFilter component attached to the GameObject.
         private MeshFilter _meshFilter;
 
+        private ColourGenerator _colourGenerator;
+        
+        private float[] _minMax;
+
         #endregion
+
 
         #region Unity Methods
 
@@ -59,7 +58,7 @@ namespace _Scripts
             computeShaderManager = new ComputeShaderManager();
             meshGenerationManager = new MeshGenerationManager();
 
-            ColourGenerator = new ColourGenerator();
+            _colourGenerator = new ColourGenerator();
 
             // Get the MeshFilter component attached to the GameObject.
             _meshFilter = GetComponent<MeshFilter>();
@@ -72,24 +71,24 @@ namespace _Scripts
         {
             // Generate the mesh using the compute shader and the specified resolution.
             vertices = new Vector3[resolution.x * resolution.y];
-            var clamped = new Vector3[resolution.x * resolution.y];
             triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
+            _minMax = new float[2];
             // Use the compute shader to generate mesh parameters (vertices and triangles).
-            computeShaderManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices, triangles);
+            _minMax = computeShaderManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices, triangles);
 
             // Create the mesh using the generated vertices and triangles.
-            var mesh = meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+            meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
 
-            // ColourGenerator.InitializeBuffers(mesh.vertexCount);
-            // ColourGenerator.AssignColor(colourShader, resolution, colourGradient, mesh, maxTerrainHeight);
+            // Debug.Log(_minMax[0] + " " + _minMax[1]);
+            _colourGenerator.ColourMesh(colourShader, _meshFilter, resolution, _minMax);
         }
 
         private void OnDestroy()
         {
             // Release the compute buffers when the GameObject is destroyed.
             computeShaderManager.ReleaseBuffers();
-            // ColourGenerator.ReleaseBuffers();
+            _colourGenerator.ReleaseBuffers();
         }
 
         #endregion
