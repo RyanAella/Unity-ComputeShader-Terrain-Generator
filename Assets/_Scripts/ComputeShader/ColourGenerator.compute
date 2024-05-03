@@ -44,8 +44,39 @@ void ColourMesh(uint3 id : SV_DispatchThreadID)
     const float height = VertexBuffer[index].y;
 
     // Calculate the interpolated color
-    const float4 colour = InterpolateColor(height, min_height, max_height);
+    // const float4 colour = InterpolateColor(height, min_height, max_height);
 
+    // Normalisiere die y-Koordinate zwischen 0 und 1
+    float normalizedY = (height - min_height) / (max_height - min_height);
+
+    // // Bestimme Rot- und Grüntöne basierend auf dem normalisierten y-Wert
+    // float red = normalizedY;  // Rottöne werden heller, je höher die y-Koordinate ist
+    // float green = 1.0f - normalizedY; // Grüntöne werden dunkler, je höher die y-Koordinate ist
+    //
+    // // Erzeuge die Farbe basierend auf Rot- und Grünwerten
+    // float4 colour = float4(red, green, 0.0f, 1.0f);
+
+    // Definiere die vier Farben
+    float4 colorStart = float4(0.0, 0.0, 1.0, 1.0); // Blau
+    float4 colorSecond = float4(0.0, 1.0, 0.0, 1.0); // Grün
+    float4 colorThird = float4(1.0, 1.0, 0.0, 1.0); // Gelb
+    float4 colorEnd = float4(1.0, 0.0, 0.0, 1.0);  // Rot
+
+    float4 color;
+    if (normalizedY < 0.33f) {
+        // Übergang von Blau zu Grün
+        float t = normalizedY / 0.33f; // Scale normalizedY to 0-1 for this range
+        color = lerp(colorStart, colorSecond, t);
+    } else if (normalizedY < 0.66f) {
+        // Übergang von Grün zu Gelb
+        float t = (normalizedY - 0.33f) / 0.33f; // Scale normalizedY for this range
+        color = lerp(colorSecond, colorThird, t);
+    } else {
+        // Übergang von Gelb zu Rot
+        float t = (normalizedY - 0.66f) / 0.34f; // Adjust for the last range
+        color = lerp(colorThird, colorEnd, t);
+    }
+    
     // Store the color in the ColorBuffer
-    ColourBuffer[index] = colour;
+    ColourBuffer[index] = color;
 }

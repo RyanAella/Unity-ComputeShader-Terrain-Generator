@@ -1,6 +1,12 @@
 # Changelog Unity Compute Shader Terrain Generator
 
 
+[0.6.0] - 2024-05-03
+
+## Changed
+- Coloring with different colors (4 right now)
+
+
 [0.5.0] - 2024-05-02
 
 ## Added
