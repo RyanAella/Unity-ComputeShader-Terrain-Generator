@@ -10,7 +10,7 @@ namespace _Scripts
 {
     using UnityEngine;
 
-    public class ColourGenerator
+    public class ColourGenerationManager
     {
         private ComputeBuffer _vertexBuffer;
         private ComputeBuffer _colorBuffer;

@@ -1,65 +1,51 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.7.0] - 2024-05-05
+### Added
+- New script `GeneratorFunctions.cs` for helper functions
 
-[0.6.0] - 2024-05-03
+### Changed
+- The content of `ComputeShaderManager.cs` has been integrated into `MeshGenerationManager.cs`.
+- The functions `CompareHeightValues()` and `ClampHeightValues()` have been moved to `GeneratorFunctions.cs`.
+- Several scripts have been renamed for clarity and consistency.
 
-## Changed
-- Coloring with different colors (4 right now)
+## [0.6.0] - 2024-05-03
+### Changed
+- Color coding updated with four distinct colors.
+- For more details, check out this [video](https://youtu.be/Qzao8N6YlFs).
 
-
-[0.5.0] - 2024-05-02
-
-## Added
-- Clamping height values (On GPU)
-- Coloring based on height (On GPU)
-  - Lerp between black and white
-
+## [0.5.0] - 2024-05-02
+### Added
+- Height clamping (on the GPU) to ensure consistent terrain.
+- Color coding based on height, with linear interpolation between black and white.
 
 ## [0.4.0] - 2024-05-01
-
-## Added
-- Compare vertices and get min and max height value (On GPU)
-
+### Added
+- Added a function to compare vertices and determine minimum and maximum height values (on the GPU).
 
 ## [0.3.0] - 2024-04-30
-
-## Added
-- NoiseSettings.cs
-  - noise_scale
-  - octaves
-  - Persistence
-  - Lacunarity
-
+### Added
+- New script `NoiseSettings.cs` with customizable parameters:
+  - `noise_scale`, `octaves`, `persistence`, and `lacunarity`.
 
 ## [0.2.0] - 2024-04-29
-
-## Added
-- Code Comments
-
-## Changed
-- Vertex and Triangle generation now runs on the GPU
-- Code Refactoring and Cleanup
-
+### Added
+- Code comments to improve readability and maintainability.
+### Changed
+- Vertex and triangle generation now runs on the GPU.
+- Refactoring and code cleanup for better performance.
 
 ## [0.1.0] - 2024-04-26
+### Added
+- Added `OpenSimplexNoise.cs` from [source](https://gist.github.com/digitalshadow/134a3a02b67cecd72181).
+- New script for mesh generation with Compute Shader.
+- Additional scripts, including `GenerationManagerComputeShader`, `ComputeShaderManager.cs`, `MeshGenerator.cs`, and `MeshGenerator.compute`.
+- URP integration for better rendering support.
 
-## Added
-- OpenSimplexNoise.cs from https://gist.github.com/digitalshadow/134a3a02b67cecd72181
-- GenerationManagerComputeShader.cs - mesh generation with Compute Shader
-- ComputeShaderManager.cs
-- MeshGenerator.cs
-- MeshGenerator.compute
-- URP Integration
-
-## Changed
-- GenerationManager.cs -> GenerationManagerCPU.cs
-
+### Changed
+- `GenerationManager.cs` renamed to `GenerationManagerCPU.cs` for clarity.
 
 ## [0.0.0] - 2024-04-17
-
-## Added
-- Git repository
-- .gitignore
-- README.md
-- Gantt diagram
-- Changelog.md
+### Added
+- Git repository setup with initial configurations.
+- `.gitignore`, `README.md`, Gantt diagram, and `Changelog.md`.
