@@ -35,6 +35,13 @@ namespace _Scripts
         // [SerializeField] private ComputeShaderManager computeShaderManager;
 
         [SerializeField] private MeshGenerationManager meshGenerationManager;
+        
+        [SerializeField] private Vector4 colorStart;
+        [SerializeField] private Vector4 colorSecond;
+        [SerializeField] private Vector4 colorThird;
+        [SerializeField] private Vector4 colorEnd;
+        
+        [SerializeField] private Gradient colour;
 
         // Public arrays for mesh data.
         public Vector3[] vertices;
@@ -66,7 +73,6 @@ namespace _Scripts
             // Initialize the compute buffers with the specified resolution.
             meshGenerationManager.InitializeBuffers(resolution);
         }
-
         private void Start()
         {
             // Generate the mesh using the compute shader and the specified resolution.
@@ -80,8 +86,29 @@ namespace _Scripts
             // Create the mesh using the generated vertices and triangles.
             meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
 
+            // // Definieren Sie die Farben als Vector4
+            // Vector4 colorStart = new Vector4(0.0f, 0.0f, 1.0f, 1.0f); // Blau
+            // Vector4 colorSecond = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Grün
+            // Vector4 colorThird = new Vector4(1.0f, 1.0f, 0.0f, 1.0f); // Gelb
+            // Vector4 colorEnd = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);  // Rot
+
+            // Farbpalette als Array erstellen
+            // Vector4[] colourPalette = new Vector4[4];
+            // colourPalette[0] = colorStart;
+            // colourPalette[1] = colorSecond;
+            // colourPalette[2] = colorThird;
+            // colourPalette[3] = colorEnd;
+            
+            Vector4[] colourPalette = new Vector4[colour.colorKeys.Length];
+
+            for (int i = 0; i < colour.colorKeys.Length; i++)
+            {
+                Color c = colour.colorKeys[i].color;
+                colourPalette[i] = new Vector4(c.r, c.g, c.b, c.a);
+            }
+            
             // Debug.Log(_minMax[0] + " " + _minMax[1]);
-            _colourGenerationManager.ColourMesh(colourShader, _meshFilter, resolution, _minMax);
+            _colourGenerationManager.ColourMesh(colourShader, _meshFilter, resolution, _minMax, colourPalette);
         }
 
         private void OnDestroy()

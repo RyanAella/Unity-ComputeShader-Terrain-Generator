@@ -12,6 +12,9 @@ RWStructuredBuffer<float3> VertexBuffer;
 
 // Buffer for storing the colours
 RWStructuredBuffer<float4> ColourBuffer;
+RWStructuredBuffer<float4> ColourPaletteBuffer;
+
+int colour_count;
 
 int map_width;
 int map_height;
@@ -56,26 +59,55 @@ void ColourMesh(uint3 id : SV_DispatchThreadID)
     // // Erzeuge die Farbe basierend auf Rot- und Grünwerten
     // float4 colour = float4(red, green, 0.0f, 1.0f);
 
-    // Definiere die vier Farben
-    float4 colorStart = float4(0.0, 0.0, 1.0, 1.0); // Blau
-    float4 colorSecond = float4(0.0, 1.0, 0.0, 1.0); // Grün
-    float4 colorThird = float4(1.0, 1.0, 0.0, 1.0); // Gelb
-    float4 colorEnd = float4(1.0, 0.0, 0.0, 1.0);  // Rot
+    // // Definiere die vier Farben
+    // float4 colorStart = float4(0.0, 0.0, 1.0, 1.0); // Blau
+    // float4 colorSecond = float4(0.0, 1.0, 0.0, 1.0); // Grün
+    // float4 colorThird = float4(1.0, 1.0, 0.0, 1.0); // Gelb
+    // float4 colorEnd = float4(1.0, 0.0, 0.0, 1.0);  // Rot
+    //
+    // int colour_count = 4;
+    //
+    // ColourPaletteBuffer[0] = colorStart;
+    // ColourPaletteBuffer[1] = colorSecond;
+    // ColourPaletteBuffer[2] = colorThird;
+    // ColourPaletteBuffer[3] = colorEnd;
+    
 
     float4 color;
-    if (normalizedY < 0.33f) {
-        // Übergang von Blau zu Grün
-        float t = normalizedY / 0.33f; // Scale normalizedY to 0-1 for this range
-        color = lerp(colorStart, colorSecond, t);
-    } else if (normalizedY < 0.66f) {
-        // Übergang von Grün zu Gelb
-        float t = (normalizedY - 0.33f) / 0.33f; // Scale normalizedY for this range
-        color = lerp(colorSecond, colorThird, t);
-    } else {
-        // Übergang von Gelb zu Rot
-        float t = (normalizedY - 0.66f) / 0.34f; // Adjust for the last range
-        color = lerp(colorThird, colorEnd, t);
+    // if (normalizedY < 0.33f) {
+    //     // Übergang von Blau zu Grün
+    //     float t = normalizedY / 0.33f; // Scale normalizedY to 0-1 for this range
+    //     color = lerp(colorStart, colorSecond, t);
+    // } else if (normalizedY < 0.66f) {
+    //     // Übergang von Grün zu Gelb
+    //     float t = (normalizedY - 0.33f) / 0.33f; // Scale normalizedY for this range
+    //     color = lerp(colorSecond, colorThird, t);
+    // } else {
+    //     // Übergang von Gelb zu Rot
+    //     float t = (normalizedY - 0.66f) / 0.34f; // Adjust for the last range
+    //     color = lerp(colorThird, colorEnd, t);
+    // }
+
+    // Durchlaufe alle Bereiche zwischen den Farben
+    for (int i = 0; i < colour_count - 1; i++)
+    {
+        // Berechne den Start- und Endpunkt des Interpolationsbereichs
+        float range_start = float(i) / (colour_count - 1);
+        float range_end = float(i + 1) / (colour_count - 1);
+
+        // Überprüfen, ob der normalisierte Y-Wert in diesem Bereich liegt
+        if (normalizedY >= range_start && normalizedY <= range_end)
+        {
+            // Berechne den Interpolationsfaktor innerhalb des Bereichs
+            float interpolation_factor = (normalizedY - range_start) / (range_end - range_start);
+
+            // Interpolieren zwischen zwei benachbarten Farben im Buffer
+            color = lerp(ColourPaletteBuffer[i], ColourPaletteBuffer[i + 1], interpolation_factor);
+            break; // Schleife verlassen, wenn der Bereich gefunden wurde
+        }
     }
+
+    
     
     // Store the color in the ColorBuffer
     ColourBuffer[index] = color;

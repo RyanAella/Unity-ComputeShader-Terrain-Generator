@@ -8,16 +8,17 @@
 - The content of `ComputeShaderManager.cs` has been integrated into `MeshGenerationManager.cs`.
 - The functions `CompareHeightValues()` and `ClampHeightValues()` have been moved to `GeneratorFunctions.cs`.
 - Several scripts have been renamed for clarity and consistency.
+- Colour coding is now dynamic and uses Gradient.
 
 ## [0.6.0] - 2024-05-03
 ### Changed
-- Color coding updated with four distinct colors.
+- Colour coding updated with four distinct colours.
 - For more details, check out this [video](https://youtu.be/Qzao8N6YlFs).
 
 ## [0.5.0] - 2024-05-02
 ### Added
 - Height clamping (on the GPU) to ensure consistent terrain.
-- Color coding based on height, with linear interpolation between black and white.
+- Colour coding based on height, with linear interpolation between black and white.
 
 ## [0.4.0] - 2024-05-01
 ### Added
