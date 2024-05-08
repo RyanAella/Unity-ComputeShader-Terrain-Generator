@@ -1,5 +1,11 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.8.0] - 2024-05-07
+### Added
+- Editor script for controlling the mesh generation process through the Unity Inspector, 
+  allowing updates without needing to enter Play mode.
+
+
 ## [0.7.0] - 2024-05-05
 ### Added
 - New script `GeneratorFunctions.cs` for helper functions
