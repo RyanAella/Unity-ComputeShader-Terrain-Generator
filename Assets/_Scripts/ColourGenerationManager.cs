@@ -6,6 +6,8 @@
  */
 
 
+using System.Collections.Generic;
+
 namespace _Scripts
 {
     using UnityEngine;
@@ -17,49 +19,57 @@ namespace _Scripts
         
         private ComputeBuffer _colourPaletteBuffer;
         
-        private static readonly int VertexBuffer = Shader.PropertyToID("VertexBuffer");
-        private static readonly int ColourBuffer = Shader.PropertyToID("ColourBuffer");
+        private static readonly int VertexBuffer = Shader.PropertyToID("Vertex_Buffer");
+        private static readonly int ColourBuffer = Shader.PropertyToID("Colour_Buffer");
         private static readonly int MapWidth = Shader.PropertyToID("map_width");
         private static readonly int MapHeight = Shader.PropertyToID("map_height");
         private static readonly int MinHeight = Shader.PropertyToID("min_height");
         private static readonly int MaxHeight = Shader.PropertyToID("max_height");
         private static readonly int VerticesBufferLength = Shader.PropertyToID("vertices_buffer_length");
-        private static readonly int ColourPaletteBuffer = Shader.PropertyToID("ColourPaletteBuffer");
+        private static readonly int ColourPaletteBuffer = Shader.PropertyToID("Colour_Palette_Buffer");
         private static readonly int ColourCount = Shader.PropertyToID("colour_count");
 
         public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution, float[] minMax, Vector4[] colourPalette)
         {
             // Get the Mesh from the MeshFilter
-            Mesh mesh = meshFilter.mesh;
+            Mesh mesh = meshFilter.sharedMesh;
 
             // Get the vertices from the Mesh
             Vector3[] vertices = mesh.vertices;
 
-            InitializeBuffers(vertices);
+            int colourCount = colourPalette.Length;
+
+            InitializeBuffers(vertices, colourCount);
 
             // Set the data for the vertex buffer
             _vertexBuffer.SetData(vertices);
 
+            // for (int i = 0; i < vertices.Length; i++)
+            // {
+            //     Debug.Log("Height: " + vertices[i].y);
+            // }
+
             // Find the kernel and set the buffers
-            int kernel = computeShader.FindKernel("ColourMesh");
+            int kernel = computeShader.FindKernel("Colour_Mesh");
             computeShader.SetBuffer(kernel, VertexBuffer, _vertexBuffer);
             computeShader.SetBuffer(kernel, ColourBuffer, _colorBuffer);
             
             _colourPaletteBuffer.SetData(colourPalette);
             computeShader.SetBuffer(kernel, ColourPaletteBuffer, _colourPaletteBuffer);
-            computeShader.SetInt(ColourCount, 4);
+            computeShader.SetInt(ColourCount, colourCount);
 
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
             
             // Set the height parameters for the gradient
+            
             computeShader.SetFloat(MinHeight, minMax[0]);
             computeShader.SetFloat(MaxHeight, minMax[1]);
             
             computeShader.SetInt(VerticesBufferLength, resolution.x * resolution.y);
 
             // Dispatch the Compute Shader
-            computeShader.Dispatch(kernel, vertices.Length / 8, 1, 1);
+            computeShader.Dispatch(kernel, resolution.x / 8, resolution.y / 8, 1);
 
             // Get the colors from the Compute Shader
             Color[] colors = new Color[vertices.Length];
@@ -71,13 +81,13 @@ namespace _Scripts
             meshFilter.mesh = meshFilter.sharedMesh = mesh;
         }
 
-        private void InitializeBuffers(Vector3[] vertices)
+        private void InitializeBuffers(IReadOnlyCollection<Vector3> vertices, int colourCount)
         {
             // Create a ComputeBuffer for vertices and another for colors
-            _vertexBuffer = new ComputeBuffer(vertices.Length, sizeof(float) * 3);
-            _colorBuffer = new ComputeBuffer(vertices.Length, sizeof(float) * 4); // RGBA
+            _vertexBuffer = new ComputeBuffer(vertices.Count, sizeof(float) * 3);
+            _colorBuffer = new ComputeBuffer(vertices.Count, sizeof(float) * 4); // RGBA
 
-            _colourPaletteBuffer = new ComputeBuffer(4, sizeof(float) * 4);
+            _colourPaletteBuffer = new ComputeBuffer(colourCount, sizeof(float) * 4);
         }
 
         public void ReleaseBuffers()

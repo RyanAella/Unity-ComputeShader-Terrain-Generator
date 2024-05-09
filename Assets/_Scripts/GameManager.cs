@@ -31,67 +31,43 @@ namespace _Scripts
 
         [SerializeField] private NoiseSettings noiseSettings;
 
-        // Manager for handling compute shader operations and mesh generation.
-        // [SerializeField] private ComputeShaderManager computeShaderManager;
-
-        [SerializeField] private MeshGenerationManager meshGenerationManager;
-
-        [SerializeField] private Vector4 colorStart;
-        [SerializeField] private Vector4 colorSecond;
-        [SerializeField] private Vector4 colorThird;
-        [SerializeField] private Vector4 colorEnd;
-
         [SerializeField] private Gradient colour;
 
+        // public bool autoUpdate;
+
         // Public arrays for mesh data.
-        public Vector3[] vertices;
-        public int[] triangles;
+        [HideInInspector] public Vector3[] vertices;
+        [HideInInspector] public int[] triangles;
 
         // Reference to the MeshFilter component attached to the GameObject.
         private MeshFilter _meshFilter;
 
+        private MeshGenerationManager _meshGenerationManager;
         private ColourGenerationManager _colourGenerationManager;
 
         private float[] _minMax;
 
         #endregion
 
-
         #region Unity Methods
-
-        private void Awake()
-        {
-            // Initialize the compute shader manager and mesh generation manager.
-            // computeShaderManager = new ComputeShaderManager();
-            meshGenerationManager = new MeshGenerationManager();
-
-            _colourGenerationManager = new ColourGenerationManager();
-
-            // Get the MeshFilter component attached to the GameObject.
-            _meshFilter = GetComponent<MeshFilter>();
-
-            // Initialize the compute buffers with the specified resolution.
-            meshGenerationManager.InitializeBuffers(resolution);
-        }
 
         private void Start()
         {
             bool meshGenerated = GenerateMesh();
-
+        
             ColourMesh(meshGenerated);
         }
 
         public bool GenerateMesh()
         {
             // Initialize the compute shader manager and mesh generation manager.
-            // computeShaderManager = new ComputeShaderManager();
-            meshGenerationManager = new MeshGenerationManager();
+            _meshGenerationManager = new MeshGenerationManager();
 
             // Get the MeshFilter component attached to the GameObject.
             _meshFilter = GetComponent<MeshFilter>();
 
             // Initialize the compute buffers with the specified resolution.
-            meshGenerationManager.InitializeBuffers(resolution);
+            _meshGenerationManager.InitializeBuffers(resolution);
 
             // Generate the mesh using the compute shader and the specified resolution.
             vertices = new Vector3[resolution.x * resolution.y];
@@ -99,11 +75,13 @@ namespace _Scripts
 
             _minMax = new float[2];
             // Use the compute shader to generate mesh parameters (vertices and triangles).
-            _minMax = meshGenerationManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices,
+            _minMax = _meshGenerationManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices,
                 triangles);
 
             // Create the mesh using the generated vertices and triangles.
-            meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+            _meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+            
+            _meshGenerationManager.ReleaseBuffers();
 
             return true;
         }
@@ -112,40 +90,26 @@ namespace _Scripts
         {
             _colourGenerationManager = new ColourGenerationManager();
 
-            if (meshGenerated == true)
+            if (!meshGenerated) return;
+            Vector4[] colourPalette = new Vector4[colour.colorKeys.Length];
+
+            for (int i = 0; i < colour.colorKeys.Length; i++)
             {
-                // // Definieren Sie die Farben als Vector4
-                // Vector4 colorStart = new Vector4(0.0f, 0.0f, 1.0f, 1.0f); // Blau
-                // Vector4 colorSecond = new Vector4(0.0f, 1.0f, 0.0f, 1.0f); // Grün
-                // Vector4 colorThird = new Vector4(1.0f, 1.0f, 0.0f, 1.0f); // Gelb
-                // Vector4 colorEnd = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);  // Rot
-
-                // Farbpalette als Array erstellen
-                // Vector4[] colourPalette = new Vector4[4];
-                // colourPalette[0] = colorStart;
-                // colourPalette[1] = colorSecond;
-                // colourPalette[2] = colorThird;
-                // colourPalette[3] = colorEnd;
-
-                Vector4[] colourPalette = new Vector4[colour.colorKeys.Length];
-
-                for (int i = 0; i < colour.colorKeys.Length; i++)
-                {
-                    Color c = colour.colorKeys[i].color;
-                    colourPalette[i] = new Vector4(c.r, c.g, c.b, c.a);
-                }
-
-                // Debug.Log(_minMax[0] + " " + _minMax[1]);
-                _colourGenerationManager.ColourMesh(colourShader, _meshFilter, resolution, _minMax, colourPalette);
+                Color c = colour.colorKeys[i].color;
+                colourPalette[i] = new Vector4(c.r, c.g, c.b, c.a);
             }
-        }
 
-        private void OnDestroy()
-        {
-            // Release the compute buffers when the GameObject is destroyed.
-            meshGenerationManager.ReleaseBuffers();
+            _colourGenerationManager.ColourMesh(colourShader, _meshFilter, resolution, _minMax, colourPalette);
+            
             _colourGenerationManager.ReleaseBuffers();
         }
+
+        // private void OnDestroy()
+        // {
+        //     // Release the compute buffers when the GameObject is destroyed.
+        //     _meshGenerationManager.ReleaseBuffers();
+        //     _colourGenerationManager.ReleaseBuffers();
+        // }
 
         #endregion
     }

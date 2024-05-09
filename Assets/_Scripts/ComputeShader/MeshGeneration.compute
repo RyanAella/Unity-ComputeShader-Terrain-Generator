@@ -5,18 +5,23 @@
 * License: Licence
 */
 
-#pragma kernel NoiseGenerator 0
-#pragma kernel ComputeLocalMinMax 1
-#pragma kernel ComputeGlobalMinMax 2
-#pragma kernel ClampHeightValues 3
+#pragma kernel Noise_Generator 0
+#pragma kernel Compute_Local_Min_Max 1
+#pragma kernel Compute_Global_Min_Max 2
+#pragma kernel Clamp_Height_Values 3
+#pragma kernel CSMain 4
 
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
+
+#define FLT_MAX 3.402823466e+38
+#define FLT_MIN 1.175494351e-38
 
 // Unsigned integer variables for map dimensions.
 uint map_width; // Width of the noise map
 uint map_height; // Height of the noise map
 
 // Noise generation parameters.
+float seed_offset;
 float noise_scale; // Scale of the noise
 float noise_height; // Height factor for the noise
 int octaves; // Number of noise octaves
@@ -30,14 +35,16 @@ float float_min_value; // Minimum float value
 float float_max_value; // Maximum float value
 
 // Read-write structured buffers for noise data and mesh information.
-RWStructuredBuffer<float3> VertexBuffer; // Stores the vertices of the mesh
-RWStructuredBuffer<int> TriangleBuffer; // Stores the indices for mesh triangles
-RWStructuredBuffer<float2> LocalMinMaxBuffer; // Buffer to store local Min/Max values
-RWStructuredBuffer<float> GlobalMinMaxBuffer; // Buffer to store global Min/Max values
-RWStructuredBuffer<float3> ClampedBuffer; // Stores clamped vertex data
+RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
+RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
+RWStructuredBuffer<float2> _Local_Min_Max_Buffer; // Buffer to store local Min/Max values
+RWStructuredBuffer<float> _Global_Min_Max_Buffer; // Buffer to store global Min/Max values
+RWStructuredBuffer<float3> _Clamped_Buffer; // Stores clamped vertex data
+
+RWStructuredBuffer<float> Output_Buffer;
 
 // Helper function for linear interpolation.
-float inverseLerp(float from, float to, float value)
+float inverse_lerp(const float from, const float to, const float value)
 {
     if (from == to)
     {
@@ -47,8 +54,8 @@ float inverseLerp(float from, float to, float value)
 }
 
 // Main kernel for noise generation.
-[numthreads(8, 8, 1)]
-void NoiseGenerator(uint3 id : SV_DispatchThreadID)
+[numthreads(16, 16, 1)]
+void Noise_Generator(uint3 id : SV_DispatchThreadID)
 {
     // Ensure the thread ID is within the map dimensions.
     if (id.x >= map_width || id.y >= map_height)
@@ -65,17 +72,21 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
 
         const int vertex_index = id.y * map_width + id.x; // Calculate vertex index
 
+        const float sample_x = (id.x + seed_offset) * noise_scale;
+        const float sample_y = (id.y + seed_offset) * noise_scale;
+
         // Loop through octaves to generate noise.
         for (int o = 0; o < octaves; o++)
         {
             // Calculate UV coordinates for noise generation.
-            const float2 uv = float2(id.x / noise_scale * frequency, id.y / noise_scale * frequency) / float2(
-                map_width, map_height);
+            // const float2 uv = float2(id.x / noise_scale * frequency, id.y / noise_scale * frequency) / float2(
+            //     map_width, map_height);
+            const float2 uv = float2(sample_x * frequency, sample_y * frequency) / float2(map_width, map_height);
 
             // Generate Simplex noise and add to the accumulated value.
             value += amplitude * SimplexNoise(uv);
 
-            // Adjust amplitude and frequency for the next octave.
+            // Increase the amplitude and frequency for the next octave to get more variation in noise values.
             amplitude *= persistence;
             frequency *= lacunarity;
         }
@@ -86,7 +97,7 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
         const float3 vertex = float3(id.x, height, id.y);
 
         // Store the vertex in the VertexBuffer.
-        VertexBuffer[vertex_index] = vertex;
+        _Vertex_Buffer[vertex_index] = vertex;
     }
 
     // Generate triangles if within the map bounds minus one (to avoid out-of-bounds indices).
@@ -94,16 +105,16 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
     {
         const int index = (id.y * (map_width - 1) + id.x) * 6; // Base index for triangles
 
-        const int vertexIndex = id.y * map_width + id.x; // Base index for vertices
+        const int vertex_index = id.y * map_width + id.x; // Base index for vertices
 
         // Store the indices for the two triangles that make up each grid cell.
-        TriangleBuffer[index + 0] = vertexIndex + 0;
-        TriangleBuffer[index + 1] = vertexIndex + map_width;
-        TriangleBuffer[index + 2] = vertexIndex + 1;
+        _Triangle_Buffer[index + 0] = vertex_index + 0;
+        _Triangle_Buffer[index + 1] = vertex_index + map_width;
+        _Triangle_Buffer[index + 2] = vertex_index + 1;
 
-        TriangleBuffer[index + 3] = vertexIndex + 1;
-        TriangleBuffer[index + 4] = vertexIndex + map_width;
-        TriangleBuffer[index + 5] = vertexIndex + map_width + 1;
+        _Triangle_Buffer[index + 3] = vertex_index + 1;
+        _Triangle_Buffer[index + 4] = vertex_index + map_width;
+        _Triangle_Buffer[index + 5] = vertex_index + map_width + 1;
     }
 }
 
@@ -134,8 +145,8 @@ void NoiseGenerator(uint3 id : SV_DispatchThreadID)
 // }
 
 // Kernel for computing local Min/Max values
-[numthreads(8, 8, 1)] // Thread group size (8x8x1)
-void ComputeLocalMinMax(uint3 id : SV_DispatchThreadID)
+[numthreads(16, 16, 1)] // Thread group size (8x8x1)
+void Compute_Local_Min_Max(uint3 id : SV_DispatchThreadID)
 {
     // Calculate the index based on the thread ID
     const int index = id.y * map_width + id.x;
@@ -151,13 +162,13 @@ void ComputeLocalMinMax(uint3 id : SV_DispatchThreadID)
     float max = float_min_value;
 
     // Calculate local Min/Max within the thread group
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 16; ++i)
     {
         // Ensure the index is within bounds
         if (index + i < vertices_buffer_length)
         {
             // Get the 'y' coordinate from the VertexBuffer
-            const float value = VertexBuffer[index + i].y;
+            const float value = _Vertex_Buffer[index + i].y;
 
             // Update min and max based on the value
             if (value < min)
@@ -172,12 +183,12 @@ void ComputeLocalMinMax(uint3 id : SV_DispatchThreadID)
     }
 
     // Store the calculated local Min/Max values
-    LocalMinMaxBuffer[index] = float2(min, max);
+    _Local_Min_Max_Buffer[index] = float2(min, max);
 }
 
 // Kernel for computing global Min/Max values from local data
 [numthreads(1, 1, 1)] // Only one thread is needed for global aggregation
-void ComputeGlobalMinMax(uint3 id : SV_DispatchThreadID)
+void Compute_Global_Min_Max(uint3 id : SV_DispatchThreadID)
 {
     // Initialize global Min/Max with extreme values
     float min = float_max_value;
@@ -187,27 +198,64 @@ void ComputeGlobalMinMax(uint3 id : SV_DispatchThreadID)
     for (int i = 0; i < local_min_max_buffer_length; ++i)
     {
         // Retrieve the local Min/Max values
-        float2 minMax = LocalMinMaxBuffer[i];
+        float2 min_max = _Local_Min_Max_Buffer[i];
 
         // Update global Min/Max based on the local values
-        if (minMax.x < min)
+        if (min_max.x < min)
         {
-            min = minMax.x;
+            min = min_max.x;
         }
-        if (minMax.y > max)
+        if (min_max.y > max)
         {
-            max = minMax.y;
+            max = min_max.y;
         }
     }
 
     // Store the global Min/Max values
-    GlobalMinMaxBuffer[0] = min;
-    GlobalMinMaxBuffer[1] = max;
+    _Global_Min_Max_Buffer[0] = min;
+    _Global_Min_Max_Buffer[1] = max;
 }
 
-// Kernel for computing local Min/Max values
+[numthreads(16, 16, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    // Calculate the index based on the thread ID
+    const int index = id.y * map_width + id.x;
+    
+    // Prevent out-of-bounds access
+    if (index >= vertices_buffer_length)
+    {
+        return; // Exit early to avoid errors
+    }
+
+    // Initialize local Min/Max with extreme values
+    float min = FLT_MAX;
+    float max = FLT_MIN;
+
+    // Ensure the index is within bounds
+    if (index < vertices_buffer_length)
+    {
+        // Get the 'y' coordinate from the VertexBuffer
+        float3 vertex = _Vertex_Buffer[index];
+        float y = vertex.y;
+
+        // Update min and max based on the value
+        if (y < min)
+        {
+            min = y;
+        }
+        if (y > max)
+        {
+            max = y;
+        }
+    }
+
+    Output_Buffer[0] = min;
+    Output_Buffer[1] = max;
+}
+
 [numthreads(8, 8, 1)] // Thread group size (8x8x1)
-void ClampHeightValues(uint3 id : SV_DispatchThreadID)
+void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
 {
     // Ensure the thread ID is within the map dimensions.
     if (id.x >= map_width || id.y >= map_height)
@@ -216,8 +264,8 @@ void ClampHeightValues(uint3 id : SV_DispatchThreadID)
     }
 
     // Initialize local Min/Max with extreme values
-    const float min = GlobalMinMaxBuffer[0];
-    const float max = GlobalMinMaxBuffer[1];
+    const float min = _Global_Min_Max_Buffer[0];
+    const float max = _Global_Min_Max_Buffer[1];
 
     if (id.y < map_height)
     {
@@ -226,12 +274,12 @@ void ClampHeightValues(uint3 id : SV_DispatchThreadID)
             // Calculate the index based on the thread ID
             const int index = id.y * map_width + id.x;
 
-            float3 vertex = VertexBuffer[index];
+            float3 vertex = _Vertex_Buffer[index];
 
             // Clamping noise height to normalized range using Min/Max
-            float normalized_height = inverseLerp(min, max, vertex.y);
+            float normalized_height = inverse_lerp(min, max, vertex.y);
 
-            ClampedBuffer[index] = float3(vertex.x, vertex.y, vertex.z);
+            _Clamped_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
         }
     }
 }

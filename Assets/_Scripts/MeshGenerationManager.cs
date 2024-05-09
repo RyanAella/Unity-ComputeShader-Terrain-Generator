@@ -6,6 +6,7 @@
  */
 
 using System;
+using System.Globalization;
 using _Scripts.Helper;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -13,6 +14,12 @@ using UnityEngine.Rendering;
 
 namespace _Scripts
 {
+    public struct MeshData
+    {
+        private Vector3[] _vertices;
+        private int[] _triangles;
+    }
+    
     /// <summary>
     ///     Class for managing mesh generation.
     /// </summary>
@@ -24,17 +31,17 @@ namespace _Scripts
         private ComputeBuffer _verticesBuffer;
         private ComputeBuffer _trianglesBuffer;
 
-
         // Shader property IDs
         private static readonly int MapWidth = Shader.PropertyToID("map_width");
         private static readonly int MapHeight = Shader.PropertyToID("map_height");
+        private static readonly int SeedOffset = Shader.PropertyToID("seed_offset");
         private static readonly int NoiseScale = Shader.PropertyToID("noise_scale");
         private static readonly int NoiseHeight = Shader.PropertyToID("noise_height");
         private static readonly int Octaves = Shader.PropertyToID("octaves");
         private static readonly int Lacunarity = Shader.PropertyToID("lacunarity");
         private static readonly int Persistence = Shader.PropertyToID("persistence");
-        private static readonly int VertexBuffer = Shader.PropertyToID("VertexBuffer");
-        private static readonly int TriangleBuffer = Shader.PropertyToID("TriangleBuffer");
+        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer");
+        private static readonly int TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer");
 
         // Private Mesh object used for storing generated mesh data.
         private Mesh _mesh;
@@ -75,45 +82,57 @@ namespace _Scripts
         public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
             NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles)
         {
-            if (noiseSettings.noiseScale <= 0) noiseSettings.noiseScale = 0.0001f;
-
+            // Ensure the noise scale is not too low to avoid a flat mesh
+            noiseSettings.noiseScale = Mathf.Max(0.1f, noiseSettings.noiseScale);
+        
+            // Check if a random seed is wanted
+            if (noiseSettings.useRandomSeed)
+                noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
+        
+            // Get the coordinates
+            float seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
+        
             // Find the kernel in the compute shader.
-            var noiseKernel = computeShader.FindKernel("NoiseGenerator");
-
+            int noiseKernel = computeShader.FindKernel("Noise_Generator");
+        
             // Set shader properties for map dimensions.
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
-
+        
+            computeShader.SetFloat(SeedOffset, seedOffset);
             computeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
             computeShader.SetFloat(NoiseHeight, noiseSettings.noiseHeight);
-
+        
             computeShader.SetInt(Octaves, noiseSettings.octaves);
             computeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
             computeShader.SetFloat(Persistence, noiseSettings.persistence);
-
+        
             // Set the compute buffers for the vertices and triangles.
             computeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
             computeShader.SetBuffer(noiseKernel, TriangleBuffer, _trianglesBuffer);
-
+        
             // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(resolution.x);
-            var dispatchY = Mathf.CeilToInt(resolution.y);
-
+            int dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            int dispatchY = Mathf.CeilToInt(resolution.y / 16f);
+        
             // Dispatch the compute shader to generate the mesh parameters.
             computeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
-
+        
             // Retrieve the generated vertices and triangles from the compute buffers.
             _verticesBuffer.GetData(vertices);
             _trianglesBuffer.GetData(triangles);
-
-            var minMax = GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices);
-
+        
+            float[] minMax = GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices);
+        
             // ClampHeightValues(computeShader, resolution, vertices, minMax);
             //
             // float[] clampedMinMax = CompareHeightValues(resolution, computeShader, vertices);
-
+            
+            ReleaseBuffers();
+        
             return minMax;
         }
+
 
         /// <summary>
         ///     Creates a new mesh based on the given vertices and triangles.
@@ -131,7 +150,7 @@ namespace _Scripts
                 indexFormat = IndexFormat.UInt32,
                 name = "Procedural Mesh GPU"
             };
-            filter.sharedMesh = null;
+
             filter.sharedMesh = _mesh;
 
             // Clears all previous data in the mesh.
@@ -143,6 +162,7 @@ namespace _Scripts
 
             // Recalculates the normals of the mesh based on the vertices and triangles.
             _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
 
             return _mesh;
         }

@@ -6,6 +6,7 @@
  */
 
 
+using System;
 using UnityEngine;
 
 namespace _Scripts.Helper
@@ -19,6 +20,9 @@ namespace _Scripts.Helper
 
         private static ComputeBuffer _clampedVerticesBuffer;
 
+        private static ComputeBuffer vertexBuffer;
+        private static ComputeBuffer outputBuffer;
+
         private static readonly int MapWidth = Shader.PropertyToID("map_width");
         private static readonly int MapHeight = Shader.PropertyToID("map_height");
 
@@ -27,10 +31,10 @@ namespace _Scripts.Helper
         private static readonly int VerticesBufferLength = Shader.PropertyToID("vertices_buffer_length");
         private static readonly int LocalMinMaxBufferLength = Shader.PropertyToID("local_min_max_buffer_length");
 
-        private static readonly int VertexBuffer = Shader.PropertyToID("VertexBuffer");
-        private static readonly int LocalMinMaxBuffer = Shader.PropertyToID("LocalMinMaxBuffer");
-        private static readonly int GlobalMinMaxBuffer = Shader.PropertyToID("GlobalMinMaxBuffer");
-        private static readonly int ClampedVertexBuffer = Shader.PropertyToID("ClampedBuffer");
+        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer");
+        private static readonly int LocalMinMaxBuffer = Shader.PropertyToID("_Local_Min_Max_Buffer");
+        private static readonly int GlobalMinMaxBuffer = Shader.PropertyToID("_Global_Min_Max_Buffer");
+        private static readonly int ClampedVertexBuffer = Shader.PropertyToID("_Clamped_Buffer");
 
         #endregion
 
@@ -56,18 +60,56 @@ namespace _Scripts.Helper
             InitializeBuffers(resolution);
 
             var localMinMax = ComputeLocalMinMax(resolution, computeShader, verticesBuffer, vertices);
-
+            
             var globalMinMax = ComputeGlobalMinMax(resolution, computeShader, localMinMax);
-
+            
             ReleaseBuffers();
 
+            // return ComputeMinMax(computeShader, vertices, resolution);
+
+            for (int i = 0; i < globalMinMax.Length; i++)
+            {
+                Debug.Log(globalMinMax[i]);
+            }
+
             return globalMinMax;
+        }
+
+        private static float[] ComputeMinMax(ComputeShader shader, Vector3[] vertices, Vector2Int resolution)
+        {
+            int kernel = shader.FindKernel("CSMain");
+
+            vertexBuffer = new ComputeBuffer(vertices.Length, sizeof(float) * 3);
+            outputBuffer = new ComputeBuffer(2, sizeof(float));
+            
+            vertexBuffer.SetData(vertices);
+            
+            shader.SetBuffer(kernel, "_Vertex_Buffer", vertexBuffer);
+            shader.SetBuffer(kernel, "Output_Buffer", outputBuffer);
+            
+            shader.SetInt("vertices_buffer_length", vertices.Length);
+            shader.SetInt("map_width", resolution.x);
+
+            var dispatchX = Mathf.CeilToInt((float)resolution.x / 16);
+            var dispatchY = Mathf.CeilToInt((float)resolution.y / 16);
+            
+            shader.Dispatch(kernel, dispatchX, dispatchY, 1);
+
+            float[] minMax = new float[2];
+            outputBuffer.GetData(minMax);
+
+            for (int i = 0; i < minMax.Length; i++)
+            {
+                Debug.Log(minMax[i]);
+            }
+
+            return minMax;
         }
 
         private static float[] ComputeLocalMinMax(Vector2Int resolution, ComputeShader computeShader,
             ComputeBuffer verticesBuffer, Vector3[] vertices)
         {
-            var computeLocal = computeShader.FindKernel("ComputeLocalMinMax");
+            var computeLocal = computeShader.FindKernel("Compute_Local_Min_Max");
 
             computeShader.SetInt(VerticesBufferLength, resolution.x * resolution.y);
             computeShader.SetInt(LocalMinMaxBufferLength, 2);
@@ -80,8 +122,8 @@ namespace _Scripts.Helper
 
             computeShader.SetBuffer(computeLocal, LocalMinMaxBuffer, _localMinMaxBuffer);
 
-            var dispatchX = Mathf.Max(1, Mathf.CeilToInt((float)resolution.x / 8));
-            var dispatchY = Mathf.Max(1, Mathf.CeilToInt((float)resolution.y / 8));
+            var dispatchX = Mathf.CeilToInt((float)resolution.x / 16);
+            var dispatchY = Mathf.CeilToInt((float)resolution.y / 16);
 
             computeShader.Dispatch(computeLocal, dispatchX, dispatchY, 1);
 
@@ -94,7 +136,7 @@ namespace _Scripts.Helper
         private static float[] ComputeGlobalMinMax(Vector2Int resolution, ComputeShader computeShader,
             float[] localMinMax)
         {
-            var computeGlobal = computeShader.FindKernel("ComputeGlobalMinMax");
+            var computeGlobal = computeShader.FindKernel("Compute_Global_Min_Max");
 
             computeShader.SetFloat(FloatMinValue, float.MinValue);
             computeShader.SetFloat(FloatMaxValue, float.MaxValue);
@@ -117,7 +159,7 @@ namespace _Scripts.Helper
             Vector2Int resolution, Vector3[] vertices,
             float[] minMax)
         {
-            var clampKernel = computeShader.FindKernel("ClampHeightValues");
+            var clampKernel = computeShader.FindKernel("Clamp_Height_Values");
 
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);

@@ -5,14 +5,14 @@
 * License: Licence
 */
 
-#pragma kernel ColourMesh 0
+#pragma kernel Colour_Mesh 0
 
 // Buffer for storing the vertices
-RWStructuredBuffer<float3> VertexBuffer;
+RWStructuredBuffer<float3> Vertex_Buffer;
 
 // Buffer for storing the colours
-RWStructuredBuffer<float4> ColourBuffer;
-RWStructuredBuffer<float4> ColourPaletteBuffer;
+RWStructuredBuffer<float4> Colour_Buffer;
+RWStructuredBuffer<float4> Colour_Palette_Buffer;
 
 int colour_count;
 
@@ -25,90 +25,50 @@ float max_height;
 int vertices_buffer_length; // Total length of the vertex buffer
 
 // Function to interpolate colour based on height
-float4 InterpolateColor(float value, float min, float max)
+float4 interpolate_color(const float value, const float min, const float max)
 {
     const float t = (value - min) / (max - min);
     return lerp(float4(0, 0, 0, 1), float4(1, 1, 1, 1), t); // Black to white gradient
 }
 
 [numthreads(8, 8, 1)]
-void ColourMesh(uint3 id : SV_DispatchThreadID)
+void Colour_Mesh(uint3 id : SV_DispatchThreadID)
 {
     // Calculate the index based on the thread ID
     const int index = id.y * map_width + id.x;
 
     // Prevent out-of-bounds access
-    if (index >= vertices_buffer_length)
-    {
-        return; // Exit early to avoid errors
+    if (index < 0 || index >= vertices_buffer_length) {
+        return;
     }
 
     // Get the height of the vertex
-    const float height = VertexBuffer[index].y;
+    const float height = Vertex_Buffer[index].y;
 
-    // Calculate the interpolated color
-    // const float4 colour = InterpolateColor(height, min_height, max_height);
+    float normalized_y = 0.0f;
+    if (max_height != min_height) {
+        normalized_y = (height - min_height) / (max_height - min_height);
+    }    
 
-    // Normalisiere die y-Koordinate zwischen 0 und 1
-    float normalizedY = (height - min_height) / (max_height - min_height);
-
-    // // Bestimme Rot- und Grüntöne basierend auf dem normalisierten y-Wert
-    // float red = normalizedY;  // Rottöne werden heller, je höher die y-Koordinate ist
-    // float green = 1.0f - normalizedY; // Grüntöne werden dunkler, je höher die y-Koordinate ist
-    //
-    // // Erzeuge die Farbe basierend auf Rot- und Grünwerten
-    // float4 colour = float4(red, green, 0.0f, 1.0f);
-
-    // // Definiere die vier Farben
-    // float4 colorStart = float4(0.0, 0.0, 1.0, 1.0); // Blau
-    // float4 colorSecond = float4(0.0, 1.0, 0.0, 1.0); // Grün
-    // float4 colorThird = float4(1.0, 1.0, 0.0, 1.0); // Gelb
-    // float4 colorEnd = float4(1.0, 0.0, 0.0, 1.0);  // Rot
-    //
-    // int colour_count = 4;
-    //
-    // ColourPaletteBuffer[0] = colorStart;
-    // ColourPaletteBuffer[1] = colorSecond;
-    // ColourPaletteBuffer[2] = colorThird;
-    // ColourPaletteBuffer[3] = colorEnd;
-    
-
-    float4 color;
-    // if (normalizedY < 0.33f) {
-    //     // Übergang von Blau zu Grün
-    //     float t = normalizedY / 0.33f; // Scale normalizedY to 0-1 for this range
-    //     color = lerp(colorStart, colorSecond, t);
-    // } else if (normalizedY < 0.66f) {
-    //     // Übergang von Grün zu Gelb
-    //     float t = (normalizedY - 0.33f) / 0.33f; // Scale normalizedY for this range
-    //     color = lerp(colorSecond, colorThird, t);
-    // } else {
-    //     // Übergang von Gelb zu Rot
-    //     float t = (normalizedY - 0.66f) / 0.34f; // Adjust for the last range
-    //     color = lerp(colorThird, colorEnd, t);
-    // }
-
-    // Durchlaufe alle Bereiche zwischen den Farben
-    for (int i = 0; i < colour_count - 1; i++)
+    // Interpolate color based on normalizedY and ensure no errors
+    if (normalized_y >= 0 && normalized_y <= 1)
     {
-        // Berechne den Start- und Endpunkt des Interpolationsbereichs
-        float range_start = float(i) / (colour_count - 1);
-        float range_end = float(i + 1) / (colour_count - 1);
-
-        // Überprüfen, ob der normalisierte Y-Wert in diesem Bereich liegt
-        if (normalizedY >= range_start && normalizedY <= range_end)
+        for (int i = 0; i < colour_count - 1; i++)
         {
-            // Berechne den Interpolationsfaktor innerhalb des Bereichs
-            float interpolation_factor = (normalizedY - range_start) / (range_end - range_start);
+            const float range_start = (float)i / (colour_count - 1);
+            const float range_end = (float)(i + 1) / (colour_count - 1);
 
-            // Interpolieren zwischen zwei benachbarten Farben im Buffer
-            color = lerp(ColourPaletteBuffer[i], ColourPaletteBuffer[i + 1], interpolation_factor);
-            break; // Schleife verlassen, wenn der Bereich gefunden wurde
+            if (normalized_y >= range_start && normalized_y <= range_end)
+            {
+                const float t = (normalized_y - range_start) / (range_end - range_start);
+                Colour_Buffer[index] = lerp(Colour_Palette_Buffer[i], Colour_Palette_Buffer[i + 1], t);
+                break;
+            }
         }
     }
-
-    
-    
-    // Store the color in the ColorBuffer
-    ColourBuffer[index] = color;
+    else
+    {
+        // Default to white or another fallback color to avoid black regions
+        Colour_Buffer[index] = float4(1, 1, 1, 1);
+    }
 }
