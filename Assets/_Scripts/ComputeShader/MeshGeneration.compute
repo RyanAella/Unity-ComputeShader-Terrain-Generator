@@ -12,6 +12,7 @@
 #pragma kernel CSMain 4
 
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
+#include "Assets/_Scripts/Helper/Noise.hlsl"
 
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
@@ -27,6 +28,8 @@ float noise_height; // Height factor for the noise
 int octaves; // Number of noise octaves
 float lacunarity; // Frequency multiplier for each octave
 float persistence; // Amplitude multiplier for each octave
+
+float max_terrain_height; // Maximum height of the terrain
 
 int vertices_buffer_length; // Total length of the vertex buffer
 int local_min_max_buffer_length; // Total length of the local Min/Max buffer
@@ -66,7 +69,7 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // Check if the thread is within the map bounds.
     if (id.y < map_height && id.x < map_width)
     {
-        float value = 0.0f; // Accumulated noise value
+        float3 value = float3(0.0f, 0.0f, 0.0f); // Accumulated noise value
         float amplitude = 1.0f; // Initial amplitude
         float frequency = 1.0f; // Initial frequency
 
@@ -82,22 +85,41 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
             // const float2 uv = float2(id.x / noise_scale * frequency, id.y / noise_scale * frequency) / float2(
             //     map_width, map_height);
             const float2 uv = float2(sample_x * frequency, sample_y * frequency) / float2(map_width, map_height);
-
+        
             // Generate Simplex noise and add to the accumulated value.
             value += amplitude * SimplexNoise(uv);
-
+        
             // Increase the amplitude and frequency for the next octave to get more variation in noise values.
             amplitude *= persistence;
             frequency *= lacunarity;
         }
 
-        float height = value * 16; // The final noise-based height
+        // float height = value * max_terrain_height; // The final noise-based height
+        //
+        // // Create a vertex with the calculated height.
+        // const float3 vertex = float3(id.x, height, id.y);
+        //
+        // // Store the vertex in the VertexBuffer.
+        // _Vertex_Buffer[vertex_index] = vertex;
 
-        // Create a vertex with the calculated height.
-        const float3 vertex = float3(id.x, height, id.y);
+        // Normalize the noise value to a [0, 1] range
+        // float normalized_noise = (value + 1) / 2; // SimplexNoise returns [-1, 1]
+        //
+        // // Calculate the height based on the normalized noise
+        // float height = normalized_noise * max_terrain_height; // This will stretch the mesh
+        //
+        // // Adjust height to center around zero
+        // height -= max_terrain_height / 2; // Subtracting half of max_terrain_height to center
+        //
+        
+        float height = value.y * max_terrain_height;
 
-        // Store the vertex in the VertexBuffer.
-        _Vertex_Buffer[vertex_index] = vertex;
+        float topLeftX = (map_width - 1) / -2.0f;
+        float topLeftZ = (map_height - 1) / -2.0f;
+        
+        const float3 vertex = float3(topLeftX + id.x, height, topLeftZ + id.y); // Set vertex position
+
+        _Vertex_Buffer[vertex_index] = vertex; // Store in the buffer
     }
 
     // Generate triangles if within the map bounds minus one (to avoid out-of-bounds indices).

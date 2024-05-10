@@ -48,6 +48,9 @@ namespace _Scripts.ScriptableObjects
         
         [Range(1.8f, 2.7f)] 
         public float lacunarity = 2.01f; // The frequency multiplier for each octave.
+        
+        [Range(1, 200)] 
+        public float maxTerrainHeight = 180.0f;
 
         #endregion
 

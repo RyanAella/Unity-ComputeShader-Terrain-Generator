@@ -20,3 +20,4 @@ MonoBehaviour:
   octaves: 6
   persistence: 0.5
   lacunarity: 2.01
+  maxTerrainHeight: 16

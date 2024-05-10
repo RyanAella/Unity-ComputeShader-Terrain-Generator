@@ -36,7 +36,7 @@ namespace _Scripts
         // public bool autoUpdate;
 
         // Public arrays for mesh data.
-        [HideInInspector] public Vector3[] vertices;
+        /*[HideInInspector]*/ public Vector3[] vertices;
         [HideInInspector] public int[] triangles;
 
         // Reference to the MeshFilter component attached to the GameObject.

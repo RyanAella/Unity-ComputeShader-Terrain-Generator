@@ -14,10 +14,10 @@ using UnityEngine.Rendering;
 
 namespace _Scripts
 {
-    public struct MeshData
+    struct MeshElement
     {
-        private Vector3[] _vertices;
-        private int[] _triangles;
+        public Vector3 vertex; // Vertex Position
+        public Vector3Int triangle; // Triangle Indices
     }
     
     /// <summary>
@@ -45,6 +45,7 @@ namespace _Scripts
 
         // Private Mesh object used for storing generated mesh data.
         private Mesh _mesh;
+        private static readonly int MaxTerrainHeight = Shader.PropertyToID("max_terrain_height");
 
         #endregion
 
@@ -106,6 +107,8 @@ namespace _Scripts
             computeShader.SetInt(Octaves, noiseSettings.octaves);
             computeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
             computeShader.SetFloat(Persistence, noiseSettings.persistence);
+            
+            computeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
         
             // Set the compute buffers for the vertices and triangles.
             computeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);

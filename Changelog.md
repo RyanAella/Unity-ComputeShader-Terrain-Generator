@@ -1,6 +1,8 @@
 # Changelog Unity Compute Shader Terrain Generator
 
-## [0.9.0] - 2024-05-09
+## [0.9.0] - 2024-05-10
+- Testing
+
 ### Removed
 - Editor script for controlling the mesh generation process through the Unity Inspector.
 
