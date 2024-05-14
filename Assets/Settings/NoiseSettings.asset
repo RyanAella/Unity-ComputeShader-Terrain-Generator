@@ -15,7 +15,7 @@ MonoBehaviour:
   useRandomSeed: 0
   seed: 26052022
   seedScale: 100000
-  noiseScale: 0.5
+  noiseScale: 0.82
   noiseHeight: 2
   octaves: 6
   persistence: 0.5

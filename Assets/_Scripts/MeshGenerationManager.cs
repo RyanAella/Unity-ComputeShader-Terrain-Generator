@@ -14,12 +14,6 @@ using UnityEngine.Rendering;
 
 namespace _Scripts
 {
-    struct MeshElement
-    {
-        public Vector3 vertex; // Vertex Position
-        public Vector3Int triangle; // Triangle Indices
-    }
-    
     /// <summary>
     ///     Class for managing mesh generation.
     /// </summary>
@@ -28,24 +22,29 @@ namespace _Scripts
     {
         #region Variables
 
-        private ComputeBuffer _verticesBuffer;
-        private ComputeBuffer _trianglesBuffer;
+        // Compute buffers for storing vertex and triangle data.
+        private ComputeBuffer _verticesBuffer; // Compute buffer for vertices
+        private ComputeBuffer _trianglesBuffer; // Compute buffer for triangles
 
-        // Shader property IDs
-        private static readonly int MapWidth = Shader.PropertyToID("map_width");
-        private static readonly int MapHeight = Shader.PropertyToID("map_height");
-        private static readonly int SeedOffset = Shader.PropertyToID("seed_offset");
-        private static readonly int NoiseScale = Shader.PropertyToID("noise_scale");
-        private static readonly int NoiseHeight = Shader.PropertyToID("noise_height");
-        private static readonly int Octaves = Shader.PropertyToID("octaves");
-        private static readonly int Lacunarity = Shader.PropertyToID("lacunarity");
-        private static readonly int Persistence = Shader.PropertyToID("persistence");
-        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer");
-        private static readonly int TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer");
+        // Shader property IDs used for communication with compute shaders.
+        private static readonly int MapWidth = Shader.PropertyToID("map_width"); // ID for map width
+        private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
+        private static readonly int SeedOffset = Shader.PropertyToID("seed_offset"); // ID for seed offset
+        private static readonly int NoiseScale = Shader.PropertyToID("noise_scale"); // ID for noise scale
+        private static readonly int NoiseHeight = Shader.PropertyToID("noise_height"); // ID for noise height
+        private static readonly int Octaves = Shader.PropertyToID("octaves"); // ID for number of octaves
+        private static readonly int Lacunarity = Shader.PropertyToID("lacunarity"); // ID for lacunarity
+        private static readonly int Persistence = Shader.PropertyToID("persistence"); // ID for persistence
+        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer"); // ID for vertex buffer
+
+        private static readonly int
+            TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer"); // ID for triangle buffer
+
+        private static readonly int
+            MaxTerrainHeight = Shader.PropertyToID("max_terrain_height"); // ID for max terrain height
 
         // Private Mesh object used for storing generated mesh data.
-        private Mesh _mesh;
-        private static readonly int MaxTerrainHeight = Shader.PropertyToID("max_terrain_height");
+        private Mesh _mesh; // Mesh object for storing mesh data
 
         #endregion
 
@@ -81,58 +80,80 @@ namespace _Scripts
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
         public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles)
+            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float maxTerrainHeight)
         {
             // Ensure the noise scale is not too low to avoid a flat mesh
             noiseSettings.noiseScale = Mathf.Max(0.1f, noiseSettings.noiseScale);
-        
+
             // Check if a random seed is wanted
             if (noiseSettings.useRandomSeed)
                 noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
-        
+
             // Get the coordinates
             float seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
-        
+
             // Find the kernel in the compute shader.
             int noiseKernel = computeShader.FindKernel("Noise_Generator");
-        
+
             // Set shader properties for map dimensions.
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
-        
+
             computeShader.SetFloat(SeedOffset, seedOffset);
             computeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
             computeShader.SetFloat(NoiseHeight, noiseSettings.noiseHeight);
-        
+
             computeShader.SetInt(Octaves, noiseSettings.octaves);
             computeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
             computeShader.SetFloat(Persistence, noiseSettings.persistence);
-            
+
             computeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
-        
+
             // Set the compute buffers for the vertices and triangles.
             computeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
             computeShader.SetBuffer(noiseKernel, TriangleBuffer, _trianglesBuffer);
-        
+
             // Calculate the number of thread groups to dispatch.
             int dispatchX = Mathf.CeilToInt(resolution.x / 16f);
             int dispatchY = Mathf.CeilToInt(resolution.y / 16f);
-        
+
             // Dispatch the compute shader to generate the mesh parameters.
             computeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
-        
+
             // Retrieve the generated vertices and triangles from the compute buffers.
             _verticesBuffer.GetData(vertices);
             _trianglesBuffer.GetData(triangles);
-        
-            float[] minMax = GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices);
-        
+
+            float[] minMax =
+                GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices, maxTerrainHeight);
+
+            foreach (var f in vertices)
+            {
+                if (f.y > 1.0f)
+                {
+                    Debug.Log("f: " + f);
+                }
+                    
+            }
+
             // ClampHeightValues(computeShader, resolution, vertices, minMax);
             //
             // float[] clampedMinMax = CompareHeightValues(resolution, computeShader, vertices);
-            
+
+            // foreach (ref var vertex in vertices.AsSpan())
+            // {
+            //     if (vertex.x < 1)
+            //     {
+            //         vertex.y = 0.0f;
+            //     }
+            //     if (vertex.x > 1)
+            //     {
+            //         vertex.y = 1.0f;
+            //     }
+            // }
+
             ReleaseBuffers();
-        
+
             return minMax;
         }
 
@@ -166,6 +187,7 @@ namespace _Scripts
             // Recalculates the normals of the mesh based on the vertices and triangles.
             _mesh.RecalculateNormals();
             _mesh.RecalculateBounds();
+            _mesh.RecalculateTangents();
 
             return _mesh;
         }

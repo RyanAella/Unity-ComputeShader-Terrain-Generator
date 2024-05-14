@@ -5,32 +5,36 @@
 * License: Licence
 */
 
+// Define the kernel function for coloring the mesh.
 #pragma kernel Colour_Mesh 0
 
-// Buffer for storing the vertices
+// Buffer for storing the vertices of the mesh.
 RWStructuredBuffer<float3> Vertex_Buffer;
 
-// Buffer for storing the colours
+// Buffer for storing the colors of the mesh vertices.
 RWStructuredBuffer<float4> Colour_Buffer;
+
+// Buffer for storing the color palette used for coloring.
 RWStructuredBuffer<float4> Colour_Palette_Buffer;
 
+// Number of colors in the color palette.
 int colour_count;
 
+// Dimensions of the map (width and height).
 int map_width;
 int map_height;
 
+// Minimum and maximum height values of the terrain.
 float min_height;
 float max_height;
 
-int vertices_buffer_length; // Total length of the vertex buffer
+// Total length of the vertex buffer.
+int vertices_buffer_length;
 
-// Function to interpolate colour based on height
-float4 interpolate_color(const float value, const float min, const float max)
-{
-    const float t = (value - min) / (max - min);
-    return lerp(float4(0, 0, 0, 1), float4(1, 1, 1, 1), t); // Black to white gradient
-}
-
+/// <summary>
+/// Color the mesh based on the vertex height and color palette.
+/// </summary>
+/// <param name="id">The thread ID.</param>
 [numthreads(8, 8, 1)]
 void Colour_Mesh(uint3 id : SV_DispatchThreadID)
 {
@@ -38,29 +42,36 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
     const int index = id.y * map_width + id.x;
 
     // Prevent out-of-bounds access
-    if (index < 0 || index >= vertices_buffer_length) {
+    if (index < 0 || index >= vertices_buffer_length)
+    {
         return;
     }
 
     // Get the height of the vertex
     const float height = Vertex_Buffer[index].y;
 
+    // Normalize the height value based on the minimum and maximum heights
     float normalized_y = 0.0f;
-    if (max_height != min_height) {
+    if (max_height != min_height)
+    {
         normalized_y = (height - min_height) / (max_height - min_height);
-    }    
+    }
 
     // Interpolate color based on normalizedY and ensure no errors
-    if (normalized_y >= 0 && normalized_y <= 1)
+    if (normalized_y >= min_height && normalized_y <= max_height)
     {
         for (int i = 0; i < colour_count - 1; i++)
         {
+            // Calculate the start and end range for each color in the palette
             const float range_start = (float)i / (colour_count - 1);
             const float range_end = (float)(i + 1) / (colour_count - 1);
 
+            // Check if the normalizedY value falls within the current range
             if (normalized_y >= range_start && normalized_y <= range_end)
             {
+                // Calculate the interpolation factor
                 const float t = (normalized_y - range_start) / (range_end - range_start);
+                // Interpolate the color using the palette and interpolation factor
                 Colour_Buffer[index] = lerp(Colour_Palette_Buffer[i], Colour_Palette_Buffer[i + 1], t);
                 break;
             }
@@ -69,6 +80,6 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
     else
     {
         // Default to white or another fallback color to avoid black regions
-        Colour_Buffer[index] = float4(1, 1, 1, 1);
+        Colour_Buffer[index] = float4(0, 0, 0, 1);
     }
 }

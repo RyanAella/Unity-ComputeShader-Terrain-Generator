@@ -1,5 +1,12 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.10.1] - 2024-05-13
+### Changed
+- Added code comments for improved readability and maintainability.
+- Conducted code cleanup and organization for better clarity.
+- Introduced a new function to ensure that the y-values are within the correct range for colors.
+- Modified the method for coloring the mesh to run on the CPU to identify potential errors.
+
 ## [0.9.0] - 2024-05-10
 - Testing
 
