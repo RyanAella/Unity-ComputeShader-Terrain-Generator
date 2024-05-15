@@ -146,14 +146,17 @@ namespace _Scripts
         public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
             float[] minMax, Vector4[] colourPalette)
         {
+            if (meshFilter == null || meshFilter.mesh == null)
+            {
+                Debug.LogError("MeshFilter or mesh is not assigned.");
+                return;
+            }
+            
             Vector3[] vertices = meshFilter.mesh.vertices;
 
-            float min_height = minMax[0];
-            float max_height = minMax[1];
+            int colourCount = colourPalette.Length;
 
-            int colour_count = colourPalette.Length;
-
-            Color[] Colour_Buffer = new Color[resolution.x * resolution.y];
+            Color[] colourBuffer = new Color[resolution.x * resolution.y];
 
             for (int i = 0; i < resolution.y; i++)
             {
@@ -162,27 +165,26 @@ namespace _Scripts
                     int index = i * resolution.x + j;
 
                     float height = vertices[index].y;
+                    
+                    // Debug.Log("min_height: " + min_height + " max_height: " + max_height + " height: " + height);
 
-                    float normalized_y = 0.0f;
-                    if (max_height!= min_height)
+                    // float normalized_y = 0.0f;
+                    // if (max_height!= min_height)
+                    // {
+                    //     normalized_y = (height - min_height) / (max_height - min_height);
+                    // }
+
+                    if (height >= 0 && height <= 1)
                     {
-                        normalized_y = (height - min_height) / (max_height - min_height);
-                    }
-
-                    // Debugging: Print the normalized_y value
-                    // Debug.Log($"Normalized Y at ({i}, {j}): {normalized_y}");
-
-                    if (normalized_y >= 0 && normalized_y <= 1)
-                    {
-                        for (int k = 0; k < colour_count - 1; k++)
+                        for (int k = 0; k < colourCount - 1; k++)
                         {
-                            float range_start = (float)k / (colour_count - 1);
-                            float range_end = (float)(k + 1) / (colour_count - 1);
+                            float rangeStart = (float)k / (colourCount - 1);
+                            float rangeEnd = (float)(k + 1) / (colourCount - 1);
 
-                            if (normalized_y >= range_start && normalized_y <= range_end)
+                            if (height >= rangeStart && height <= rangeEnd)
                             {
-                                float t = (normalized_y - range_start) / (range_end - range_start);
-                                Colour_Buffer[index] = Color.Lerp(colourPalette[k], colourPalette[k + 1], t);
+                                float t = (height - rangeStart) / (rangeEnd - rangeStart);
+                                colourBuffer[index] = Color.Lerp(colourPalette[k], colourPalette[k + 1], t);
                                 break;
                             }
                         }
@@ -190,16 +192,14 @@ namespace _Scripts
                     else
                     {
                         // Debugging: Print the reason for the else case
-                        Debug.Log($"Else case triggered due to normalized_y: {normalized_y}");
-                        Colour_Buffer[index] = new Color(0, 0, 0, 1);
+                        Debug.LogWarning($"Else case triggered due to normalized_y: {height}");
+                        colourBuffer[index] = new Color(0, 0, 0, 1);
                     }
                 }
             }
 
-            meshFilter.mesh.colors = meshFilter.sharedMesh.colors = Colour_Buffer;
+            meshFilter.mesh.colors = meshFilter.sharedMesh.colors = colourBuffer;
         }
-
-
 
         #endregion
     }

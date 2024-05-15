@@ -1,0 +1,35 @@
+@startgantt gantt-diagram
+
+project starts 8 April 2024
+
+' [Literaturrecherche] starts 8 April 2024 and lasts 4 weeks and 3 days
+' [Sammeln von Ressourcen zu Compute Shadern, Fractional Brownian Motion (FBM) und Domain Warping.] starts 8 April 2024 and lasts 2 weeks
+' [Lesen und Verstehen von wissenschaftlichen Artikeln, Tutorials und Dokumentationen zu den genannten Techniken.] starts 13 April 2024 and lasts 2 weeks and 1 day
+' [Notieren von Schlüsselkonzepten, Implementierungsdetails und Best Practices.] starts 23 April 2024 and lasts 2 weeks and 2 days
+
+[Literaturrecherche] starts 8 April 2024 and lasts 4 weeks and 3 days
+[Sammeln von Ressourcen zu Compute Shadern, Fractional Brownian Motion (FBM) und Domain Warping.] starts 8 April 2024 and lasts 3 weeks
+[Lesen und Verstehen von wissenschaftlichen Artikeln, Tutorials und Dokumentationen zu den genannten Techniken.] starts 13 April 2024 and lasts 3 weeks and 1 day
+[Notieren von Schlüsselkonzepten, Implementierungsdetails und Best Practices.] starts 13 April 2024 and lasts 3 weeks and 5 days
+
+[Konzeptentwicklung] starts 9 May 2024 and lasts 3 weeks and 5 days
+[Analyse der gesammelten Literatur und Identifizierung der relevanten Konzepte für die Integration in Unity.] starts 9 May 2024 and lasts 5 days
+[Entwurf eines Konzepts für die Implementierung von Compute Shadern, FBM und Domain Warping in Unity.] starts 14 May 2024 and lasts 1 week
+[Definieren der einzelnen Schritte und Prozesse für die Umsetzung des Konzepts.] starts 21 May 2024 and lasts 1 week
+[Identifizierung möglicher Herausforderungen und Entwicklung von Lösungsansätzen.] starts 28 May 2024 and lasts 1 week
+
+[Praktische Umsetzung in Unity] starts 15 April 2024 and lasts 14 weeks and 1 day
+[Einrichtung der Entwicklungsumgebung in Unity für die Implementierung von Compute Shadern.] starts 15 April 2024 and lasts 7 days
+[Implementierung eines grundlegenden Compute Shaders für die Geländegenerierung.] starts 11 June 2024 and lasts 2 weeks
+[Integration von FBM und Domain Warping in den Compute Shader.] starts 25 June 2024 and lasts 2 weeks
+[Visualisierung und Darstellung des generierten Terrains in Unity.] starts 9 July 2024 and lasts 2 weeks
+
+[Abschluss und Dokumentation] starts 9 July 2024 and lasts 4 weeks and 3 days
+[Zusammenstellung einer ausführlichen Dokumentation, die den gesamten Entwicklungsprozess und die Implementierungsdetails umfasst.] starts 24 July 2024 and lasts 13 days
+[Bindenlassen der Dokumentation.] starts 6 August 2024 and lasts 3 days
+
+[Dokumentation der Implementierungsschritte und der Funktionalität.] starts 9 May 2024 and lasts 12 weeks and 5 days
+
+[Fehlerbehebung und Anpassung der Implementierung bei auftretenden Problemen.] starts 11 June 2024 and lasts 6 weeks
+
+@endgantt

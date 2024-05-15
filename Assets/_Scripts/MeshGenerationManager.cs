@@ -45,6 +45,7 @@ namespace _Scripts
 
         // Private Mesh object used for storing generated mesh data.
         private Mesh _mesh; // Mesh object for storing mesh data
+        private static readonly int IslandRadius = Shader.PropertyToID("island_radius");
 
         #endregion
 
@@ -80,7 +81,7 @@ namespace _Scripts
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
         public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float maxTerrainHeight)
+            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float maxTerrainHeight, float islandRadius)
         {
             // Ensure the noise scale is not too low to avoid a flat mesh
             noiseSettings.noiseScale = Mathf.Max(0.1f, noiseSettings.noiseScale);
@@ -108,6 +109,8 @@ namespace _Scripts
             computeShader.SetFloat(Persistence, noiseSettings.persistence);
 
             computeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
+            
+            computeShader.SetFloat(IslandRadius, islandRadius);
 
             // Set the compute buffers for the vertices and triangles.
             computeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
@@ -127,14 +130,10 @@ namespace _Scripts
             float[] minMax =
                 GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices, maxTerrainHeight);
 
-            foreach (var f in vertices)
-            {
-                if (f.y > 1.0f)
-                {
-                    Debug.Log("f: " + f);
-                }
-                    
-            }
+            // for (int i = 0; i < minMax.Length; i++)
+            // {
+            //     Debug.Log("MeshGen minMax: " + minMax[i]);
+            // }
 
             // ClampHeightValues(computeShader, resolution, vertices, minMax);
             //

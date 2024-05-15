@@ -23,6 +23,8 @@ namespace _Scripts
         [Header("General Settings")] [SerializeField]
         private Vector2Int resolution = new(20, 20); // Resolution of the generated mesh
 
+        [SerializeField] private float islandRadius;
+
         // Reference to the compute shader used for generating the vertices and triangles.
         [Header("Compute Shader Settings")] [SerializeField]
         private ComputeShader noiseShader; // Compute shader for noise generation
@@ -85,7 +87,7 @@ namespace _Scripts
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The noiseShader, resolution, noiseSettings, vertices, and triangles arrays are passed as arguments.
             _minMax = _meshGenerationManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices,
-                triangles, noiseSettings.maxTerrainHeight);
+                triangles, noiseSettings.maxTerrainHeight, islandRadius);
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
@@ -121,7 +123,11 @@ namespace _Scripts
                 // Debug.Log(c);
                 // Debug.Log(colourPalette[i]);
             }
-            
+
+            // for (int i = 0; i < _minMax.Length; i++)
+            // {
+            //     Debug.Log("minMax: " + _minMax[i]);
+            // }
 
             // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, resolution, min/max values, and colour palette.
             _colourGenerationManager.ColourMesh(colourShader, _meshFilter, resolution, _minMax, colourPalette);
