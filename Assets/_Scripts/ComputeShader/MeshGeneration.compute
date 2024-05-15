@@ -41,6 +41,8 @@ int local_min_max_buffer_length; // Total length of the local Min/Max buffer
 float float_min_value; // Minimum float value
 float float_max_value; // Maximum float value
 
+float island_radius;
+
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
@@ -119,6 +121,15 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
 
 
         float height = value.y;
+
+        // Calculate the distance from the center of the map
+        float2 center = float2(map_width / 2, map_height / 2);
+        float distance = length(float2(id.x, id.y) - center);
+
+        // Apply island shape modification based on distance from center
+        float islandFactor = 1.0 - saturate(distance / island_radius);
+        height *= islandFactor;
+        
         // Calculate the position of the vertex in world space.
         float topLeftX = (map_width - 1) / -2.0f;
         float topLeftZ = (map_height - 1) / -2.0f;
@@ -279,7 +290,16 @@ void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
 
             // float normalized_height = clamp(vertex.y, 0.0, 1.0);
 
-            float normalized_height = log10(abs(vertex.y) + 1.0) / log10(10.0);
+            // float normalized_height = log10(abs(vertex.y) + 1.0) / log10(10.0);
+
+            // Clamping noise height to normalized range using Min/Max
+            float normalized_height = (vertex.y - min) / (max - min);
+            
+            // Ensure the normalized value is within the range of [0, 1]
+            if (normalized_height < 0.0)
+                normalized_height = 0.0;
+            else if (normalized_height > 1.0)
+                normalized_height = 1.0;
             
             // Store the clamped vertex in the clamped buffer
             _Clamped_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);

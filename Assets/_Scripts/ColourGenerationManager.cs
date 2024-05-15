@@ -146,6 +146,12 @@ namespace _Scripts
         public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
             float[] minMax, Vector4[] colourPalette)
         {
+            if (meshFilter == null || meshFilter.mesh == null)
+            {
+                Debug.LogError("MeshFilter or mesh is not assigned.");
+                return;
+            }
+            
             Vector3[] vertices = meshFilter.mesh.vertices;
 
             float min_height = minMax[0];
@@ -162,12 +168,18 @@ namespace _Scripts
                     int index = i * resolution.x + j;
 
                     float height = vertices[index].y;
+                    
+                    // Debug.Log("min_height: " + min_height + " max_height: " + max_height + " height: " + height);
 
-                    float normalized_y = 0.0f;
-                    if (max_height!= min_height)
-                    {
-                        normalized_y = (height - min_height) / (max_height - min_height);
-                    }
+                    // float normalized_y = 0.0f;
+                    // if (max_height!= min_height)
+                    // {
+                    //     normalized_y = (height - min_height) / (max_height - min_height);
+                    // }
+
+                    float normalized_y = height;
+                    
+                    // Debug.Log("min_height: " + min_height + " max_height: " + max_height + " height: " + height + " normalized_y: " + normalized_y);
 
                     // Debugging: Print the normalized_y value
                     // Debug.Log($"Normalized Y at ({i}, {j}): {normalized_y}");
@@ -190,7 +202,7 @@ namespace _Scripts
                     else
                     {
                         // Debugging: Print the reason for the else case
-                        Debug.Log($"Else case triggered due to normalized_y: {normalized_y}");
+                        Debug.LogWarning($"Else case triggered due to normalized_y: {normalized_y}");
                         Colour_Buffer[index] = new Color(0, 0, 0, 1);
                     }
                 }
