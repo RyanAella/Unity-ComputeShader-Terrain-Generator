@@ -1,11 +1,21 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.11.0] - 2024-05-17
+### Added
+- `AdjustMeshHeight` method to ensure the mesh displays visible height differences.
+
+### Changed
+- Moved some parameters from `GameMnager` to `NoiseSettings`.
+
+### Fixed
+- Resolved an issue where some parts of the mesh were not colored due to y-values falling outside the 0-1 range.
+
 ## [0.10.1] - 2024-05-13
 ### Changed
 - Added code comments for improved readability and maintainability.
 - Conducted code cleanup and organization for better clarity.
 - Introduced a new function to ensure that the y-values are within the correct range for colors.
-- Modified the method for coloring the mesh to run on the CPU to identify potential errors.
+- Relocated the mesh coloring process to the CPU to facilitate debugging.
 
 ## [0.9.0] - 2024-05-10
 - Testing

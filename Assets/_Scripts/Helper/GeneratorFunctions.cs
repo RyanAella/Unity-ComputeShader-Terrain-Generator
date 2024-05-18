@@ -76,7 +76,7 @@ namespace _Scripts.Helper
         /// <param name="vertices">The array containing the vertices.</param>
         /// <returns>The array of global minimum and maximum height values.</returns>
         public static float[] CompareHeightValues(Vector2Int resolution, ComputeShader computeShader,
-            ComputeBuffer verticesBuffer, Vector3[] vertices, float maxTerrainHeight)
+            ComputeBuffer verticesBuffer, Vector3[] vertices)
         {
             InitializeBuffers(resolution);
 

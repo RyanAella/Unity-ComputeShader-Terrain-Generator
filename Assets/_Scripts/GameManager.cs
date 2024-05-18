@@ -22,8 +22,8 @@ namespace _Scripts
         // General settings for the mesh generation.
         [Header("General Settings")] [SerializeField]
         private Vector2Int resolution = new(20, 20); // Resolution of the generated mesh
-
-        [SerializeField] private float islandRadius;
+        
+        public float islandRadius;
 
         // Reference to the compute shader used for generating the vertices and triangles.
         [Header("Compute Shader Settings")] [SerializeField]
@@ -60,6 +60,8 @@ namespace _Scripts
             bool meshGenerated = GenerateMesh();
 
             ColourMesh(meshGenerated);
+
+            AdjustMeshHeight();
         }
 
         /// <summary>
@@ -87,11 +89,11 @@ namespace _Scripts
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The noiseShader, resolution, noiseSettings, vertices, and triangles arrays are passed as arguments.
             _minMax = _meshGenerationManager.GenerateMeshParameters(noiseShader, resolution, noiseSettings, vertices,
-                triangles, noiseSettings.maxTerrainHeight, islandRadius);
+                triangles, islandRadius);
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            _meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles);
+            _meshGenerationManager.CreateMesh(_meshFilter, vertices, triangles, noiseSettings);
 
             // Release the compute buffers used by the mesh generation manager.
             _meshGenerationManager.ReleaseBuffers();
@@ -134,6 +136,28 @@ namespace _Scripts
 
             // Release the buffers used by the ColourGenerationManager class.
             // _colourGenerationManager.ReleaseBuffers();
+        }
+
+        private void AdjustMeshHeight()
+        {
+            var meshFilter = GetComponent<MeshFilter>();
+            var mesh = meshFilter.mesh;
+    
+            var meshVertices = mesh.vertices;
+
+            for (int i = 0; i < meshVertices.Length; i++)
+            {
+                meshVertices[i].y *= noiseSettings.maxTerrainHeight;
+            }
+
+            // Neue Höhenwerte dem Mesh zuweisen
+            mesh.vertices = meshVertices;
+    
+            // Normalen neu berechnen, um die Geometrie korrekt darzustellen
+            mesh.RecalculateNormals();
+    
+            // Mesh neu zuweisen, um die Änderungen zu aktualisieren
+            meshFilter.mesh = mesh;
         }
 
         #endregion

@@ -154,8 +154,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resolution: {x: 1024, y: 1024}
-  islandRadius: 512
+  resolution: {x: 64, y: 64}
+  islandRadius: 32
   noiseShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}
   colourShader: {fileID: 7200000, guid: 41e4d8152bd1b044a903cbe908940b7d, type: 3}
   noiseSettings: {fileID: 11400000, guid: fff77060b7743994bad483010df8c780, type: 2}

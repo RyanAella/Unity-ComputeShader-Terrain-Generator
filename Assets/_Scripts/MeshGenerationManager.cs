@@ -81,7 +81,7 @@ namespace _Scripts
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
         public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float maxTerrainHeight, float islandRadius)
+            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float islandRadius)
         {
             // Ensure the noise scale is not too low to avoid a flat mesh
             noiseSettings.noiseScale = Mathf.Max(0.1f, noiseSettings.noiseScale);
@@ -128,12 +128,12 @@ namespace _Scripts
             _trianglesBuffer.GetData(triangles);
 
             float[] minMax =
-                GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices, maxTerrainHeight);
+                GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices);
 
-            // for (int i = 0; i < minMax.Length; i++)
-            // {
-            //     Debug.Log("MeshGen minMax: " + minMax[i]);
-            // }
+            for (int i = 0; i < minMax.Length; i++)
+            {
+                Debug.Log("MeshGen minMax: " + minMax[i]);
+            }
 
             // ClampHeightValues(computeShader, resolution, vertices, minMax);
             //
@@ -163,7 +163,8 @@ namespace _Scripts
         /// <param name="filter">The MeshFilter that uses the mesh.</param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        public Mesh CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles)
+        /// <param name="noiseSettings"></param>
+        public void CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles, NoiseSettings noiseSettings)
         {
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
@@ -187,8 +188,6 @@ namespace _Scripts
             _mesh.RecalculateNormals();
             _mesh.RecalculateBounds();
             _mesh.RecalculateTangents();
-
-            return _mesh;
         }
 
         #endregion
