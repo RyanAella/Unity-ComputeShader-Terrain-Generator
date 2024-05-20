@@ -8,12 +8,23 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace _Scripts
+namespace _Scripts.Manager
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class GenerationManager : MonoBehaviour
     {
-        #region Unity Methods
+        #region Variables
+
+        public Vector2Int resolution = new(20, 20);
+
+        private Mesh _mesh;
+
+        private Vector3[] _vertices;
+        private int[] _triangles;
+        
+        #endregion
+        
+        #region Methods
 
         public void Start()
         {
@@ -24,21 +35,6 @@ namespace _Scripts
             CreateShape();
             UpdateMesh();
         }
-
-        #endregion
-
-        #region Variables
-
-        public Vector2Int resolution = new(20, 20);
-
-        private Mesh _mesh;
-
-        private Vector3[] _vertices;
-        private int[] _triangles;
-
-        #endregion
-
-        #region Methods
 
         private void CreateShape()
         {

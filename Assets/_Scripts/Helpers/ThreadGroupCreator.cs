@@ -6,11 +6,9 @@
  */
 
 
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace _Scripts.Helper
+namespace _Scripts.Helpers
 {
     public class ThreadGroupCreator : MonoBehaviour
     {

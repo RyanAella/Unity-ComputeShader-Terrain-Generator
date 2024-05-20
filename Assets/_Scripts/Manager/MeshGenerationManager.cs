@@ -5,14 +5,15 @@
  * License: Licence
  */
 
+
 using System;
 using System.Globalization;
-using _Scripts.Helper;
+using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace _Scripts
+namespace _Scripts.Manager
 {
     /// <summary>
     ///     Class for managing mesh generation.
@@ -35,17 +36,16 @@ namespace _Scripts
         private static readonly int Octaves = Shader.PropertyToID("octaves"); // ID for number of octaves
         private static readonly int Lacunarity = Shader.PropertyToID("lacunarity"); // ID for lacunarity
         private static readonly int Persistence = Shader.PropertyToID("persistence"); // ID for persistence
-        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer"); // ID for vertex buffer
-
-        private static readonly int
-            TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer"); // ID for triangle buffer
 
         private static readonly int
             MaxTerrainHeight = Shader.PropertyToID("max_terrain_height"); // ID for max terrain height
 
+        private static readonly int IslandRadius = Shader.PropertyToID("island_radius"); // ID for island radius
+        private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer"); // ID for vertex buffer
+        private static readonly int TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer"); // ID for triangle buffer
+
         // Private Mesh object used for storing generated mesh data.
         private Mesh _mesh; // Mesh object for storing mesh data
-        private static readonly int IslandRadius = Shader.PropertyToID("island_radius");
 
         #endregion
 
@@ -64,27 +64,36 @@ namespace _Scripts
         }
 
         /// <summary>
-        ///     Releases the compute buffers when they are no longer needed.
+        /// Releases the compute buffers when they are no longer needed.
         /// </summary>
+        /// <remarks>
+        /// This method is used to release the memory allocated for the compute buffers.
+        /// It should be called when the buffers are no longer in use to prevent memory leaks.
+        /// </remarks>
         public void ReleaseBuffers()
         {
+            // Release the vertices buffer
             _verticesBuffer.Release();
+
+            // Release the triangles buffer
             _trianglesBuffer.Release();
         }
 
         /// <summary>
-        ///     Generates mesh parameters (vertices and triangles) using a compute shader.
+        /// Generates mesh parameters (vertices and triangles) using a compute shader.
         /// </summary>
         /// <param name="computeShader">The compute shader to use for generating the mesh.</param>
         /// <param name="resolution">The resolution of the mesh to be generated.</param>
-        /// <param name="noiseSettings"></param>
+        /// <param name="noiseSettings">The noise settings for generating the mesh.</param>
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
+        /// <param name="islandRadius">The radius of the island.</param>
+        /// <returns>An array containing the minimum and maximum height values of the generated mesh.</returns>
         public float[] GenerateMeshParameters(ComputeShader computeShader, Vector2Int resolution,
             NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float islandRadius)
         {
             // Ensure the noise scale is not too low to avoid a flat mesh
-            noiseSettings.noiseScale = Mathf.Max(0.1f, noiseSettings.noiseScale);
+            noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
 
             // Check if a random seed is wanted
             if (noiseSettings.useRandomSeed)
@@ -96,7 +105,7 @@ namespace _Scripts
             // Find the kernel in the compute shader.
             int noiseKernel = computeShader.FindKernel("Noise_Generator");
 
-            // Set shader properties for map dimensions.
+            // Set shader properties
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
 
@@ -109,7 +118,7 @@ namespace _Scripts
             computeShader.SetFloat(Persistence, noiseSettings.persistence);
 
             computeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
-            
+
             computeShader.SetFloat(IslandRadius, islandRadius);
 
             // Set the compute buffers for the vertices and triangles.
@@ -127,31 +136,9 @@ namespace _Scripts
             _verticesBuffer.GetData(vertices);
             _trianglesBuffer.GetData(triangles);
 
+            // Compare the height values of the generated vertices and return the minimum and maximum values.
             float[] minMax =
                 GeneratorFunctions.CompareHeightValues(resolution, computeShader, _verticesBuffer, vertices);
-
-            for (int i = 0; i < minMax.Length; i++)
-            {
-                Debug.Log("MeshGen minMax: " + minMax[i]);
-            }
-
-            // ClampHeightValues(computeShader, resolution, vertices, minMax);
-            //
-            // float[] clampedMinMax = CompareHeightValues(resolution, computeShader, vertices);
-
-            // foreach (ref var vertex in vertices.AsSpan())
-            // {
-            //     if (vertex.x < 1)
-            //     {
-            //         vertex.y = 0.0f;
-            //     }
-            //     if (vertex.x > 1)
-            //     {
-            //         vertex.y = 1.0f;
-            //     }
-            // }
-
-            ReleaseBuffers();
 
             return minMax;
         }
@@ -160,34 +147,24 @@ namespace _Scripts
         /// <summary>
         ///     Creates a new mesh based on the given vertices and triangles.
         /// </summary>
-        /// <param name="filter">The MeshFilter that uses the mesh.</param>
+        /// <param name="mesh"></param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        /// <param name="noiseSettings"></param>
-        public void CreateMesh(MeshFilter filter, Vector3[] vertices, int[] triangles, NoiseSettings noiseSettings)
+        public void CreateMesh(Mesh mesh, Vector3[] vertices, int[] triangles)
         {
-            // Creates a new Mesh object.
-            // Sets the mesh of the MeshFilter to the newly created mesh.
-            filter.mesh = _mesh = new Mesh
-            {
-                // Sets the index format of the mesh to UInt32, which is required for large meshes.
-                indexFormat = IndexFormat.UInt32,
-                name = "Procedural Mesh GPU"
-            };
-
-            filter.sharedMesh = _mesh;
-
             // Clears all previous data in the mesh.
-            _mesh.Clear();
+            mesh.Clear();
+
             // Sets the vertices of the mesh.
-            _mesh.vertices = vertices;
+            mesh.SetVertices(vertices);
+
             // Sets the triangles of the mesh.
-            _mesh.triangles = triangles;
+            mesh.SetTriangles(triangles, 0);
 
             // Recalculates the normals of the mesh based on the vertices and triangles.
-            _mesh.RecalculateNormals();
-            _mesh.RecalculateBounds();
-            _mesh.RecalculateTangents();
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
         }
 
         #endregion

@@ -8,7 +8,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace _Scripts.Helper
+namespace _Scripts.Helpers
 {
     public class OpenSimplexNoise
     {

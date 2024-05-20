@@ -1,5 +1,15 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.12.0] - 2024-05-19
+### Changed
+- Revised and cleaned up all scripts to improve efficiency and clarity.
+
+### Added
+- Added comments to the code for better readability and maintainability.
+
+### Fixed
+- Color generation for the terrain now runs with the Compute Shader again.
+
 ## [0.11.0] - 2024-05-17
 ### Added
 - `AdjustMeshHeight` method to ensure the mesh displays visible height differences.

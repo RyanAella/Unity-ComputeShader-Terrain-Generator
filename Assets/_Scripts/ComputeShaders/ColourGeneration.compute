@@ -50,36 +50,27 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
     // Get the height of the vertex
     const float height = Vertex_Buffer[index].y;
 
-    // Normalize the height value based on the minimum and maximum heights
-    float normalized_y = 0.0f;
-    if (max_height != min_height)
+    if (height >= 0 && height <= 1)
     {
-        normalized_y = (height - min_height) / (max_height - min_height);
-    }
-
-    // Interpolate color based on normalizedY and ensure no errors
-    if (normalized_y >= min_height && normalized_y <= max_height)
-    {
-        for (int i = 0; i < colour_count - 1; i++)
+        // Iterate through the color palette to find the appropriate color for the vertex height
+        for (int k = 0; k < colour_count - 1; k++)
         {
-            // Calculate the start and end range for each color in the palette
-            const float range_start = (float)i / (colour_count - 1);
-            const float range_end = (float)(i + 1) / (colour_count - 1);
+            const float range_start = (float)k / (colour_count - 1);
+            const float range_end = (float)(k + 1) / (colour_count - 1);
 
-            // Check if the normalizedY value falls within the current range
-            if (normalized_y >= range_start && normalized_y <= range_end)
+            if (height >= range_start && height <= range_end)
             {
                 // Calculate the interpolation factor
-                const float t = (normalized_y - range_start) / (range_end - range_start);
-                // Interpolate the color using the palette and interpolation factor
-                Colour_Buffer[index] = lerp(Colour_Palette_Buffer[i], Colour_Palette_Buffer[i + 1], t);
+                const float t = (height - range_start) / (range_end - range_start);
+                // Interpolate the color using the color palette
+                Colour_Buffer[index] = lerp(Colour_Palette_Buffer[k], Colour_Palette_Buffer[k + 1], t);
                 break;
             }
         }
     }
     else
     {
-        // Default to white or another fallback color to avoid black regions
+        // Set the color to black for vertices outside the range [0, 1]
         Colour_Buffer[index] = float4(0, 0, 0, 1);
     }
 }

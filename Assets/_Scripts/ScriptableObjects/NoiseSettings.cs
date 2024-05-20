@@ -12,8 +12,7 @@ namespace _Scripts.ScriptableObjects
     /// <summary>
     /// This ScriptableObject class contains settings related to noise generation.
     /// </summary>
-    [CreateAssetMenu(menuName =
-        "ScriptableObjects/Settings/Noise")] // This attribute creates a menu entry in the Unity Editor to create a NoiseSettings ScriptableObject.
+    [CreateAssetMenu(menuName = "ScriptableObjects/Settings/Noise")] // This attribute creates a menu entry in the Unity Editor to create a NoiseSettings ScriptableObject.
     public class NoiseSettings : ScriptableObject
     {
         #region Seed Settings
@@ -34,7 +33,7 @@ namespace _Scripts.ScriptableObjects
 
         [Header("Noise")] // Groups the following fields under the "Noise" header in the Inspector.
         
-        [Range(0.1f, 1.0f)]
+        [Range(0.0001f, 1.0f)]
         public float noiseScale = 0.5f; // The scale for noise generation, affecting the frequency of noise.
 
         [Range(0.5f, 5.0f)]
@@ -50,7 +49,7 @@ namespace _Scripts.ScriptableObjects
         public float lacunarity = 2.01f; // The frequency multiplier for each octave.
 
         [Range(1, 200)] 
-        public float maxTerrainHeight = 180.0f;
+        public float maxTerrainHeight = 180.0f; // The maximum height of the terrain. 
 
         #endregion
 

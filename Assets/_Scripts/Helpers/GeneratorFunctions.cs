@@ -7,7 +7,7 @@
 
 using UnityEngine;
 
-namespace _Scripts.Helper
+namespace _Scripts.Helpers
 {
     public static class GeneratorFunctions
     {
@@ -20,7 +20,7 @@ namespace _Scripts.Helper
         private static ComputeBuffer _vertexBuffer; // Buffer for storing vertices of the mesh
         private static ComputeBuffer _outputBuffer; // Buffer for storing output data
 
-        // Declare shader property identifiers (IDs) for shader properties
+        // Declare shader property identifiers (IDs) for mesh properties
         private static readonly int
             MapWidth = Shader.PropertyToID("map_width"), // Map width property ID
             MapHeight = Shader.PropertyToID("map_height"), // Map height property ID
@@ -62,9 +62,14 @@ namespace _Scripts.Helper
         /// </summary>
         private static void ReleaseBuffers()
         {
-            _localMinMaxBuffer.Release();
-            _globalMinMaxBuffer.Release();
-            _clampedVerticesBuffer.Release();
+            // Release the local min-max compute buffer
+            _localMinMaxBuffer?.Release();
+
+            // Release the global min-max compute buffer
+            _globalMinMaxBuffer?.Release();
+
+            // Release the clamped vertices compute buffer
+            _clampedVerticesBuffer?.Release();
         }
 
         /// <summary>
@@ -80,29 +85,16 @@ namespace _Scripts.Helper
         {
             InitializeBuffers(resolution);
 
-            var localMinMax = ComputeLocalMinMax(resolution, computeShader, verticesBuffer, vertices);
+            // Compute local min-max values once
+            float[] localMinMax = ComputeLocalMinMax(resolution, computeShader, verticesBuffer, vertices);
 
-            var globalMinMax = ComputeGlobalMinMax(resolution, computeShader, localMinMax);
+            // Compute global min-max values
+            float[] globalMinMax = ComputeGlobalMinMax(resolution, computeShader, localMinMax);
 
+            // Clamp height values using the computed global min-max values
             ClampHeightValues(computeShader, verticesBuffer, resolution, vertices, globalMinMax);
-            
-            // MakeHeight(computeShader, verticesBuffer, resolution, vertices, maxTerrainHeight);
-            
-            // for (int i = 0; i < globalMinMax.Length; i++)
-            // {
-            //     Debug.Log("Before: " + globalMinMax[i]);
-            // }
-            
-            localMinMax = ComputeLocalMinMax(resolution, computeShader, verticesBuffer, vertices);
-            
-            globalMinMax = ComputeGlobalMinMax(resolution, computeShader, localMinMax);
 
             ReleaseBuffers();
-
-            // for (int i = 0; i < globalMinMax.Length; i++)
-            // {
-            //     Debug.Log("After: " + globalMinMax[i]);
-            // }
 
             return globalMinMax;
         }
@@ -195,7 +187,7 @@ namespace _Scripts.Helper
         /// <param name="resolution">The resolution of the terrain.</param>
         /// <param name="vertices">The array containing the vertices of the terrain.</param>
         /// <param name="minMax">The array containing the minimum and maximum height values.</param>
-        public static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
+        private static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
             Vector2Int resolution, Vector3[] vertices,
             float[] minMax)
         {
@@ -224,52 +216,42 @@ namespace _Scripts.Helper
             // Dispatch the compute shader to clamp the height values.
             computeShader.Dispatch(clampKernel, dispatchX, dispatchY, 1);
 
-            // foreach (var vector3 in vertices)
-            // {
-            //     Debug.Log("Before Clamp: " + vector3);
-            // }
-
             // Get the clamped vertices from the compute shader.
             _clampedVerticesBuffer.GetData(vertices);
-
-            // foreach (var vector3 in vertices)
-            // {
-            //     Debug.Log("After Clamp: " + vector3);
-            // }
         }
         
-        public static void MakeHeight(ComputeShader computeShader, ComputeBuffer verticesBuffer,
-            Vector2Int resolution, Vector3[] vertices, float maxTerrainHeight)
-        {
-            Debug.Log("MakeHeight");
-            // Find the kernel in the compute shader for clamping height values.
-            int clampKernel = computeShader.FindKernel("Make_Height");
-
-            // Set the map width and height in the compute shader.
-            computeShader.SetInt(MapWidth, resolution.x);
-            computeShader.SetInt(MapHeight, resolution.y);
-            
-            computeShader.SetFloat("max_terrain_height", maxTerrainHeight);
-
-            // Set the vertices buffer in the compute shader.
-            verticesBuffer.SetData(vertices);
-            computeShader.SetBuffer(clampKernel, VertexBuffer, verticesBuffer);
-
-            // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
-            var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
-
-            // Dispatch the compute shader to clamp the height values.
-            computeShader.Dispatch(clampKernel, dispatchX, dispatchY, 1);
-
-            // Get the clamped vertices from the compute shader.
-            verticesBuffer.GetData(vertices);
-
-            foreach (var vector3 in vertices)
-            {
-                Debug.Log("After Height: " + vector3);
-            }
-        }
+        // public static void MakeHeight(ComputeShader computeShader, ComputeBuffer verticesBuffer,
+        //     Vector2Int resolution, Vector3[] vertices, float maxTerrainHeight)
+        // {
+        //     Debug.Log("MakeHeight");
+        //     // Find the kernel in the compute shader for clamping height values.
+        //     int clampKernel = computeShader.FindKernel("Make_Height");
+        //
+        //     // Set the map width and height in the compute shader.
+        //     computeShader.SetInt(MapWidth, resolution.x);
+        //     computeShader.SetInt(MapHeight, resolution.y);
+        //     
+        //     computeShader.SetFloat("max_terrain_height", maxTerrainHeight);
+        //
+        //     // Set the vertices buffer in the compute shader.
+        //     verticesBuffer.SetData(vertices);
+        //     computeShader.SetBuffer(clampKernel, VertexBuffer, verticesBuffer);
+        //
+        //     // Calculate the number of thread groups to dispatch.
+        //     var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+        //     var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
+        //
+        //     // Dispatch the compute shader to clamp the height values.
+        //     computeShader.Dispatch(clampKernel, dispatchX, dispatchY, 1);
+        //
+        //     // Get the clamped vertices from the compute shader.
+        //     verticesBuffer.GetData(vertices);
+        //
+        //     foreach (var vector3 in vertices)
+        //     {
+        //         Debug.Log("After Height: " + vector3);
+        //     }
+        // }
 
         #endregion
     }
