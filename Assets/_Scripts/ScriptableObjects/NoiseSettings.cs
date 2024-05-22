@@ -50,6 +50,9 @@ namespace _Scripts.ScriptableObjects
 
         [Range(1, 200)] 
         public float maxTerrainHeight = 180.0f; // The maximum height of the terrain. 
+        
+        [Range(0, 1)] 
+        public float waterLevel = 0.3f; // The maximum height of the terrain. 
 
         #endregion
 

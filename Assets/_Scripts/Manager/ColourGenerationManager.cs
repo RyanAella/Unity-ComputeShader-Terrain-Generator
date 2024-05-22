@@ -37,7 +37,7 @@ namespace _Scripts.Manager
             ColourPaletteBuffer = Shader.PropertyToID("Colour_Palette_Buffer"); // ID for color palette buffer
 
         private static readonly int ColourCount = Shader.PropertyToID("colour_count"); // ID for color count
-
+        
         private int _verticesBufferLength; // Length of the vertices buffer
         
         #endregion

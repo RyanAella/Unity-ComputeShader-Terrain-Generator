@@ -62,8 +62,18 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
             {
                 // Calculate the interpolation factor
                 const float t = (height - range_start) / (range_end - range_start);
+                
                 // Interpolate the color using the color palette
-                Colour_Buffer[index] = lerp(Colour_Palette_Buffer[k], Colour_Palette_Buffer[k + 1], t);
+                float4 startColor = Colour_Palette_Buffer[k];
+                float4 endColor = Colour_Palette_Buffer[k + 1];
+
+                float4 colour = lerp(startColor, endColor, t);
+                
+                // Set alpha value based on the gradient's alpha value
+                // We assume here that the alpha value is the same for both start and end colors
+                colour.a = lerp(startColor.a, endColor.a, t);
+
+                Colour_Buffer[index] = colour;
                 break;
             }
         }
@@ -71,6 +81,6 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
     else
     {
         // Set the color to black for vertices outside the range [0, 1]
-        Colour_Buffer[index] = float4(0, 0, 0, 1);
+        Colour_Buffer[index] = float4(0, 0, 0, 0);
     }
 }

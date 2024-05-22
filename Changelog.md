@@ -1,5 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.13.0] - 2024-05-22
+### Added
+- Created prefabs for ground and water objects in the scene.
+- Updated the terrain mesh generation to ensure compatibility with the new prefabs.
+- Added a new material for water: `WaterMaterial.mat`.
+- Implemented water generation functionality.
+
+### Changed
+- Renamed materials from `MapMaterial.mat` to `GroundMaterial.mat` for clarity.
+- Relocated some assets for better organization and documentation.
+- Adjusted the compute shaders for noise generation (`NoiseGeneration.compute`) to improve performance and stability.
+
 ## [0.12.0] - 2024-05-19
 ### Changed
 - Revised and cleaned up all scripts to improve efficiency and clarity.

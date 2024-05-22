@@ -5,14 +5,9 @@
 * License: Licence
 */
 
-// Define kernel functions for the compute shader.
-#pragma kernel Noise_Generator 0
-#pragma kernel Compute_Local_Min_Max 1
-#pragma kernel Compute_Global_Min_Max 2
-#pragma kernel Clamp_Height_Values 3
-
-// Include the SimplexNoise2D shader for generating noise.
-#include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
+#pragma kernel Compute_Local_Min_Max 0
+#pragma kernel Compute_Global_Min_Max 1
+#pragma kernel Clamp_Height_Values 2
 
 // Define constants for minimum and maximum float values.
 #define FLT_MAX 3.402823466e+38
@@ -22,34 +17,19 @@
 uint map_width; // Width of the noise map
 uint map_height; // Height of the noise map
 
-// Parameters for noise generation.
-float seed_offset; // Offset for the noise seed
-float noise_scale; // Scale of the noise
-float noise_height; // Height factor for the noise
-int octaves; // Number of noise octaves
-float lacunarity; // Frequency multiplier for each octave
-float persistence; // Amplitude multiplier for each octave
-
-float max_terrain_height; // Maximum height of the terrain
+// Minimum and maximum float values.
+float float_min_value; // Minimum float value
+float float_max_value; // Maximum float value
 
 // Length of buffers for vertices and local Min/Max values.
 int vertices_buffer_length; // Total length of the vertex buffer
 int local_min_max_buffer_length; // Total length of the local Min/Max buffer
 
-// Minimum and maximum float values.
-float float_min_value; // Minimum float value
-float float_max_value; // Maximum float value
-
-float island_radius;
-
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
-RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
 RWStructuredBuffer<float2> _Local_Min_Max_Buffer; // Buffer to store local Min/Max values
 RWStructuredBuffer<float> _Global_Min_Max_Buffer; // Buffer to store global Min/Max values
 RWStructuredBuffer<float3> _Clamped_Buffer; // Stores clamped vertex data
-
-RWStructuredBuffer<float> _Output_Buffer; // Output buffer for computed values
 
 /// <summary>
 /// Performs linear interpolation between two values.
@@ -75,88 +55,6 @@ float inverse_lerp(const float from, const float to, const float value)
 
     // Clamp the result between 0 and 1.
     return clamp(result, 0.0f, 1.0f);
-}
-
-/// <summary>
-/// Generates noise for each thread ID within the map dimensions.
-/// </summary>
-/// <param name="id">The thread ID.</param>
-/// <returns>The generated noise value for the thread ID.</returns>
-[numthreads(16, 16, 1)]
-void Noise_Generator(uint3 id : SV_DispatchThreadID)
-{
-    // Ensure the thread ID is within the map dimensions.
-    if (id.x >= map_width || id.y >= map_height)
-    {
-        return; // Exit early if out of bounds
-    }
-
-    // Check if the current thread is within the bounds of the noise map.
-    if (id.y < map_height && id.x < map_width)
-    {
-        // Initialize the accumulated noise value to zero.
-        float3 value = float3(0.0f, 0.0f, 0.0f);
-        // Initialize the initial amplitude for noise generation.
-        float amplitude = 1.0f;
-        // Initialize the initial frequency for noise generation.
-        float frequency = 1.0f;
-
-        // Calculate the index of the vertex in the buffer.
-        const int vertex_index = id.y * map_width + id.x;
-
-        // Calculate the sample coordinates for noise generation.
-        const float sample_x = (id.x + seed_offset) * noise_scale;
-        const float sample_y = (id.y + seed_offset) * noise_scale;
-
-        // Loop through the specified number of octaves to generate noise.
-        for (int o = 0; o < octaves; o++)
-        {
-            // Calculate UV coordinates for noise generation.
-            const float2 uv = float2(sample_x * frequency, sample_y * frequency) / float2(map_width, map_height);
-
-            // Generate Simplex noise and add it to the accumulated value.
-            value += amplitude * SimplexNoise(uv);
-
-            // Increase the amplitude and frequency for the next octave to add more detail to the noise.
-            amplitude *= persistence;
-            frequency *= lacunarity;
-        }
-
-        float height = value.y;
-
-        // Calculate the distance from the center of the map
-        const float2 center = float2(map_width / 2, map_height / 2);
-        const float distance = length(float2(id.x, id.y) - center);
-
-        // Apply island shape modification based on distance from center
-        const float island_factor = 1.0 - saturate(distance / island_radius);
-        height *= island_factor;
-        
-        // Calculate the position of the vertex in world space.
-        const float top_left_x = (map_width - 1) / -2.0f;
-        const float top_left_z = (map_height - 1) / -2.0f;
-        const float3 vertex = float3(top_left_x + id.x, height, top_left_z + id.y);
-
-        // Store the vertex position in the vertex buffer.
-        _Vertex_Buffer[vertex_index] = vertex;
-    }
-
-    // Generate triangles if within the map bounds minus one (to avoid out-of-bounds indices).
-    if (id.y < map_height - 1 && id.x < map_width - 1)
-    {
-        const int index = (id.y * (map_width - 1) + id.x) * 6; // Base index for triangles
-
-        const int vertex_index = id.y * map_width + id.x; // Base index for vertices
-
-        // Store the indices for the two triangles that make up each grid cell.
-        _Triangle_Buffer[index + 0] = vertex_index + 0;
-        _Triangle_Buffer[index + 1] = vertex_index + map_width;
-        _Triangle_Buffer[index + 2] = vertex_index + 1;
-
-        _Triangle_Buffer[index + 3] = vertex_index + 1;
-        _Triangle_Buffer[index + 4] = vertex_index + map_width;
-        _Triangle_Buffer[index + 5] = vertex_index + map_width + 1;
-    }
 }
 
 // Kernel for computing local Min/Max values
@@ -260,9 +158,9 @@ void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
 
             // Get the vertex at the current index
             float3 vertex = _Vertex_Buffer[index];
-            
+
             float normalized_height = inverse_lerp(min, max, vertex.y);
-            
+
             // Store the clamped vertex in the clamped buffer
             _Clamped_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
         }
