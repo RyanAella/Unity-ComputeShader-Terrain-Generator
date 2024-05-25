@@ -9,6 +9,14 @@ using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
+    public enum NoiseType
+    {
+        SimplexNoise = 0,
+        FractionalBrownianMotion = 1,
+        DomainWarping = 2,
+        Noiseless = 3
+    }
+    
     /// <summary>
     /// This ScriptableObject class contains settings related to noise generation.
     /// </summary>
@@ -24,7 +32,7 @@ namespace _Scripts.ScriptableObjects
         
         public string seed = "Hello World!"; // Default seed value if not using a random seed.
 
-        [Range(100000.0f, 1000000.0f)]
+        [Range(10000.0f, 1000000.0f)]
         public float seedScale = 100000.0f; // Scale factor for calculating the seed offset.
 
         #endregion
@@ -39,13 +47,13 @@ namespace _Scripts.ScriptableObjects
         [Range(0.5f, 5.0f)]
         public float noiseHeight = 2.0f; // The height factor for the noise, affecting how much variation there is in the generated terrain.
 
-        [Range(1, 8)]
+        [Range(1, 10)]
         public int octaves = 6; // The number of octaves in the noise function, impacting the level of detail.
 
         [Range(0.3f, 0.7f)] 
         public float persistence = 0.5f; // The amplitude persistence for each octave.
 
-        [Range(1.8f, 2.7f)] 
+        [Range(1.8f, 10.0f)] 
         public float lacunarity = 2.01f; // The frequency multiplier for each octave.
 
         [Range(1, 200)] 
@@ -53,6 +61,8 @@ namespace _Scripts.ScriptableObjects
         
         [Range(0, 1)] 
         public float waterLevel = 0.3f; // The maximum height of the terrain. 
+
+        public NoiseType noiseType;
 
         #endregion
 

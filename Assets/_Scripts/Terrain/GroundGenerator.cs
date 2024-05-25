@@ -42,13 +42,13 @@ namespace _Scripts.Terrain
         public void GenerateGround(NoiseGenerationManager noiseGenerationManager,
             MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, ComputeShader noiseGenerationComputeShader,
             ComputeShader valueClampComputeShader, ComputeShader colourGenerationComputeShader, Vector2Int resolution, NoiseSettings noiseSettings,
-            List<Vector4> colourGradient, float islandRadius, NoiseType noiseType)
+            List<Vector4> colourGradient, float islandRadius, bool generateMultipleLayers)
         {
             _noiseGenerationManager = noiseGenerationManager;
             _colourGenerationManager = colourGenerationManager;
             
             bool success = GenerateNoiseAndMesh(_noiseGenerationManager, meshGenerationManager, noiseGenerationComputeShader,
-                valueClampComputeShader, resolution, noiseSettings, islandRadius, noiseType);
+                valueClampComputeShader, resolution, noiseSettings, islandRadius, generateMultipleLayers);
             
             // // Create a list of colour palette vectors based on the color keys in the colour gradient.
             // // Each vector represents a color with components for red, green, blue, and alpha.
@@ -65,7 +65,7 @@ namespace _Scripts.Terrain
         private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
             MeshGenerationManager meshGenerationManager,
             ComputeShader noiseGenerationComputeShader, ComputeShader valueClampComputeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, float islandRadius, NoiseType noiseType)
+            NoiseSettings noiseSettings, float islandRadius, bool generateMultipleLayers)
         {
             // Create arrays to store the vertices and triangles of the mesh.
             // The number of vertices is determined by the resolution of the mesh.
@@ -81,8 +81,7 @@ namespace _Scripts.Terrain
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, resolution, noiseSettings, vertices, and triangles arrays are passed as arguments.
             _minMaxValues = noiseGenerationManager.GenerateNoiseParameters(noiseGenerationComputeShader,
-                valueClampComputeShader, resolution,
-                noiseSettings, _vertices, _triangles, islandRadius, noiseType);
+                valueClampComputeShader, resolution, noiseSettings, _vertices, _triangles, islandRadius, generateMultipleLayers);
 
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
@@ -95,7 +94,7 @@ namespace _Scripts.Terrain
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            meshGenerationManager.CreateMesh(_meshFilter.mesh, _vertices, _triangles);
+            meshGenerationManager.CreateMesh(_meshFilter.sharedMesh, _vertices, _triangles);
 
             return true;
         }

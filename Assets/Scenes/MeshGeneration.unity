@@ -229,8 +229,7 @@ MonoBehaviour:
   noiseGenerationComputeShader: {fileID: 7200000, guid: 719e192517c0e9e4ebee10cbc2bd575f, type: 3}
   valueClampComputeShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}
   colourGenerationComputeShader: {fileID: 7200000, guid: 41e4d8152bd1b044a903cbe908940b7d, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 6108e47e5cd07c14fa102dfb8de6946a, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 0ccdea88b95a274488430d992048399a, type: 2}
   groundColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 0}
@@ -261,6 +260,8 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 3
+  generateMultipleLayers: 0
+  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
   waterColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 1}
@@ -321,7 +322,6 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 8
-  noiseType: 0
 --- !u!23 &347041721
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -544,7 +544,6 @@ MonoBehaviour:
   valueClampComputeShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}
   colourGenerationComputeShader: {fileID: 7200000, guid: 41e4d8152bd1b044a903cbe908940b7d, type: 3}
   groundNoiseSettings: {fileID: 11400000, guid: 6108e47e5cd07c14fa102dfb8de6946a, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
   groundColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 0}
@@ -575,6 +574,8 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 3
+  generateMultipleLayers: 1
+  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
   waterColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 1}
@@ -635,7 +636,6 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 8
-  noiseType: 2
 --- !u!23 &910322925
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -695,7 +695,7 @@ Transform:
   m_GameObject: {fileID: 910322923}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 300, y: 0, z: 0}
+  m_LocalPosition: {x: 600, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -867,8 +867,7 @@ MonoBehaviour:
   noiseGenerationComputeShader: {fileID: 7200000, guid: 719e192517c0e9e4ebee10cbc2bd575f, type: 3}
   valueClampComputeShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}
   colourGenerationComputeShader: {fileID: 7200000, guid: 41e4d8152bd1b044a903cbe908940b7d, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 6108e47e5cd07c14fa102dfb8de6946a, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 4fe8318f69a5d454498f7516eddacfe2, type: 2}
   groundColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 0}
@@ -899,6 +898,8 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 3
+  generateMultipleLayers: 0
+  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
   waterColourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 1}
@@ -959,7 +960,6 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 8
     m_NumAlphaKeys: 8
-  noiseType: 1
 --- !u!23 &1014492196
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1019,7 +1019,7 @@ Transform:
   m_GameObject: {fileID: 1014492194}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -300}
+  m_LocalPosition: {x: 300, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

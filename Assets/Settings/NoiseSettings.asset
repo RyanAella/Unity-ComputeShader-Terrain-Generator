@@ -17,8 +17,9 @@ MonoBehaviour:
   seedScale: 100000
   noiseScale: 0.921
   noiseHeight: 2
-  octaves: 6
-  persistence: 0.5
-  lacunarity: 2.01
+  octaves: 5
+  persistence: 0.54
+  lacunarity: 1.83
   maxTerrainHeight: 50
   waterLevel: 0.3
+  noiseType: 0

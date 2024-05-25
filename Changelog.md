@@ -1,5 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.14.0] - 2024-05-24
+### Changed
+- Various files relocated for better organization and documentation purposes.
+- `NoiseGeneration.compute`: Currently undergoing testing of noise functions.
+- `ColourGeneration.compute`: Alpha values are now handled separately.
+- `ValueClamp.compute`: Renamed, unnecessary code deleted.
+- `GridGenerator`: Newly added, generates grid for documentation purposes.
+- `ColourGenerationManager`: Cleanup and optimization.
+- `GameManager`: Added enum `NoiseType`. Introduced separate `NoiseSettings` for water and ground. Separate `ColourGradients` for water and ground. Alpha keys are now handled separately.
+- `NoiseGenerationManager`: Newly added.
+- `GroundGenerator` / `WaterGenerator`: Refactorings and optimizations.
+
 ## [0.13.0] - 2024-05-22
 ### Added
 - Created prefabs for ground and water objects in the scene.

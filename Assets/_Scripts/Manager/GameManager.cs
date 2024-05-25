@@ -7,19 +7,13 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using _Scripts.Terrain;
 using UnityEngine;
 
 namespace _Scripts.Manager
 {
-    public enum NoiseType
-    {
-        SimplexNoise = 0,
-        FractionalBrownianMotion = 1,
-        DomainWarping = 2
-    }
-    
     /// <summary>
     ///     This class is responsible for managing the generation of a mesh using a compute shader.
     ///     It initializes a compute buffer, generates a noise map, and then uses that noise map to generate a mesh.
@@ -43,15 +37,16 @@ namespace _Scripts.Manager
         [SerializeField] private ComputeShader valueClampComputeShader; // Compute shader for noise generation
         [SerializeField] private ComputeShader colourGenerationComputeShader; // Compute shader for colourGradient generation
 
+        [Header("Ground Generation")]
         [SerializeField] private NoiseSettings groundNoiseSettings; // Noise settings for mesh generation
-        [SerializeField] private NoiseSettings waterNoiseSettings; // Noise settings for mesh generation
-        
         [SerializeField] private Gradient groundColourGradient; // Gradient for colourGradient mapping
+        [SerializeField] private bool generateMultipleLayers;
+        
+        [Header("Water Generation")]
+        [SerializeField] private NoiseSettings waterNoiseSettings; // Noise settings for mesh generation
         [SerializeField] private Gradient waterColourGradient; // Gradient for colourGradient mapping
         
         [SerializeField] private Gradient colourGradient; // Gradient for colourGradient mapping
-        
-        [SerializeField] private NoiseType noiseType;
 
         // Reference to managers for noise, mesh and colourGradient generation.
         private NoiseGenerationManager _noiseGenerationManager; // Manager for noise generation
@@ -78,16 +73,6 @@ namespace _Scripts.Manager
             _meshGenerationManager = new MeshGenerationManager();
 
             _colourGenerationManager = new ColourGenerationManager();
-            
-            // foreach (var colorKey in colourGradient.colorKeys)
-            // {
-            //     Debug.Log("Color: " + colorKey.color + ", Alpha: " + colorKey.color.a + ", Time: " + colorKey.time);
-            // }
-            //
-            // foreach (var alphaKey in colourGradient.alphaKeys)
-            // {
-            //     Debug.Log("Alpha: " + alphaKey.alpha + ", Time: " + alphaKey.time);
-            // }
         }
 
         /// <summary>
@@ -96,22 +81,10 @@ namespace _Scripts.Manager
         /// </summary>
         private void Start()
         {
-            // Debug.Log(transform.name + " (" + transform.position.x + ", " + transform.position.y + ", " + transform.position.z + ")");
             _colourPaletteWater = GetColorPalette(colourGradient, 0.0f, 0.3f);
             _colourPaletteGround = GetColorPalette(colourGradient, 0.3f, 1.0f);
             
             GenerateTerrain();
-            
-            // // Generate the mesh using the provided resolution and noise settings.
-            // // Returns true if the mesh generation was successful, false otherwise.
-            // bool meshGenerated = GenerateTerrain();
-            //
-            // // Colour the mesh based on the generated mesh and the specified colourGradient palette.
-            // // The meshGenerated parameter indicates whether the mesh has been generated or not.
-            // ColourMesh(meshGenerated);
-            //
-            // // Adjust the height of the mesh vertices based on the specified noise settings.
-            // AdjustMeshHeight();
         }
 
         /// <summary>
@@ -123,7 +96,7 @@ namespace _Scripts.Manager
             var ground = Instantiate(groundGenerator, transform.position, Quaternion.identity);
             ground.transform.parent = transform;
             
-            ground.GenerateGround(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager, noiseGenerationComputeShader, valueClampComputeShader, colourGenerationComputeShader, resolution, groundNoiseSettings, _colourPaletteGround, islandRadius, noiseType );
+            ground.GenerateGround(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager, noiseGenerationComputeShader, valueClampComputeShader, colourGenerationComputeShader, resolution, groundNoiseSettings, _colourPaletteGround, islandRadius, generateMultipleLayers);
             
             // Generate ground and get the MeshFilter component
             MeshFilter groundMeshFilter = ground.GetComponent<MeshFilter>();
@@ -136,7 +109,9 @@ namespace _Scripts.Manager
                 var water = Instantiate(waterGenerator, transform.position, Quaternion.identity);
                 water.transform.parent = transform;
             
-                water.GenerateWater(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager, noiseGenerationComputeShader, valueClampComputeShader, colourGenerationComputeShader, resolution, waterNoiseSettings, _colourPaletteWater, islandRadius, noiseType, maxHeight);
+                water.GenerateWater(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager, noiseGenerationComputeShader, valueClampComputeShader, colourGenerationComputeShader, resolution, waterNoiseSettings, _colourPaletteWater, islandRadius, maxHeight);
+                
+                MeshFilter waterMeshFilter = water.GetComponent<MeshFilter>();
             }
             else
             {
@@ -169,7 +144,6 @@ namespace _Scripts.Manager
 
             return palette;
         }
-
 
         #endregion
     }

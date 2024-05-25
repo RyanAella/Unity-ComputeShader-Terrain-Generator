@@ -32,15 +32,56 @@ int noise_type;
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
+RWStructuredBuffer<float3> _Base_Noise_Buffer; // Stores the noise values for each vertex
 
-float3 noise(const float sample_x, const float sample_y)
+float ridgeNoise(float y)
 {
-        // Calculate UV coordinates for noise generation.
+    // float sample_x = xy.x;
+    // float sample_y = xy.y;
+    //
+    // // Initialize the accumulated noise value to zero.
+    // float3 value = float3(0.0f, 0.0f, 0.0f);
+    // // Initialize the initial amplitude for noise generation.
+    // float amplitude = 1.0f;
+    // // Initialize the initial frequency for noise generation.
+    // float frequency = 1.0f;
+    //
+    // float weight = 1;
+    //
+    // for (int o = 0; o < octaves; o++)
+    // {
+    //     // Calculate UV coordinates for noise generation.
+    //     const float2 uv = float2(sample_x, sample_y) / float2(map_width, map_height);
+    //
+    //     float v = 1 - abs(SimplexNoise(uv));
+    //     v *= v;
+    //     v *= weight;
+    //     weight = clamp(0, 1, v);
+    //     value += v * amplitude;
+    //
+    //     // Increase the amplitude and frequency for the next octave to add more detail to the noise.
+    //     amplitude *= persistence;
+    //     frequency *= lacunarity;
+    // }
+
+    float n = abs(y); // create creases
+    n = 1 - n; // invert so creases are at top
+    // n = n * n; // sharpen creases
+
+    return n;
+}
+
+float3 noise(float2 xy)
+{
+    float sample_x = xy.x;
+    float sample_y = xy.y;
+
+    // Calculate UV coordinates for noise generation.
     const float2 uv = float2(sample_x, sample_y) / float2(map_width, map_height);
 
     // Generate Simplex noise and add it to the accumulated value.
     float3 value = SimplexNoise(uv);
-    
+
     return value;
 }
 
@@ -48,7 +89,37 @@ float3 fractional_brownian_motion(float2 xy)
 {
     float sample_x = xy.x;
     float sample_y = xy.y;
-    
+
+    // Initialize the accumulated noise value to zero.
+    float3 value = float3(0.0f, 0.0f, 0.0f);
+    // Initialize the initial amplitude for noise generation.
+    float amplitude = 1.0f;
+    // Initialize the initial frequency for noise generation.
+    float frequency = 1.0f;
+
+    // Loop through the specified number of octaves to generate noise.
+    for (int o = 0; o < octaves; o++)
+    {
+        // Calculate UV coordinates for noise generation.
+        const float2 uv = float2(sample_x * frequency, sample_y * frequency);
+
+        // Generate Simplex noise and add it to the accumulated value.
+        value += amplitude * /*abs*/(noise(uv));
+
+        // Increase the amplitude and frequency for the next octave to add more detail to the noise.
+        amplitude *= persistence;
+        frequency *= lacunarity;
+    }
+
+    return
+        value;
+}
+
+float3 fractional_brownian_motion_domain_warping(float2 xy)
+{
+    float sample_x = xy.x;
+    float sample_y = xy.y;
+
     // Initialize the accumulated noise value to zero.
     float3 value = float3(0.0f, 0.0f, 0.0f);
     // Initialize the initial amplitude for noise generation.
@@ -63,21 +134,23 @@ float3 fractional_brownian_motion(float2 xy)
         const float2 uv = float2(sample_x * frequency, sample_y * frequency) / float2(map_width, map_height);
 
         // Generate Simplex noise and add it to the accumulated value.
-        value += amplitude * SimplexNoise(uv);
+        // value += abs(amplitude * SimplexNoise(uv));
+        value += amplitude * abs(SimplexNoise(uv));
 
         // Increase the amplitude and frequency for the next octave to add more detail to the noise.
         amplitude *= persistence;
         frequency *= lacunarity;
     }
+    // return -value;
     return value;
 }
 
-float3 domain_warping(const float sample_x, const float sample_y)
+float3 domain_warping(const float2 xy)
 {
-    float2 p = float2(sample_x, sample_y);
+    float2 p = xy;
 
     float2 q, r;
-    
+
     q.x = fractional_brownian_motion(p + float2(0.0, 0.0)).y;
     q.y = fractional_brownian_motion(p + float2(5.2, 1.3)).y;
 
@@ -85,28 +158,112 @@ float3 domain_warping(const float sample_x, const float sample_y)
 
     r.x = fractional_brownian_motion(p + 4.0 * q + float2(1.7, 9.2)).y;
     r.y = fractional_brownian_motion(p + 4.0 * q + float2(8.3, 2.8)).y;
-    
-    float3 value = fractional_brownian_motion(p + 20.0 * r);
+
+    float3 value = fractional_brownian_motion(p + 4.0f * r);
 
     return value;
 }
 
-float falloff(float x, float y, float island_radius)
+float2 CalculateWarpFactor(float2 position)
 {
-    float gradient = 1;
+    float2 warpFactor = float2(0.0, 0.0);
 
-    gradient /= (x * y) / (map_width * map_height) * (1 - (x / map_width)) * (1 - (y / map_height));
-    // gradient -= 16;
-    gradient /= island_radius;
+    warpFactor.x = clamp(sin(position.x * 10.0) * 0.1, -0.01, 0.01);
+    warpFactor.y = clamp(cos(position.y * 10.0) * 0.1, -0.01, 0.01);
 
-
-    return gradient;
-    
-    // float2 position = float2(x, y);
-    // float dist = length(position) / island_radius;
-    // float gradient = 1.0f - dist * dist;
-    // return /*clamp(*/gradient/*, 0.0f, 1.0f)*/; // Hier wird der Gradient direkt geklammert, um im Bereich von 0 bis 1 zu bleiben.
+    return warpFactor;
 }
+
+float falloff(float2 pos, float island_radius)
+{
+    // float gradient = 1;
+    //
+    // gradient /= (x * y) / (map_width * map_height) * (1 - (x / map_width)) * (1 - (y / map_height));
+    // // gradient -= 16;
+    // gradient /= island_radius;
+    //
+    // return gradient;
+
+    float x = (pos.x / (255 + 1)) * 2 - 1;
+    float y = (pos.y / (255 + 1)) * 2 - 1;
+
+    float value = max(abs(x), abs(y));
+
+    float a = 1.23f;
+    float b = 1.38f;
+
+    return 1 - (pow(value, a) / (pow(value, a) + pow((b - b * value), a)));
+}
+
+// function generateHeight(x, y) {
+//   
+//     let h = noise(x * frequency, y * frequency);
+//   
+//     // warp the noise
+//     if (warped) {
+//     
+//         let pX = x + (noise((x + 20) * warpFrequency, (y)      * warpFrequency) - 0.5) * warpAmplitude;
+//         let pY = y + (noise((x)      * warpFrequency, (y + 20) * warpFrequency) - 0.5) * warpAmplitude;
+//     
+//     
+//         h = noise(pX * frequency, pY * frequency);
+//     }
+//   
+//     // if generating an island discount the height
+//     if (island) {
+//     
+//         let d = p5.Vector.dist(createVector(x, y), createVector(width / 2, height / 2));
+//         d /= width / 2;
+//         d = 1 - d;
+//     
+//         h *= d;
+//     
+//     }
+//   
+//     // subtract the threshold
+//     h = max(0, h - threshold);
+//     h /= (1 - threshold);
+//   
+//     return h;
+// }
+
+float3 make_noise(const int vertex_index, const float sample_x, const float sample_y)
+{
+    float3 value = float3(0.0f, 0.0f, 0.0f);
+
+    if (noise_type == 0)
+    {
+        value = noise(float2(sample_x, sample_y));
+    }
+    else if (noise_type == 1)
+    {
+        value = fractional_brownian_motion(float2(sample_x, sample_y));
+    }
+    else if (noise_type == 2)
+    {
+        value = domain_warping(float2(sample_x, sample_y));
+    }
+    
+    return value;
+}
+
+float falloff(float x, float y, float radius, float distortionScale)
+{
+    // Konvertiere die Eingabewerte in eine 2D-Position relativ zum Inselradius
+    float2 position = float2(x, y) / radius;
+    
+    // Verzerrung der Position basierend auf Simplex-Noise
+    float noise = SimplexNoise(position * distortionScale).x;
+    
+    // Berechne den Abstand vom Zentrum der Insel
+    float dist = length(position);
+    
+    // Berechne den Fall-Off-Wert und wende eine quadratische Dämpfung an
+    float falloff_value = 1.0f - pow(clamp(dist + noise, 0.0f, 1.0f), 2.0f);
+    
+    return falloff_value;
+}
+
 
 /// <summary>
 /// Generates noise for each thread ID within the map dimensions.
@@ -132,35 +289,50 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
         const float sample_x = (id.x + seed_offset) * noise_scale;
         const float sample_y = (id.y + seed_offset) * noise_scale;
 
-        float3 value = float3(0.0f, 0.0f, 0.0f);
-        
-        if (noise_type == 0)
-        {
-            value = noise(sample_x, sample_y);
-        }
-        else if (noise_type == 1)
-        {
-            value = fractional_brownian_motion(float2(sample_x, sample_y));
-        }
-        else if (noise_type == 2)
-        {
-            value = domain_warping(sample_x, sample_y);
-        }
+        float3 value = make_noise(vertex_index, sample_x, sample_y);
 
-        float height = value.y;
+        // // // // Apply the falloff map
+        // float falloff_value = falloff((float)id.x, (float)id.y); // Example distortionScale
+        // value -= falloff_value;
 
-        // // // Apply the falloff map
-        // float falloff_value = falloff((float)id.x, (float)id.y, island_radius); // Example distortionScale
-        // height -= falloff_value;
+        // Apply the falloff map
+        float falloff_value = falloff(id.x, id.y, island_radius, 25.0f); // Example distortionScale
+        value -= falloff_value;
 
         // Calculate the position of the vertex in world space.
         const float top_left_x = (map_width - 1) / -2.0f;
         const float top_left_z = (map_height - 1) / -2.0f;
-        const float3 vertex = float3(top_left_x + id.x, height, top_left_z + id.y);
+        const float3 vertex = float3(top_left_x + id.x, value.y, top_left_z + id.y);
 
         // Store the vertex position in the vertex buffer.
         _Vertex_Buffer[vertex_index] = vertex;
     }
+
+    // if (id.y < map_height && id.x < map_width)
+    // {
+    //     for (int i = 0; i < vertexIndex; i++)
+    //     {
+    //         float height = _Vertex_Buffer[i].y;
+    //
+    //         if (height >= 0.5f)
+    //         {
+    //             // height *= 0.75f;
+    //             height += ridgeNoise(height);
+    //             // height = lerp(_Vertex_Buffer[i].y, height, 0.125f);
+    //             _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
+    //         }
+    //         // else if (height >= 0.7f)
+    //         // {
+    //         //     height *= 0.5f;
+    //         //     _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
+    //         // }
+    //         // else if (height >= 0.5f)
+    //         // {
+    //         //     height *= 0.25f;
+    //         //     _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
+    //         // }
+    //     }
+    // }
 
     // Generate triangles if within the map bounds minus one (to avoid out-of-bounds indices).
     if (id.y < map_height - 1 && id.x < map_width - 1)

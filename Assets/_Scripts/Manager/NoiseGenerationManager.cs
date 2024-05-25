@@ -16,7 +16,8 @@ namespace _Scripts.Manager
     {
         private ComputeBuffer _verticesBuffer; // Compute buffer for vertices
         private ComputeBuffer _trianglesBuffer; // Compute buffer for triangles
-        
+        private ComputeBuffer _baseNoiseBuffer; // Compute buffer for vertices
+
         private static readonly int MapWidth = Shader.PropertyToID("map_width"); // ID for map width
         private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
         private static readonly int SeedOffset = Shader.PropertyToID("seed_offset"); // ID for seed offset
@@ -32,10 +33,11 @@ namespace _Scripts.Manager
         private static readonly int IslandRadius = Shader.PropertyToID("island_radius"); // ID for island radius
         private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer"); // ID for vertex buffer
         private static readonly int TriangleBuffer = Shader.PropertyToID("_Triangle_Buffer"); // ID for triangle buffer
+        private static readonly int BaseNoiseBuffer = Shader.PropertyToID("_Base_Noise_Buffer");
         private static readonly int NoiseType1 = Shader.PropertyToID("noise_type");
-        
+
         private Mesh _mesh; // Mesh object for storing mesh data
-        
+
 
         /// <summary>
         ///     Initializes the compute buffers based on the given resolution.
@@ -47,6 +49,7 @@ namespace _Scripts.Manager
             _verticesBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 3);
             // Allocate memory for the triangles buffer.
             _trianglesBuffer = new ComputeBuffer((resolution.x - 1) * (resolution.y - 1) * 6, sizeof(int));
+            _baseNoiseBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 3);
         }
 
         /// <summary>
@@ -75,11 +78,19 @@ namespace _Scripts.Manager
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="triangles">Array to store the generated triangles.</param>
         /// <param name="islandRadius">The radius of the island.</param>
-        /// <param name="noiseType"></param>
+        /// <param name="generateMultipleLayers"></param>
         /// <returns>An array containing the minimum and maximum height values of the generated mesh.</returns>
-        public float[] GenerateNoiseParameters(ComputeShader noiseComputeShader, ComputeShader valueClampComputeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float islandRadius, NoiseType noiseType)
+        public float[] GenerateNoiseParameters(ComputeShader noiseComputeShader, ComputeShader valueClampComputeShader,
+            Vector2Int resolution, NoiseSettings noiseSettings, Vector3[] vertices, int[] triangles, float islandRadius,
+            bool generateMultipleLayers)
         {
+            float seedOffset = 0.0f;
+            int noiseKernel = 0;
+            int dispatchX = 0;
+            int dispatchY = 0;
+
+            // if (!generateMultipleLayers)
+            // {
             // Ensure the noise scale is not too low to avoid a flat mesh
             noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
 
@@ -88,10 +99,10 @@ namespace _Scripts.Manager
                 noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
 
             // Get the coordinates
-            float seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
+            seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
 
             // Find the kernel in the compute shader.
-            int noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
+            noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
 
             // Set shader properties
             noiseComputeShader.SetInt(MapWidth, resolution.x);
@@ -108,15 +119,16 @@ namespace _Scripts.Manager
             noiseComputeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
 
             noiseComputeShader.SetFloat(IslandRadius, islandRadius);
-            noiseComputeShader.SetInt(NoiseType1, (int) noiseType);
+            noiseComputeShader.SetInt(NoiseType1, (int)noiseSettings.noiseType);
 
             // Set the compute buffers for the vertices and triangles.
+            noiseComputeShader.SetBuffer(noiseKernel, BaseNoiseBuffer, _baseNoiseBuffer);
             noiseComputeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
             noiseComputeShader.SetBuffer(noiseKernel, TriangleBuffer, _trianglesBuffer);
 
             // Calculate the number of thread groups to dispatch.
-            int dispatchX = Mathf.CeilToInt(resolution.x / 16f);
-            int dispatchY = Mathf.CeilToInt(resolution.y / 16f);
+            dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            dispatchY = Mathf.CeilToInt(resolution.y / 16f);
 
             // Dispatch the compute shader to generate the mesh parameters.
             noiseComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
@@ -124,6 +136,77 @@ namespace _Scripts.Manager
             // Retrieve the generated vertices and triangles from the compute buffers.
             _verticesBuffer.GetData(vertices);
             _trianglesBuffer.GetData(triangles);
+            // }
+            // else
+            // {
+            //     // Ensure the noise scale is not too low to avoid a flat mesh
+            //     noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
+            //
+            //     // Check if a random seed is wanted
+            //     if (noiseSettings.useRandomSeed)
+            //         noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
+            //
+            //     // Get the coordinates
+            //     seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
+            //
+            //     // Find the kernel in the compute shader.
+            //     noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
+            //
+            //     // Set shader properties
+            //     noiseComputeShader.SetInt(MapWidth, resolution.x);
+            //     noiseComputeShader.SetInt(MapHeight, resolution.y);
+            //
+            //     noiseComputeShader.SetFloat(SeedOffset, seedOffset);
+            //     noiseComputeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
+            //     noiseComputeShader.SetFloat(NoiseHeight, noiseSettings.noiseHeight);
+            //
+            //     noiseComputeShader.SetInt(Octaves, noiseSettings.octaves);
+            //     noiseComputeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
+            //     noiseComputeShader.SetFloat(Persistence, noiseSettings.persistence);
+            //
+            //     noiseComputeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
+            //
+            //     noiseComputeShader.SetFloat(IslandRadius, islandRadius);
+            //     noiseComputeShader.SetInt(NoiseType1, (int)NoiseType.FractionalBrownianMotion);
+            //
+            //     // Set the compute buffers for the vertices and triangles.
+            //     _verticesBuffer.SetData(vertices);
+            //     _trianglesBuffer.SetData(triangles);
+            //     noiseComputeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
+            //     noiseComputeShader.SetBuffer(noiseKernel, TriangleBuffer, _trianglesBuffer);
+            //
+            //     // Calculate the number of thread groups to dispatch.
+            //     dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            //     dispatchY = Mathf.CeilToInt(resolution.y / 16f);
+            //
+            //     // Dispatch the compute shader to generate the mesh parameters.
+            //     noiseComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
+            //
+            //     // Retrieve the generated vertices and triangles from the compute buffers.
+            //     _verticesBuffer.GetData(vertices);
+            //
+            //     var vertSave = vertices;
+            //
+            //     // Use the generated vertices for the second pass
+            //     _baseNoiseBuffer.SetData(vertices);
+            //     noiseComputeShader.SetBuffer(noiseKernel, BaseNoiseBuffer, _baseNoiseBuffer);
+            //     noiseComputeShader.SetInt(NoiseType1, (int)NoiseType.DomainWarping); // Second pass: Apply domain warping
+            //
+            //     // Dispatch the compute shader to apply domain warping (second pass).
+            //     noiseComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
+            //
+            //     Debug.Log("Retrieving vertices data...");
+            //     
+            //     // Retrieve the final vertices and triangles from the compute buffers.
+            //     _verticesBuffer.GetData(vertices);
+            //     _trianglesBuffer.GetData(triangles);
+            //     
+            //     for (int i = 0; i < vertices.Length; i++)
+            //     {
+            //         Debug.Log("Before Domain Warping: " + vertSave[i].x + ", " + vertSave[i].y + ", " + vertSave[i].z);
+            //         Debug.Log("After Domain Warping: " + vertices[i].x + " " + vertices[i].y + " " + vertices[i].z);
+            //     }
+            // }
 
             // Compare the height values of the generated vertices and return the minimum and maximum values.
             float[] minMax =

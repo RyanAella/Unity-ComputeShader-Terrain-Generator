@@ -56,7 +56,7 @@ namespace _Scripts.Manager
         public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
             float[] minMax, Vector4[] colourPalette, int colourCount)
         {
-            if (meshFilter == null || meshFilter.mesh == null)
+            if (meshFilter == null || meshFilter.sharedMesh == null)
             {
                 Debug.LogError("MeshFilter or mesh is not assigned.");
                 return;
@@ -148,62 +148,6 @@ namespace _Scripts.Manager
             // Release the Compute Buffer for color palette
             _colourPaletteBuffer?.Release();
         }
-
-        // public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
-        //     float[] minMax, Vector4[] colourPalette)
-        // {
-        //     if (meshFilter == null || meshFilter.mesh == null)
-        //     {
-        //         Debug.LogError("MeshFilter or mesh is not assigned.");
-        //         return;
-        //     }
-        //     
-        //     Vector3[] vertices = meshFilter.mesh.vertices;
-        //
-        //     int colourCount = colourPalette.Length;
-        //
-        //     Color[] colourBuffer = new Color[resolution.x * resolution.y];
-        //
-        //     for (int i = 0; i < resolution.y; i++)
-        //     {
-        //         for (int j = 0; j < resolution.x; j++)
-        //         {
-        //             int index = i * resolution.x + j;
-        //
-        //             float height = vertices[index].y;
-        //
-        //             // float normalized_y = 0.0f;
-        //             // if (max_height!= min_height)
-        //             // {
-        //             //     normalized_y = (height - min_height) / (max_height - min_height);
-        //             // }
-        //
-        //             if (height >= 0 && height <= 1)
-        //             {
-        //                 for (int k = 0; k < colourCount - 1; k++)
-        //                 {
-        //                     float rangeStart = (float)k / (colourCount - 1);
-        //                     float rangeEnd = (float)(k + 1) / (colourCount - 1);
-        //
-        //                     if (height >= rangeStart && height <= rangeEnd)
-        //                     {
-        //                         float t = (height - rangeStart) / (rangeEnd - rangeStart);
-        //                         colourBuffer[index] = Color.Lerp(colourPalette[k], colourPalette[k + 1], t);
-        //                         break;
-        //                     }
-        //                 }
-        //             }
-        //             else
-        //             {
-        //                 // Debugging: Print the reason for the else case
-        //                 Debug.LogWarning($"Else case triggered due to normalized_y: {height}");
-        //                 colourBuffer[index] = new Color(0, 0, 0, 1);
-        //             }
-        //         }
-        //     }
-        //
-        //     meshFilter.mesh.colors = meshFilter.sharedMesh.colors = colourBuffer;
-        // }
 
         #endregion
     }
