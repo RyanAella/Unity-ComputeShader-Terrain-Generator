@@ -11,6 +11,8 @@
 // Include the SimplexNoise2D shader for generating noise.
 #include "Packages/jp.keijiro.noiseshader/Shader/SimplexNoise2D.hlsl"
 
+#define SQRT_2 1.41421356237 // Precomputed square root of 2
+
 // Unsigned integer variables for the dimensions of the noise map.
 uint map_width; // Width of the noise map
 uint map_height; // Height of the noise map
@@ -32,52 +34,12 @@ int noise_type;
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
-RWStructuredBuffer<float3> _Base_Noise_Buffer; // Stores the noise values for each vertex
+RWStructuredBuffer<float3> _Falloff_Map_Buffer; // Stores the noise values for each vertex
 
-float ridgeNoise(float y)
+float3 noise(const float2 xy)
 {
-    // float sample_x = xy.x;
-    // float sample_y = xy.y;
-    //
-    // // Initialize the accumulated noise value to zero.
-    // float3 value = float3(0.0f, 0.0f, 0.0f);
-    // // Initialize the initial amplitude for noise generation.
-    // float amplitude = 1.0f;
-    // // Initialize the initial frequency for noise generation.
-    // float frequency = 1.0f;
-    //
-    // float weight = 1;
-    //
-    // for (int o = 0; o < octaves; o++)
-    // {
-    //     // Calculate UV coordinates for noise generation.
-    //     const float2 uv = float2(sample_x, sample_y) / float2(map_width, map_height);
-    //
-    //     float v = 1 - abs(SimplexNoise(uv));
-    //     v *= v;
-    //     v *= weight;
-    //     weight = clamp(0, 1, v);
-    //     value += v * amplitude;
-    //
-    //     // Increase the amplitude and frequency for the next octave to add more detail to the noise.
-    //     amplitude *= persistence;
-    //     frequency *= lacunarity;
-    // }
-
-    float n = abs(y); // create creases
-    n = 1 - n; // invert so creases are at top
-    // n = n * n; // sharpen creases
-
-    return n;
-}
-
-float3 noise(float2 xy)
-{
-    float sample_x = xy.x;
-    float sample_y = xy.y;
-
     // Calculate UV coordinates for noise generation.
-    const float2 uv = float2(sample_x, sample_y) / float2(map_width, map_height);
+    const float2 uv = xy / float2(map_width, map_height);
 
     // Generate Simplex noise and add it to the accumulated value.
     float3 value = SimplexNoise(uv);
@@ -87,9 +49,6 @@ float3 noise(float2 xy)
 
 float3 fractional_brownian_motion(float2 xy)
 {
-    float sample_x = xy.x;
-    float sample_y = xy.y;
-
     // Initialize the accumulated noise value to zero.
     float3 value = float3(0.0f, 0.0f, 0.0f);
     // Initialize the initial amplitude for noise generation.
@@ -101,7 +60,7 @@ float3 fractional_brownian_motion(float2 xy)
     for (int o = 0; o < octaves; o++)
     {
         // Calculate UV coordinates for noise generation.
-        const float2 uv = float2(sample_x * frequency, sample_y * frequency);
+        const float2 uv = xy * frequency;
 
         // Generate Simplex noise and add it to the accumulated value.
         value += amplitude * /*abs*/(noise(uv));
@@ -111,43 +70,12 @@ float3 fractional_brownian_motion(float2 xy)
         frequency *= lacunarity;
     }
 
-    return
-        value;
-}
-
-float3 fractional_brownian_motion_domain_warping(float2 xy)
-{
-    float sample_x = xy.x;
-    float sample_y = xy.y;
-
-    // Initialize the accumulated noise value to zero.
-    float3 value = float3(0.0f, 0.0f, 0.0f);
-    // Initialize the initial amplitude for noise generation.
-    float amplitude = 1.0f;
-    // Initialize the initial frequency for noise generation.
-    float frequency = 1.0f;
-
-    // Loop through the specified number of octaves to generate noise.
-    for (int o = 0; o < octaves; o++)
-    {
-        // Calculate UV coordinates for noise generation.
-        const float2 uv = float2(sample_x * frequency, sample_y * frequency) / float2(map_width, map_height);
-
-        // Generate Simplex noise and add it to the accumulated value.
-        // value += abs(amplitude * SimplexNoise(uv));
-        value += amplitude * abs(SimplexNoise(uv));
-
-        // Increase the amplitude and frequency for the next octave to add more detail to the noise.
-        amplitude *= persistence;
-        frequency *= lacunarity;
-    }
-    // return -value;
     return value;
 }
 
 float3 domain_warping(const float2 xy)
 {
-    float2 p = xy;
+    const float2 p = xy;
 
     float2 q, r;
 
@@ -159,40 +87,68 @@ float3 domain_warping(const float2 xy)
     r.x = fractional_brownian_motion(p + 4.0 * q + float2(1.7, 9.2)).y;
     r.y = fractional_brownian_motion(p + 4.0 * q + float2(8.3, 2.8)).y;
 
-    float3 value = fractional_brownian_motion(p + 4.0f * r);
-
-    return value;
+    return fractional_brownian_motion(p + 4.0f * r);
 }
 
-float2 CalculateWarpFactor(float2 position)
+/// <summary>
+/// Evaluates a given value using a specific mathematical function.
+/// This function is often used to generate falloff maps or other smooth transitions.
+///
+/// The formula used is:
+///   f(value) = (value^a) / ( (value^a) + ((b - b * value)^a) )
+///
+/// where:
+/// - a controls the sharpness of the transition
+/// - b adjusts the range over which the transition occurs
+///
+/// This formula creates a smooth S-shaped curve, which is useful for blending and creating gradients.
+///
+/// </summary>
+/// <param name="value">Input value, typically between 0 and 1.</param>
+/// <returns>Transformed value, typically between 0 and 1, representing the falloff effect.</returns>
+float evaluate(const float value)
 {
-    float2 warpFactor = float2(0.0, 0.0);
+    const float a = 3.0f; // Sharpness control parameter
+    const float b = 2.2f; // Range adjustment parameter
 
-    warpFactor.x = clamp(sin(position.x * 10.0) * 0.1, -0.01, 0.01);
-    warpFactor.y = clamp(cos(position.y * 10.0) * 0.1, -0.01, 0.01);
+    // Compute the numerator: value raised to the power of a
+    const float numerator = pow(value, a);
 
-    return warpFactor;
+    // Compute the denominator: the sum of the numerator and a scaled and raised complement of value
+    const float denominator = numerator + pow(b - b * value, a);
+
+    // Return the result of the formula
+    return numerator / denominator;
 }
 
-float falloff(float2 pos, float island_radius)
+void falloff(uint3 id)
 {
-    // float gradient = 1;
-    //
-    // gradient /= (x * y) / (map_width * map_height) * (1 - (x / map_width)) * (1 - (y / map_height));
-    // // gradient -= 16;
-    // gradient /= island_radius;
-    //
-    // return gradient;
+    if (id.y < map_height && id.x < map_width)
+    {
+        const int vertex_index = id.y * map_width + id.x;
 
-    float x = (pos.x / (255 + 1)) * 2 - 1;
-    float y = (pos.y / (255 + 1)) * 2 - 1;
+        // Calculate normalized vertex coordinates
+        const float x = 2.0f * id.x / (float)map_width - 1.0f;
+        const float y = 2.0f * id.y / (float)map_height - 1.0f;
 
-    float value = max(abs(x), abs(y));
+        // const float value = max(abs(x), abs(y));
+        
+        // Apply a scale factor to make the circle smaller
+        const float scaleFactor = 0.5f; // Adjust this value to make the circle smaller or larger
 
-    float a = 1.23f;
-    float b = 1.38f;
+        float value = min(1.0f, (x * x + y * y) / (SQRT_2 * scaleFactor));
+        
+        _Falloff_Map_Buffer[vertex_index] = evaluate(value);
+    }
+}
 
-    return 1 - (pow(value, a) / (pow(value, a) + pow((b - b * value), a)));
+float ridge_noise(const float y)
+{
+    float n = abs(y); // create creases
+    n = 1 - n; // invert so creases are at top
+    // n = n * n; // sharpen creases
+
+    return n;
 }
 
 // function generateHeight(x, y) {
@@ -227,7 +183,7 @@ float falloff(float2 pos, float island_radius)
 //     return h;
 // }
 
-float3 make_noise(const int vertex_index, const float sample_x, const float sample_y)
+float3 make_noise(const int vertex_index, const float sample_x, const float sample_y, uint3 id)
 {
     float3 value = float3(0.0f, 0.0f, 0.0f);
 
@@ -243,41 +199,15 @@ float3 make_noise(const int vertex_index, const float sample_x, const float samp
     {
         value = domain_warping(float2(sample_x, sample_y));
     }
-    
+
+    value.y -= _Falloff_Map_Buffer[vertex_index].y;
+
     return value;
 }
 
-float falloff(float x, float y, float radius, float distortionScale)
+void make_vertices(uint3 id)
 {
-    // Konvertiere die Eingabewerte in eine 2D-Position relativ zum Inselradius
-    float2 position = float2(x, y) / radius;
-    
-    // Verzerrung der Position basierend auf Simplex-Noise
-    float noise = SimplexNoise(position * distortionScale).x;
-    
-    // Berechne den Abstand vom Zentrum der Insel
-    float dist = length(position);
-    
-    // Berechne den Fall-Off-Wert und wende eine quadratische Dämpfung an
-    float falloff_value = 1.0f - pow(clamp(dist + noise, 0.0f, 1.0f), 2.0f);
-    
-    return falloff_value;
-}
-
-
-/// <summary>
-/// Generates noise for each thread ID within the map dimensions.
-/// </summary>
-/// <param name="id">The thread ID.</param>
-/// <returns>The generated noise value for the thread ID.</returns>
-[numthreads(16, 16, 1)]
-void Noise_Generator(uint3 id : SV_DispatchThreadID)
-{
-    // Ensure the thread ID is within the map dimensions.
-    if (id.x >= map_width || id.y >= map_height)
-    {
-        return; // Exit early if out of bounds
-    }
+    falloff(id);
 
     // Check if the current thread is within the bounds of the noise map.
     if (id.y < map_height && id.x < map_width)
@@ -289,15 +219,7 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
         const float sample_x = (id.x + seed_offset) * noise_scale;
         const float sample_y = (id.y + seed_offset) * noise_scale;
 
-        float3 value = make_noise(vertex_index, sample_x, sample_y);
-
-        // // // // Apply the falloff map
-        // float falloff_value = falloff((float)id.x, (float)id.y); // Example distortionScale
-        // value -= falloff_value;
-
-        // Apply the falloff map
-        float falloff_value = falloff(id.x, id.y, island_radius, 25.0f); // Example distortionScale
-        value -= falloff_value;
+        float3 value = make_noise(vertex_index, sample_x, sample_y, id);
 
         // Calculate the position of the vertex in world space.
         const float top_left_x = (map_width - 1) / -2.0f;
@@ -307,33 +229,10 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
         // Store the vertex position in the vertex buffer.
         _Vertex_Buffer[vertex_index] = vertex;
     }
+}
 
-    // if (id.y < map_height && id.x < map_width)
-    // {
-    //     for (int i = 0; i < vertexIndex; i++)
-    //     {
-    //         float height = _Vertex_Buffer[i].y;
-    //
-    //         if (height >= 0.5f)
-    //         {
-    //             // height *= 0.75f;
-    //             height += ridgeNoise(height);
-    //             // height = lerp(_Vertex_Buffer[i].y, height, 0.125f);
-    //             _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
-    //         }
-    //         // else if (height >= 0.7f)
-    //         // {
-    //         //     height *= 0.5f;
-    //         //     _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
-    //         // }
-    //         // else if (height >= 0.5f)
-    //         // {
-    //         //     height *= 0.25f;
-    //         //     _Vertex_Buffer[i] = float3(_Vertex_Buffer[i].x, height, _Vertex_Buffer[i].z);
-    //         // }
-    //     }
-    // }
-
+void make_triangles(uint3 id)
+{
     // Generate triangles if within the map bounds minus one (to avoid out-of-bounds indices).
     if (id.y < map_height - 1 && id.x < map_width - 1)
     {
@@ -350,4 +249,23 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
         _Triangle_Buffer[index + 4] = vertex_index + map_width;
         _Triangle_Buffer[index + 5] = vertex_index + map_width + 1;
     }
+}
+
+/// <summary>
+/// Generates noise for each thread ID within the map dimensions.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+/// <returns>The generated noise value for the thread ID.</returns>
+[numthreads(16, 16, 1)]
+void Noise_Generator(uint3 id : SV_DispatchThreadID)
+{
+    // Ensure the thread ID is within the map dimensions.
+    if (id.x >= map_width || id.y >= map_height)
+    {
+        return; // Exit early if out of bounds
+    }
+
+    make_vertices(id);
+
+    make_triangles(id);
 }

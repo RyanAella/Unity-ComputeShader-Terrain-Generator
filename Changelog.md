@@ -1,5 +1,18 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.15.0] - 2024-05-29
+### Added
+- `GeneralSettings`: Introduced new settings including `resolution` and `colourGradient`.
+- `ShaderSettings`: Added settings for all shaders used in the project.
+- `ColourGenerationManager`: Moved the `GetColourPalette` method from `GameManager` to `ColourGenerationManager`.
+
+### Changed
+- `GameManager`: Refactored code for better organization and clarity.
+- `GroundGenerator` and `WaterGenerator`: Code refactorings and cleanups for improved performance and readability.
+
+### Fixed
+- Various minor bug fixes and stability improvements across the scripts.
+
 ## [0.14.0] - 2024-05-24
 ### Changed
 - Various files relocated for better organization and documentation purposes.

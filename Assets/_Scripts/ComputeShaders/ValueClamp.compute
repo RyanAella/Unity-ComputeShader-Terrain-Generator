@@ -166,28 +166,3 @@ void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
         }
     }
 }
-
-// [numthreads(16, 16, 1)]
-// void Make_Height(uint3 id : SV_DispatchThreadID)
-// {
-//     // Ensure the thread ID is within the map dimensions.
-//     if (id.x >= map_width || id.y >= map_height)
-//     {
-//         return; // Exit early if out of bounds
-//     }
-//
-//     if (id.y < map_height)
-//     {
-//         if (id.x < map_width)
-//         {
-//             // Calculate the index based on the thread ID
-//             const int index = id.y * map_width + id.x;
-//
-//             // Get the vertex at the current index
-//             float3 vertex = _Vertex_Buffer[index];
-//
-//             // Store the clamped vertex in the clamped buffer
-//             _Vertex_Buffer[index] = float3(vertex.x, vertex.y * max_terrain_height, vertex.z);
-//         }
-//     }
-// }

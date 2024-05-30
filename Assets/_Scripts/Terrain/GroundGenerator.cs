@@ -6,9 +6,7 @@
  */
 
 
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using _Scripts.Manager;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -27,9 +25,6 @@ namespace _Scripts.Terrain
         private Vector3[] _vertices;
         private int[] _triangles;
 
-        // Array to store minimum and maximum values.
-        private float[] _minMaxValues; // Array to store minimum and maximum values
-
         private List<Vector4> _colourPalette;
 
         private NoiseGenerationManager _noiseGenerationManager;
@@ -39,17 +34,28 @@ namespace _Scripts.Terrain
 
         #region Methods
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="noiseGenerationManager"></param>
+        /// <param name="meshGenerationManager"></param>
+        /// <param name="colourGenerationManager"></param>
+        /// <param name="shaderSettings"></param>
+        /// <param name="generalSettings"></param>
+        /// <param name="noiseSettings"></param>
+        /// <param name="colourGradient"></param>
+        /// <param name="generateMultipleLayers"></param>
         public void GenerateGround(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, ComputeShader noiseGenerationComputeShader,
-            ComputeShader valueClampComputeShader, ComputeShader colourGenerationComputeShader, Vector2Int resolution, NoiseSettings noiseSettings,
-            List<Vector4> colourGradient, float islandRadius, bool generateMultipleLayers)
+            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager,
+            ShaderSettings shaderSettings, GeneralSettings generalSettings, NoiseSettings noiseSettings,
+            List<Vector4> colourGradient, bool generateMultipleLayers)
         {
             _noiseGenerationManager = noiseGenerationManager;
             _colourGenerationManager = colourGenerationManager;
-            
-            bool success = GenerateNoiseAndMesh(_noiseGenerationManager, meshGenerationManager, noiseGenerationComputeShader,
-                valueClampComputeShader, resolution, noiseSettings, islandRadius, generateMultipleLayers);
-            
+
+            bool success = GenerateNoiseAndMesh(_noiseGenerationManager, meshGenerationManager, shaderSettings,
+                generalSettings, noiseSettings);
+
             // // Create a list of colour palette vectors based on the color keys in the colour gradient.
             // // Each vector represents a color with components for red, green, blue, and alpha.
             // _colourPalette = colourGradient.colorKeys
@@ -57,16 +63,28 @@ namespace _Scripts.Terrain
             //         new Vector4(colourKey.color.r, colourKey.color.g, colourKey.color.b, colourKey.color.a))
             //     .ToList();
 
-            ColourMesh(success, _colourGenerationManager, resolution, colourGenerationComputeShader, colourGradient);
+            ColourMesh(success, _colourGenerationManager, generalSettings.resolution,
+                shaderSettings, colourGradient);
 
             AdjustMeshHeight(success, noiseSettings);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="noiseGenerationManager"></param>
+        /// <param name="meshGenerationManager"></param>
+        /// <param name="shaderSettings"></param>
+        /// <param name="generalSettings"></param>
+        /// <param name="noiseSettings"></param>
+        /// <returns></returns>
         private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager,
-            ComputeShader noiseGenerationComputeShader, ComputeShader valueClampComputeShader, Vector2Int resolution,
-            NoiseSettings noiseSettings, float islandRadius, bool generateMultipleLayers)
+            MeshGenerationManager meshGenerationManager, ShaderSettings shaderSettings, GeneralSettings generalSettings,
+            NoiseSettings noiseSettings)
         {
+            // Get the resolution of the mesh.
+            Vector2Int resolution = generalSettings.resolution;
+
             // Create arrays to store the vertices and triangles of the mesh.
             // The number of vertices is determined by the resolution of the mesh.
             _vertices = new Vector3[resolution.x * resolution.y];
@@ -80,8 +98,8 @@ namespace _Scripts.Terrain
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, resolution, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            _minMaxValues = noiseGenerationManager.GenerateNoiseParameters(noiseGenerationComputeShader,
-                valueClampComputeShader, resolution, noiseSettings, _vertices, _triangles, islandRadius, generateMultipleLayers);
+            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, resolution, noiseSettings, _vertices, _triangles,
+                generalSettings.islandRadius);
 
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
@@ -105,10 +123,10 @@ namespace _Scripts.Terrain
         /// <param name="success">Indicates whether the mesh has been generated or not.</param>
         /// <param name="colourGenerationManager"></param>
         /// <param name="resolution"></param>
-        /// <param name="colourGenerationComputeShader"></param>
+        /// <param name="shaderSettings"></param>
         /// <param name="colourGradient"></param>
         public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, Vector2Int resolution,
-            ComputeShader colourGenerationComputeShader, List<Vector4> colourGradient)
+            ShaderSettings shaderSettings, List<Vector4> colourGradient)
         {
             // If the mesh has not been generated, return early.
             if (!success) return;
@@ -119,9 +137,10 @@ namespace _Scripts.Terrain
             _colourGenerationManager.InitializeBuffers(resolution, colourCount);
 
             // Use the ColourGenerationManager class to colourGradient the mesh using the specified compute shader, mesh filter, resolution, min/max values, and colourGradient palette.
-            _colourGenerationManager.ColourMesh(colourGenerationComputeShader, _meshFilter, resolution, new float[] {0.3f, 1},
+            _colourGenerationManager.ColourMesh(shaderSettings.colourGenerationComputeShader, _meshFilter, resolution,
+                new[] { 0.3f, 1 },
                 colourGradient.ToArray(), colourCount);
-            
+
             _colourGenerationManager.ReleaseBuffers();
         }
 
@@ -154,7 +173,7 @@ namespace _Scripts.Terrain
             // Recalculate the normals of the mesh to ensure correct geometry representation.
             mesh.RecalculateNormals();
         }
-        
+
         /// <summary>
         /// This method is called when the script is destroyed. It releases the compute buffers used by the mesh generation manager.
         /// It also releases the compute buffers used by the ColourGenerationManager class.

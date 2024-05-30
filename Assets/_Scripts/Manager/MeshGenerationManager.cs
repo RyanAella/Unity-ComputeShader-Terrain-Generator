@@ -6,7 +6,6 @@
  */
 
 
-using System;
 using UnityEngine;
 
 namespace _Scripts.Manager
@@ -14,17 +13,8 @@ namespace _Scripts.Manager
     /// <summary>
     ///     Class for managing mesh generation.
     /// </summary>
-    [Serializable]
     public class MeshGenerationManager
     {
-        #region Variables
-
-        // Compute buffers for storing vertex and triangle data.
-
-        // Shader property IDs used for communication with compute shaders.
-
-        #endregion
-
         #region Methods
 
         /// <summary>

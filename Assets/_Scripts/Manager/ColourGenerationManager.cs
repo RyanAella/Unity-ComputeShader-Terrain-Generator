@@ -148,6 +148,39 @@ namespace _Scripts.Manager
             // Release the Compute Buffer for color palette
             _colourPaletteBuffer?.Release();
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="gradient"></param>
+        /// <param name="minRange"></param>
+        /// <param name="maxRange"></param>
+        /// <returns></returns>
+        public static List<Vector4> GetColorPalette(Gradient gradient, float minRange, float maxRange)
+        {
+            List<Vector4> palette = new List<Vector4>();
+
+            foreach (var colorKey in gradient.colorKeys)
+            {
+                if (colorKey.time >= minRange && colorKey.time <= maxRange)
+                {
+                    // Find the corresponding alpha key
+                    float alpha = 1.0f; // Default alpha
+                    foreach (var alphaKey in gradient.alphaKeys)
+                    {
+                        if (Mathf.Approximately(alphaKey.time, colorKey.time))
+                        {
+                            alpha = alphaKey.alpha;
+                            break;
+                        }
+                    }
+
+                    palette.Add(new Vector4(colorKey.color.r, colorKey.color.g, colorKey.color.b, alpha));
+                }
+            }
+
+            return palette;
+        }
 
         #endregion
     }
