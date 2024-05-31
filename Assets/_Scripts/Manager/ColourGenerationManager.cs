@@ -49,11 +49,11 @@ namespace _Scripts.Manager
         /// </summary>
         /// <param name="computeShader">The compute shader to use for colouring the mesh.</param>
         /// <param name="meshFilter">The MeshFilter that holds the mesh to be colored.</param>
-        /// <param name="resolution">The resolution of the mesh.</param>
+        /// <param name="resolution">The chunkSize of the mesh.</param>
         /// <param name="minMax">The array containing the minimum and maximum height values for the gradient.</param>
         /// <param name="colourPalette">The array of colors to use for coloring the mesh.</param>
         /// <param name="colourCount"></param>
-        public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
+        public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, int resolution,
             float[] minMax, Vector4[] colourPalette, int colourCount)
         {
             if (meshFilter == null || meshFilter.sharedMesh == null)
@@ -83,8 +83,8 @@ namespace _Scripts.Manager
             computeShader.SetInt(ColourCount, colourCount);
         
             // Set the map width and height in the compute shader
-            computeShader.SetInt(MapWidth, resolution.x);
-            computeShader.SetInt(MapHeight, resolution.y);
+            computeShader.SetInt(MapWidth, resolution);
+            computeShader.SetInt(MapHeight, resolution);
         
             // Set the height parameters for the gradient
             computeShader.SetFloat(MinHeight, minMax[0]);
@@ -94,8 +94,8 @@ namespace _Scripts.Manager
             computeShader.SetInt(VerticesBufferLength, _verticesBufferLength);
         
             // Calculate the number of thread groups to dispatch.
-            int dispatchX = Mathf.CeilToInt(resolution.x / 8f);
-            int dispatchY = Mathf.CeilToInt(resolution.y / 8f);
+            int dispatchX = Mathf.CeilToInt(resolution / 8f);
+            int dispatchY = Mathf.CeilToInt(resolution / 8f);
         
             // Dispatch the Compute Shader
             computeShader.Dispatch(kernel, dispatchX, dispatchY, 1);
@@ -113,9 +113,9 @@ namespace _Scripts.Manager
         /// </summary>
         /// <param name="resolution"></param>
         /// <param name="colourCount">The number of colors in the palette.</param>
-        public void InitializeBuffers(Vector2Int resolution, int colourCount)
+        public void InitializeBuffers(int resolution, int colourCount)
         {
-            int vertexCount = _verticesBufferLength = resolution.x * resolution.y;
+            int vertexCount = _verticesBufferLength = resolution * resolution;
             
             // Create a ComputeBuffer for storing the vertices of the mesh.
             // The buffer size is determined by the number of vertices in the mesh.
@@ -131,7 +131,6 @@ namespace _Scripts.Manager
             // The buffer size is determined by the number of colors in the palette.
             // Each color is represented by a Vector4 (RGBA), so the buffer size is 4 times the number of colors.
             _colourPaletteBuffer = new ComputeBuffer(colourCount, sizeof(float) * 4);
-            
         }
 
         /// <summary>

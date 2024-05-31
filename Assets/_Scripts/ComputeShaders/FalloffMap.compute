@@ -1,0 +1,83 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Falloff_Map 0
+
+// Unsigned integer variables for the dimensions of the noise map.
+uint map_width; // Width of the noise map
+uint map_height; // Height of the noise map
+
+RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
+RWStructuredBuffer<float> _Falloff_Map_Buffer; // Stores the noise values for each vertex
+
+float gradient(uint3 id)
+{
+    float x = id.x / (float)map_width * 2.0f - 1.0f;
+    float y = id.y / (float)map_height * 2.0f - 1.0f;
+
+    float value = max(abs(x), abs(y));
+    return value;
+}
+
+float gradient_falloff(float distanceFromEdge)
+{
+    // Adjust these parameters to control the shape of the falloff
+    float falloffStart = 0.01f;
+    float falloffEnd = 0.1f;
+    float falloffRate = 1.0f;
+
+    // Calculate the falloff value based on the distance from the edge
+    float falloff = falloffStart + (falloffEnd - falloffStart) * (distanceFromEdge / falloffRate);
+
+    return -falloff;
+}
+
+float gaussian_falloff(float distanceFromEdge)
+{
+    float falloffRate = 0.6f;
+
+    float falloff = exp(-pow(distanceFromEdge, 2) / (2 * pow(falloffRate, 2)));
+    return falloff;
+}
+
+
+void falloff(uint3 id)
+{
+    if (id.y < map_height && id.x < map_width)
+    {
+        const int vertex_index = id.y * map_width + id.x;
+
+        // Calculate normalized vertex coordinates
+        const float x = 2.0f * id.x / (float)map_width - 1.0f;
+        const float y = 2.0f * id.y / (float)map_height - 1.0f;
+
+        // Calculate distance to the edge of the mesh
+        float distanceToEdge = sqrt(min(pow(x, 2) + pow(y, 2), 1.0)); // Assuming a circular falloff
+
+        // Use the chosen falloff method here
+        float falloffValue = gaussian_falloff(distanceToEdge);
+
+        _Falloff_Map_Buffer[vertex_index] = clamp(falloffValue, 0.0f, 1.0f)/*evaluate(value)*/;
+    }
+}
+
+[numthreads(16,16,1)]
+void Falloff_Map(uint3 id : SV_DispatchThreadID)
+{
+    falloff(id);
+
+    // Ensure the thread ID is within the map dimensions.
+    if (id.x >= map_width || id.y >= map_height)
+    {
+        return; // Exit early if out of bounds
+    }
+
+    // Calculate the index of the vertex in the buffer.
+    const int vertex_index = id.y * map_width + id.x;
+
+    float3 vertex = _Vertex_Buffer[vertex_index];
+
+    vertex.y = lerp(0.0f, 1.0f, vertex.y * _Falloff_Map_Buffer[vertex_index]);
+    // vertex.y = _Falloff_Map_Buffer[vertex_index];
+
+    // Store the vertex position in the vertex buffer.
+    _Vertex_Buffer[vertex_index] = vertex;
+}

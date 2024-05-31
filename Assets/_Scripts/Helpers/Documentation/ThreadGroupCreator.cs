@@ -1,7 +1,7 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 13-05-2024
- * Description: This script generates a grid of cubes based on the specified resolution and cube dimensions.
+ * Description: This script generates a grid of cubes based on the specified chunkSize and cube dimensions.
  * License: Licence
  */
 
@@ -22,7 +22,7 @@ namespace _Scripts.Helpers.Documentation
 
         private void Start()
         {
-            // Calculate the number of cubes in each dimension based on the resolution
+            // Calculate the number of cubes in each dimension based on the chunkSize
             int numberOfCubesInRow = resolution.x / cubeWidth;
             int numberOfRows = resolution.y / cubeHeight;
             int numberInDepth = resolution.z / cubeDepth;

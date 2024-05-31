@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8e03bb5cc135f541aeeda552b5a8a55, type: 3}
   m_Name: GeneralSettings
   m_EditorClassIdentifier: 
-  resolution: {x: 2048, y: 2048}
-  islandRadius: 128
+  chunkSize: 241
+  levelOfDetail: 1
+  meshSimplificationIncrement: 2
   colourGradient:
     serializedVersion: 2
     key0: {r: 0, g: 0.2509804, b: 0.5019608, a: 0.5019608}

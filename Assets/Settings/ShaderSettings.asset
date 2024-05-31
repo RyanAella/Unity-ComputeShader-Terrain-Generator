@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noiseGenerationComputeShader: {fileID: 7200000, guid: 719e192517c0e9e4ebee10cbc2bd575f, type: 3}
   valueClampComputeShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}
+  falloffComputeShader: {fileID: 7200000, guid: abbe2f477f1015d4b9d1209683c5fc62, type: 3}
   colourGenerationComputeShader: {fileID: 7200000, guid: 41e4d8152bd1b044a903cbe908940b7d, type: 3}

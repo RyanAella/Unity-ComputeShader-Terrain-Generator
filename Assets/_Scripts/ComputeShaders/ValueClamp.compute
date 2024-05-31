@@ -21,6 +21,9 @@ uint map_height; // Height of the noise map
 float float_min_value; // Minimum float value
 float float_max_value; // Maximum float value
 
+float min_value;
+float max_value;
+
 // Length of buffers for vertices and local Min/Max values.
 int vertices_buffer_length; // Total length of the vertex buffer
 int local_min_max_buffer_length; // Total length of the local Min/Max buffer
@@ -50,8 +53,11 @@ float inverse_lerp(const float from, const float to, const float value)
         return 0.0f;
     }
 
-    // Perform linear interpolation calculation.
-    const float result = (value - from) / (to - from);
+    // Calculate the range between from and to.
+    float range = to - from;
+
+    // Perform linear interpolation calculation using multiplication.
+    const float result = (value - from) / range;
 
     // Clamp the result between 0 and 1.
     return clamp(result, 0.0f, 1.0f);
@@ -146,23 +152,17 @@ void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
     }
 
     // Initialize local Min/Max with extreme values
-    const float min = _Global_Min_Max_Buffer[0];
-    const float max = _Global_Min_Max_Buffer[1];
+    min_value = _Global_Min_Max_Buffer[0];
+    max_value = _Global_Min_Max_Buffer[1];
 
-    if (id.y < map_height)
-    {
-        if (id.x < map_width)
-        {
-            // Calculate the index based on the thread ID
-            const int index = id.y * map_width + id.x;
+    // Calculate the index based on the thread ID
+    const int index = id.y * map_width + id.x;
 
-            // Get the vertex at the current index
-            float3 vertex = _Vertex_Buffer[index];
+    // Get the vertex at the current index
+    float3 vertex = _Vertex_Buffer[index];
 
-            float normalized_height = inverse_lerp(min, max, vertex.y);
+    float normalized_height = inverse_lerp(min_value, max_value, vertex.y);
 
-            // Store the clamped vertex in the clamped buffer
-            _Clamped_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
-        }
-    }
+    // Store the clamped vertex in the clamped buffer
+    _Vertex_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
 }

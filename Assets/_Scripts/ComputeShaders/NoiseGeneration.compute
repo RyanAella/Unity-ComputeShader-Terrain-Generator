@@ -18,23 +18,34 @@ uint map_width; // Width of the noise map
 uint map_height; // Height of the noise map
 
 // Parameters for noise generation.
-float seed_offset; // Offset for the noise seed
+// float seed_offset; // Offset for the noise seed
 float noise_scale; // Scale of the noise
 float noise_height; // Height factor for the noise
 int octaves; // Number of noise octaves
 float lacunarity; // Frequency multiplier for each octave
 float persistence; // Amplitude multiplier for each octave
+float2 offset; // Offset for the noise
 
 float max_terrain_height; // Maximum height of the terrain
-
-float island_radius;
 
 int noise_type;
 
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
-RWStructuredBuffer<float3> _Falloff_Map_Buffer; // Stores the noise values for each vertex
+
+float random_between()
+{
+    float min = -100000;
+    float max = 100000;
+
+    // Verwenden Sie die aktuelle Zeit als Basis für die Zufallszahlengenerierung.
+    // Die frac-Funktion gibt den fraktionären Teil der Zeit zurück, was zu einer stetig wechselnden Zahl führt.
+    float rand = frac(sin(dot(float2(min, max), float2(12.9898, 78.233))) * 43758.5453);
+
+    // Skalieren Sie die Zufallszahl, um sie in den gewünschten Bereich zu bringen.
+    return min + rand * (max - min);
+}
 
 float3 noise(const float2 xy)
 {
@@ -59,8 +70,10 @@ float3 fractional_brownian_motion(float2 xy)
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {
+        float2 octave_offset = float2(random_between() + offset.x, random_between() + offset.y);
+        
         // Calculate UV coordinates for noise generation.
-        const float2 uv = xy * frequency;
+        const float2 uv = xy * frequency + octave_offset;
 
         // Generate Simplex noise and add it to the accumulated value.
         value += amplitude * /*abs*/(noise(uv));
@@ -90,58 +103,6 @@ float3 domain_warping(const float2 xy)
     return fractional_brownian_motion(p + 4.0f * r);
 }
 
-/// <summary>
-/// Evaluates a given value using a specific mathematical function.
-/// This function is often used to generate falloff maps or other smooth transitions.
-///
-/// The formula used is:
-///   f(value) = (value^a) / ( (value^a) + ((b - b * value)^a) )
-///
-/// where:
-/// - a controls the sharpness of the transition
-/// - b adjusts the range over which the transition occurs
-///
-/// This formula creates a smooth S-shaped curve, which is useful for blending and creating gradients.
-///
-/// </summary>
-/// <param name="value">Input value, typically between 0 and 1.</param>
-/// <returns>Transformed value, typically between 0 and 1, representing the falloff effect.</returns>
-float evaluate(const float value)
-{
-    const float a = 3.0f; // Sharpness control parameter
-    const float b = 2.2f; // Range adjustment parameter
-
-    // Compute the numerator: value raised to the power of a
-    const float numerator = pow(value, a);
-
-    // Compute the denominator: the sum of the numerator and a scaled and raised complement of value
-    const float denominator = numerator + pow(b - b * value, a);
-
-    // Return the result of the formula
-    return numerator / denominator;
-}
-
-void falloff(uint3 id)
-{
-    if (id.y < map_height && id.x < map_width)
-    {
-        const int vertex_index = id.y * map_width + id.x;
-
-        // Calculate normalized vertex coordinates
-        const float x = 2.0f * id.x / (float)map_width - 1.0f;
-        const float y = 2.0f * id.y / (float)map_height - 1.0f;
-
-        // const float value = max(abs(x), abs(y));
-        
-        // Apply a scale factor to make the circle smaller
-        const float scaleFactor = 0.5f; // Adjust this value to make the circle smaller or larger
-
-        float value = min(1.0f, (x * x + y * y) / (SQRT_2 * scaleFactor));
-        
-        _Falloff_Map_Buffer[vertex_index] = evaluate(value);
-    }
-}
-
 float ridge_noise(const float y)
 {
     float n = abs(y); // create creases
@@ -163,17 +124,6 @@ float ridge_noise(const float y)
 //     
 //     
 //         h = noise(pX * frequency, pY * frequency);
-//     }
-//   
-//     // if generating an island discount the height
-//     if (island) {
-//     
-//         let d = p5.Vector.dist(createVector(x, y), createVector(width / 2, height / 2));
-//         d /= width / 2;
-//         d = 1 - d;
-//     
-//         h *= d;
-//     
 //     }
 //   
 //     // subtract the threshold
@@ -200,36 +150,33 @@ float3 make_noise(const int vertex_index, const float sample_x, const float samp
         value = domain_warping(float2(sample_x, sample_y));
     }
 
-    value.y -= _Falloff_Map_Buffer[vertex_index].y;
-
     return value;
 }
 
-void make_vertices(uint3 id)
+void make_vertices(uint3 id, const float half_width, const float half_height)
 {
-    falloff(id);
-
-    // Check if the current thread is within the bounds of the noise map.
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
     if (id.y < map_height && id.x < map_width)
     {
-        // Calculate the index of the vertex in the buffer.
+        // Compute the index of the vertex within the buffer.
         const int vertex_index = id.y * map_width + id.x;
 
-        // Calculate the sample coordinates for noise generation.
-        const float sample_x = (id.x + seed_offset) * noise_scale;
-        const float sample_y = (id.y + seed_offset) * noise_scale;
+        // Adjust the x and y coordinates for noise sampling based on the map's center.
+        const float2 samples = ((float2(id.x, id.y) - float2(half_width, half_height)) / noise_scale);
 
-        float3 value = make_noise(vertex_index, sample_x, sample_y, id);
+        // Generate the noise value for the current vertex.
+        float3 value = make_noise(vertex_index, samples.x, samples.y, id);
 
-        // Calculate the position of the vertex in world space.
+        // Determine the vertex's position in world space relative to the top-left corner of the map.
         const float top_left_x = (map_width - 1) / -2.0f;
         const float top_left_z = (map_height - 1) / -2.0f;
         const float3 vertex = float3(top_left_x + id.x, value.y, top_left_z + id.y);
 
-        // Store the vertex position in the vertex buffer.
+        // Store the calculated vertex position in the vertex buffer.
         _Vertex_Buffer[vertex_index] = vertex;
     }
 }
+
 
 void make_triangles(uint3 id)
 {
@@ -259,13 +206,28 @@ void make_triangles(uint3 id)
 [numthreads(16, 16, 1)]
 void Noise_Generator(uint3 id : SV_DispatchThreadID)
 {
+    // Calculate the maximum valid x and y coordinates based on the map dimensions.
+    uint max_id_x = map_width - 1;
+    uint max_id_y = map_height - 1;
+    
     // Ensure the thread ID is within the map dimensions.
-    if (id.x >= map_width || id.y >= map_height)
+    // This prevents out-of-bounds access to the map data.
+    if (id.x > max_id_x || id.y > max_id_y)
     {
         return; // Exit early if out of bounds
     }
 
-    make_vertices(id);
+    // Calculate half the width and height of the map to center the sampling around the middle.
+    // This ensures that the noise generation is symmetrical and centered on the map.
+    float half_width = map_width / 2.0f;
+    float half_height = map_height / 2.0f;
 
+    // Generate vertices for the terrain mesh using the current thread ID and the map dimensions.
+    // The vertices represent the corners of the triangles that will form the terrain mesh.
+    make_vertices(id, half_width, half_height);
+
+    // Generate triangles for the terrain mesh using the previously generated vertices.
+    // Each triangle represents a small section of the terrain surface.
     make_triangles(id);
 }
+

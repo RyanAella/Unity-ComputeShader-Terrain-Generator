@@ -6,8 +6,6 @@
  */
 
 
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
@@ -22,6 +20,8 @@ namespace _Scripts.ScriptableObjects
         public ComputeShader noiseGenerationComputeShader; // Compute shader for noise generation
 
         public ComputeShader valueClampComputeShader; // Compute shader for noise generation
+        
+        public ComputeShader falloffComputeShader; // Compute shader for falloff generation
 
         public ComputeShader colourGenerationComputeShader; // Compute shader for colourGradient generation
 

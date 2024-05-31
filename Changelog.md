@@ -1,5 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.16.0] - 2024-06-03
+### Added
+- `Falloff Map Integration`: Implemented the ability to use a falloff map within the Compute Shader, enhancing terrain edge smoothness and realism.
+
+### Changed
+- `Parameter Optimization`: Reduced unnecessary parameter passing in various methods to streamline the code and improve performance.
+- `Method Refinement`: Shortened and optimized multiple methods for better readability and maintainability.
+- `Noise Generation Overhaul`: Refined the noise generation process to improve terrain detail and variety, ensuring a more visually appealing and diverse landscape.
+
+### Fixed
+- General code cleanups and minor bug fixes to enhance stability and performance.
+
 ## [0.15.0] - 2024-05-29
 ### Added
 - `GeneralSettings`: Introduced new settings including `resolution` and `colourGradient`.

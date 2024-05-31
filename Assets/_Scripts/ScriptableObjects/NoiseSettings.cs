@@ -56,6 +56,8 @@ namespace _Scripts.ScriptableObjects
 
         [Range(1.8f, 10.0f)] public float lacunarity = 2.01f; // The frequency multiplier for each octave.
 
+        public Vector2 offset = new Vector2(16,16);
+        
         [Range(1, 200)] public float maxTerrainHeight = 180.0f; // The maximum height of the terrain. 
 
         [Range(0, 1)] public float waterLevel = 0.3f; // The maximum height of the terrain. 

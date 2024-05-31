@@ -7,6 +7,7 @@
 
 
 using System.Collections.Generic;
+using _Scripts.Helpers;
 using _Scripts.Manager;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -14,21 +15,15 @@ using UnityEngine.Rendering;
 
 namespace _Scripts.Terrain
 {
-    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class GroundGenerator : MonoBehaviour
     {
         #region Variables
-
-        // Reference to the MeshFilter component attached to the GameObject.
-        private MeshFilter _meshFilter; // Reference to the MeshFilter component
 
         private Vector3[] _vertices;
         private int[] _triangles;
 
         private List<Vector4> _colourPalette;
-
-        private NoiseGenerationManager _noiseGenerationManager;
-        private ColourGenerationManager _colourGenerationManager;
 
         #endregion
 
@@ -40,21 +35,19 @@ namespace _Scripts.Terrain
         /// <param name="noiseGenerationManager"></param>
         /// <param name="meshGenerationManager"></param>
         /// <param name="colourGenerationManager"></param>
+        /// <param name="falloffMapManagerGenerationManager"></param>
         /// <param name="shaderSettings"></param>
         /// <param name="generalSettings"></param>
         /// <param name="noiseSettings"></param>
         /// <param name="colourGradient"></param>
-        /// <param name="generateMultipleLayers"></param>
+        /// <param name="meshFilter"></param>
         public void GenerateGround(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager,
+            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, FalloffMapManager falloffMapManagerGenerationManager,
             ShaderSettings shaderSettings, GeneralSettings generalSettings, NoiseSettings noiseSettings,
-            List<Vector4> colourGradient, bool generateMultipleLayers)
+            List<Vector4> colourGradient, MeshFilter meshFilter)
         {
-            _noiseGenerationManager = noiseGenerationManager;
-            _colourGenerationManager = colourGenerationManager;
-
-            bool success = GenerateNoiseAndMesh(_noiseGenerationManager, meshGenerationManager, shaderSettings,
-                generalSettings, noiseSettings);
+            bool success = GenerateNoiseAndMesh(noiseGenerationManager, meshGenerationManager, falloffMapManagerGenerationManager, shaderSettings,
+                generalSettings, noiseSettings, meshFilter);
 
             // // Create a list of colour palette vectors based on the color keys in the colour gradient.
             // // Each vector represents a color with components for red, green, blue, and alpha.
@@ -63,10 +56,10 @@ namespace _Scripts.Terrain
             //         new Vector4(colourKey.color.r, colourKey.color.g, colourKey.color.b, colourKey.color.a))
             //     .ToList();
 
-            ColourMesh(success, _colourGenerationManager, generalSettings.resolution,
-                shaderSettings, colourGradient);
+            ColourMesh(success, colourGenerationManager, generalSettings.chunkSize,
+                shaderSettings, colourGradient, meshFilter);
 
-            AdjustMeshHeight(success, noiseSettings);
+            AdjustMeshHeight(success, noiseSettings, meshFilter);
         }
 
         /// <summary>
@@ -74,36 +67,34 @@ namespace _Scripts.Terrain
         /// </summary>
         /// <param name="noiseGenerationManager"></param>
         /// <param name="meshGenerationManager"></param>
+        /// <param name="falloffMapManager"></param>
         /// <param name="shaderSettings"></param>
         /// <param name="generalSettings"></param>
         /// <param name="noiseSettings"></param>
+        /// <param name="meshFilter"></param>
         /// <returns></returns>
         private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ShaderSettings shaderSettings, GeneralSettings generalSettings,
-            NoiseSettings noiseSettings)
+            MeshGenerationManager meshGenerationManager, FalloffMapManager falloffMapManager, ShaderSettings shaderSettings, GeneralSettings generalSettings,
+            NoiseSettings noiseSettings, MeshFilter meshFilter)
         {
-            // Get the resolution of the mesh.
-            Vector2Int resolution = generalSettings.resolution;
+            // Get the chunkSize of the mesh.
+            int resolution = generalSettings.chunkSize;
 
             // Create arrays to store the vertices and triangles of the mesh.
-            // The number of vertices is determined by the resolution of the mesh.
-            _vertices = new Vector3[resolution.x * resolution.y];
+            // The number of vertices is determined by the chunkSize of the mesh.
+            _vertices = new Vector3[resolution * resolution];
 
-            // The number of triangles is determined by the resolution of the mesh minus 1.
+            // The number of triangles is determined by the chunkSize of the mesh minus 1.
             // Each quad in the mesh is represented by 2 triangles, so there are 6 indices per quad.
-            _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
-
-            // Get the MeshFilter component attached to the GameObject.
-            _meshFilter = GetComponent<MeshFilter>();
+            _triangles = new int[(resolution - 1) * (resolution - 1) * 6];
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
-            // The valueClampComputeShader, resolution, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, resolution, noiseSettings, _vertices, _triangles,
-                generalSettings.islandRadius);
+            // The valueClampComputeShader, chunkSize, noiseSettings, vertices, and triangles arrays are passed as arguments.
+            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, generalSettings, noiseSettings, _vertices, _triangles, falloffMapManager, true);
 
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
-            _meshFilter.mesh = new Mesh
+            meshFilter.mesh = new Mesh
             {
                 // Sets the index format of the mesh to UInt32, which is required for large meshes.
                 indexFormat = IndexFormat.UInt32,
@@ -112,7 +103,7 @@ namespace _Scripts.Terrain
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            meshGenerationManager.CreateMesh(_meshFilter.sharedMesh, _vertices, _triangles);
+            meshGenerationManager.CreateMesh(meshFilter.sharedMesh, _vertices, _triangles);
 
             return true;
         }
@@ -125,8 +116,9 @@ namespace _Scripts.Terrain
         /// <param name="resolution"></param>
         /// <param name="shaderSettings"></param>
         /// <param name="colourGradient"></param>
-        public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, Vector2Int resolution,
-            ShaderSettings shaderSettings, List<Vector4> colourGradient)
+        /// <param name="meshFilter"></param>
+        public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, int resolution,
+            ShaderSettings shaderSettings, List<Vector4> colourGradient, MeshFilter meshFilter)
         {
             // If the mesh has not been generated, return early.
             if (!success) return;
@@ -134,27 +126,30 @@ namespace _Scripts.Terrain
             int colourCount = colourGradient.Count;
 
             // Initialize the buffers for the vertices and colors
-            _colourGenerationManager.InitializeBuffers(resolution, colourCount);
+            colourGenerationManager.InitializeBuffers(resolution, colourCount);
 
-            // Use the ColourGenerationManager class to colourGradient the mesh using the specified compute shader, mesh filter, resolution, min/max values, and colourGradient palette.
-            _colourGenerationManager.ColourMesh(shaderSettings.colourGenerationComputeShader, _meshFilter, resolution,
+            // Use the ColourGenerationManager class to colourGradient the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colourGradient palette.
+            colourGenerationManager.ColourMesh(shaderSettings.colourGenerationComputeShader, meshFilter, resolution,
                 new[] { 0.3f, 1 },
                 colourGradient.ToArray(), colourCount);
 
-            _colourGenerationManager.ReleaseBuffers();
+            colourGenerationManager.ReleaseBuffers();
         }
 
         /// <summary>
-        /// Adjusts the height of the mesh vertices based on the specified noise settings.
+        /// Adjusts the height of the mesh based on the maximum terrain height specified in the noise settings.
         /// </summary>
-        private void AdjustMeshHeight(bool success, NoiseSettings noiseSettings)
+        /// <param name="success">Indicates whether the mesh has been generated or not.</param>
+        /// <param name="noiseSettings"></param>
+        /// <param name="meshFilter"></param>
+        private void AdjustMeshHeight(bool success, NoiseSettings noiseSettings, MeshFilter meshFilter)
         {
             // If the mesh has not been generated, return early.
             if (!success) return;
 
 
             // Get the mesh from the MeshFilter.
-            Mesh mesh = _meshFilter.sharedMesh;
+            Mesh mesh = meshFilter.sharedMesh;
 
             // Get the vertices of the mesh.
             Vector3[] meshVertices = mesh.vertices;
@@ -172,20 +167,6 @@ namespace _Scripts.Terrain
 
             // Recalculate the normals of the mesh to ensure correct geometry representation.
             mesh.RecalculateNormals();
-        }
-
-        /// <summary>
-        /// This method is called when the script is destroyed. It releases the compute buffers used by the mesh generation manager.
-        /// It also releases the compute buffers used by the ColourGenerationManager class.
-        /// </summary>
-        private void OnDestroy()
-        {
-            _noiseGenerationManager?.ReleaseBuffers();
-
-            // Check if the colour generation manager is not null before trying to release the buffers.
-            // Call the ReleaseBuffers method of the colour generation manager to release the compute buffers.
-            // This is done to free up memory and prevent memory leaks.
-            _colourGenerationManager?.ReleaseBuffers();
         }
 
         #endregion

@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 266078e6033b6f64198bd5ed80a89e47, type: 3}
-  m_Name: GroundNoiseSettingsDomainWarping
+  m_Name: DefaultGroundNoiseSettings 1
   m_EditorClassIdentifier: 
   useRandomSeed: 0
   seed: 26052022
   seedScale: 100000
-  noiseScale: 2.6052022
+  noiseScale: 0.921
   noiseHeight: 2
   octaves: 9
-  persistence: 0.35
-  lacunarity: 3.22
-  maxTerrainHeight: 150
+  persistence: 0.5
+  lacunarity: 2.01
+  maxTerrainHeight: 50
   waterLevel: 0.3
   noiseType: 2

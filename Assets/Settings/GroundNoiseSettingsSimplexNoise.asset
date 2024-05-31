@@ -20,6 +20,6 @@ MonoBehaviour:
   octaves: 6
   persistence: 0.5
   lacunarity: 2.1
-  maxTerrainHeight: 150
+  maxTerrainHeight: 50
   waterLevel: 0.3
   noiseType: 0
