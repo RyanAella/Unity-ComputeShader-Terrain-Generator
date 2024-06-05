@@ -51,8 +51,11 @@ namespace _Scripts.ScriptableObjects
 
         [Range(1, 10)]
         public int octaves = 6; // The number of octaves in the noise function, impacting the level of detail.
+        
+        public float amplitude = 1.0f;
+        public float frequency = 1.0f;
 
-        [Range(0.3f, 0.7f)] public float persistence = 0.5f; // The amplitude persistence for each octave.
+        [Range(0f, 1f)] public float persistence = 0.5f; // The amplitude persistence for each octave.
 
         [Range(1.8f, 10.0f)] public float lacunarity = 2.01f; // The frequency multiplier for each octave.
 
@@ -64,6 +67,8 @@ namespace _Scripts.ScriptableObjects
 
         public NoiseType noiseType;
 
+        public float sharpnessScalar = 0.25f;
+        
         #endregion
 
         #region Methods

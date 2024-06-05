@@ -22,9 +22,13 @@ uint map_height; // Height of the noise map
 float noise_scale; // Scale of the noise
 float noise_height; // Height factor for the noise
 int octaves; // Number of noise octaves
-float lacunarity; // Frequency multiplier for each octave
+float amplitude;
+float frequency;
 float persistence; // Amplitude multiplier for each octave
+float lacunarity; // Frequency multiplier for each octave
 float2 offset; // Offset for the noise
+
+float sharpness_scalar;
 
 float max_terrain_height; // Maximum height of the terrain
 
@@ -63,28 +67,66 @@ float3 fractional_brownian_motion(float2 xy)
     // Initialize the accumulated noise value to zero.
     float3 value = float3(0.0f, 0.0f, 0.0f);
     // Initialize the initial amplitude for noise generation.
-    float amplitude = 1.0f;
+    // float amplitude = 1.0f;
+    float amp = amplitude;
     // Initialize the initial frequency for noise generation.
-    float frequency = 1.0f;
+    // float frequency = 1.0f;
+    float freq = frequency;
 
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {
         float2 octave_offset = float2(random_between() + offset.x, random_between() + offset.y);
-        
-        // Calculate UV coordinates for noise generation.
-        const float2 uv = xy * frequency + octave_offset;
 
-        // Generate Simplex noise and add it to the accumulated value.
-        value += amplitude * /*abs*/(noise(uv));
+        // Calculate UV coordinates for noise generation.
+        const float2 uv = xy * freq + octave_offset;
+
+        if (o < 3)
+        {
+            // Generate Simplex noise and add it to the accumulated value.
+            value += amp * abs(noise(uv));
+        }
+        else if (o < 5)
+        {
+            // Generate Simplex noise and add it to the accumulated value.
+            value += amp * noise(uv);
+        }
+        else if (o < octaves)
+        {
+            // Generate Simplex noise and add it to the accumulated value.
+            value += amp * (1 - abs(noise(uv)));
+        }
 
         // Increase the amplitude and frequency for the next octave to add more detail to the noise.
-        amplitude *= persistence;
-        frequency *= lacunarity;
+        amp *= persistence;
+        freq *= lacunarity;
     }
 
     return value;
 }
+
+// float4 fbm(in float3 x, int octaves)
+// {
+//     float lacunarity = 1.98;  // could be 2.0
+//     float persistence = 0.49;  // could be 0.5
+//     float a = 0.0;
+//     float b = 0.5;
+//     float3 d = float3(0.0, 0.0, 0.0);
+//     float3x3 m = float3x3(1.0, 0.0, 0.0,
+//                           0.0, 1.0, 0.0,
+//                           0.0, 0.0, 1.0);
+//     for(int i = 0; i < octaves; i++)
+//     {
+//         float3 n = noise(x);
+//         a += b * n.x;         // accumulate values
+//         d += b * m * n.yzw;   // accumulate derivatives
+//         b *= persistence;
+//         x = lacunarity * m * x;
+//         m = lacunarity * transpose(m); // HLSL verwendet 'transpose' statt 'm3'
+//     }
+//     return float4(a, d);
+// }
+
 
 float3 domain_warping(const float2 xy)
 {
@@ -177,6 +219,57 @@ void make_vertices(uint3 id, const float half_width, const float half_height)
     }
 }
 
+void make_details(uint3 id)
+{
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
+    if (id.y < map_height && id.x < map_width)
+    {
+        // Compute the index of the vertex within the buffer.
+        const int vertex_index = id.y * map_width + id.x;
+
+        float noise_height = _Vertex_Buffer[vertex_index].y;
+
+        float billow_noise = abs(noise_height);
+        float ridge_noise = 1 - billow_noise;
+
+        // if (sharpness_scalar >= 0)
+        if (noise_height <= 0.4f)
+        {
+            noise_height = lerp(noise_height, billow_noise, abs(sharpness_scalar));
+        }
+        // else if (sharpness_scalar < 0)
+        else
+        {
+            noise_height = lerp(noise_height, ridge_noise, abs(sharpness_scalar));
+        }
+
+        _Vertex_Buffer[vertex_index].y = noise_height; // Store the calculated vertex position in the vertex buffer
+    }
+}
+
+void make_details_2(uint3 id)
+{
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
+    if (id.y < map_height && id.x < map_width)
+    {
+        // Compute the index of the vertex within the buffer.
+        const int vertex_index = id.y * map_width + id.x;
+
+        float noise_height = _Vertex_Buffer[vertex_index].y;
+
+        float billow_noise = abs(noise_height);
+        float ridge_noise = 1 - billow_noise;
+
+        float noise_height_clamp = clamp(noise_height, 0.0f, 1.0f);
+
+        if (noise_height_clamp >= 0.7f)
+        {
+            noise_height = lerp(noise_height, ridge_noise, sharpness_scalar);
+        }
+
+        _Vertex_Buffer[vertex_index].y = noise_height; // Store the calculated vertex position in the vertex buffer
+    }
+}
 
 void make_triangles(uint3 id)
 {
@@ -209,7 +302,7 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // Calculate the maximum valid x and y coordinates based on the map dimensions.
     uint max_id_x = map_width - 1;
     uint max_id_y = map_height - 1;
-    
+
     // Ensure the thread ID is within the map dimensions.
     // This prevents out-of-bounds access to the map data.
     if (id.x > max_id_x || id.y > max_id_y)
@@ -226,8 +319,10 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // The vertices represent the corners of the triangles that will form the terrain mesh.
     make_vertices(id, half_width, half_height);
 
+    // make_details(id);
+    // make_details_2(id);
+
     // Generate triangles for the terrain mesh using the previously generated vertices.
     // Each triangle represents a small section of the terrain surface.
     make_triangles(id);
 }
-

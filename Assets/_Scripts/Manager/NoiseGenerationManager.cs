@@ -124,10 +124,14 @@ namespace _Scripts.Manager
             noiseComputeShader.SetFloat(NoiseHeight, noiseSettings.noiseHeight);
 
             noiseComputeShader.SetInt(Octaves, noiseSettings.octaves);
-            noiseComputeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
+            noiseComputeShader.SetFloat("amplitude", noiseSettings.amplitude);
+            noiseComputeShader.SetFloat("frequency", noiseSettings.frequency);
             noiseComputeShader.SetFloat(Persistence, noiseSettings.persistence);
+            noiseComputeShader.SetFloat(Lacunarity, noiseSettings.lacunarity);
             
             noiseComputeShader.SetVector(Offset, noiseSettings.offset);
+            
+            noiseComputeShader.SetFloat("sharpness_scalar", noiseSettings.sharpnessScalar);
 
             noiseComputeShader.SetFloat(MaxTerrainHeight, noiseSettings.maxTerrainHeight);
 

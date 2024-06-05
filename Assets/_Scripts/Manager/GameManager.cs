@@ -10,11 +10,8 @@ using UnityEngine;
 using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using _Scripts.Terrain;
-using UnityEditor.SceneManagement;
 
 #if UNITY_EDITOR
-using UnityEditor.Experimental.SceneManagement;
-using UnityEditor;
 #endif
 
 namespace _Scripts.Manager
@@ -68,7 +65,7 @@ namespace _Scripts.Manager
         /// This method is called on the start of the game.
         /// It generates a mesh, colours it, and adjusts the height of the mesh vertices.
         /// </summary>
-        private void Update()
+        private void Start()
         {
             groundNoiseSettings.noiseScale = noiseScale;
             
@@ -77,11 +74,11 @@ namespace _Scripts.Manager
             InitializeBuffers();
             bool success = GenerateTerrain();
 
-            // if (success)
-            // {
-            //     Vector3 position = new Vector3(transform.position.x, transform.position.y + groundNoiseSettings.maxTerrainHeight, transform.position.z);
-            //     Instantiate(player, position, Quaternion.identity);
-            // }
+            if (success)
+            {
+                Vector3 position = new Vector3(transform.position.x, transform.position.y + groundNoiseSettings.maxTerrainHeight, transform.position.z);
+                Instantiate(player, position, Quaternion.identity);
+            }
 
             ReleaseBuffers();
         }
@@ -163,11 +160,11 @@ namespace _Scripts.Manager
                         groundCollider.cookingOptions = MeshColliderCookingOptions.None;
                     }
 
-                    groundCollider.sharedMesh = groundMeshFilter.sharedMesh;
-
                     ground.GenerateGround(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager,
                         _falloffMapManager,
                         shaderSettings, generalSettings, groundNoiseSettings, _colourPaletteGround, groundMeshFilter);
+                    
+                    groundCollider.sharedMesh = groundMeshFilter.sharedMesh;
 
                     // If MeshCollider component doesn't exist, add it and assign sharedMesh
                     if (waterMeshFilter != null)
@@ -177,14 +174,14 @@ namespace _Scripts.Manager
                             waterCollider = water.gameObject.AddComponent<MeshCollider>();
                             waterCollider.cookingOptions = MeshColliderCookingOptions.None;
                         }
-
-                        waterCollider.sharedMesh = waterMeshFilter.sharedMesh;
                     }
 
                     water.GenerateWater(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager,
                         _falloffMapManager,
                         shaderSettings, generalSettings, waterNoiseSettings, _colourPaletteWater, waterMeshFilter,
                         groundNoiseSettings.maxTerrainHeight);
+                    
+                    waterCollider.sharedMesh = waterMeshFilter.sharedMesh;
                 }
 
                 else

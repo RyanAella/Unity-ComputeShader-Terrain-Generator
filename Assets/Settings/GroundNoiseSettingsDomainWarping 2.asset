@@ -15,11 +15,15 @@ MonoBehaviour:
   useRandomSeed: 0
   seed: 26052022
   seedScale: 100000
-  noiseScale: 1.5
+  noiseScale: 0.7
   noiseHeight: 2
   octaves: 9
-  persistence: 0.35
-  lacunarity: 3.22
+  amplitude: 1
+  frequency: 1
+  persistence: 0.5
+  lacunarity: 2.01
+  offset: {x: 10, y: 10}
   maxTerrainHeight: 50
   waterLevel: 0.3
   noiseType: 2
+  sharpnessScalar: 0.25
