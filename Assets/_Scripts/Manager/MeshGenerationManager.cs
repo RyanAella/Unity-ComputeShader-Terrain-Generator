@@ -22,22 +22,23 @@ namespace _Scripts.Manager
         /// </summary>
         /// <param name="mesh"></param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
+        /// <param name="uvs"></param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        public void CreateMesh(Mesh mesh, Vector3[] vertices, int[] triangles)
+        public void CreateMesh(Mesh mesh, Vector3[] vertices, Vector2[] uvs, int[] triangles)
         {
             // Clears all previous data in the mesh.
             mesh.Clear();
 
             // Sets the vertices of the mesh.
             mesh.SetVertices(vertices);
+                        
+            mesh.SetUVs(0, uvs);
 
             // Sets the triangles of the mesh.
             mesh.SetTriangles(triangles, 0);
 
             // Recalculates the normals of the mesh based on the vertices and triangles.
             mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            mesh.RecalculateTangents();
         }
 
         #endregion

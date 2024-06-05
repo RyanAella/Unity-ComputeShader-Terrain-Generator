@@ -6,11 +6,13 @@
  */
 
 
+using System;
 using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
     [CreateAssetMenu(fileName = "ShaderSettings", menuName = "ShaderSettings")]
+    [Serializable]
     public class ShaderSettings : ScriptableObject
     {
         #region Variables

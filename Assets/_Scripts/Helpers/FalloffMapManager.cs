@@ -27,9 +27,9 @@ namespace _Scripts.Helpers
 
         #region Methods
 
-        public void InitializeBuffers(int resolution)
+        public void InitializeBuffers(Vector2Int resolution)
         {
-            _falloffMapBuffer = new ComputeBuffer(resolution * resolution, sizeof(float));
+            _falloffMapBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float));
         }
         
         public void ReleaseBuffers()
@@ -37,24 +37,24 @@ namespace _Scripts.Helpers
             _falloffMapBuffer?.Release();
         }
 
-        public void ApplyFalloffMap(GeneralSettings generalSettings, ShaderSettings shaderSettings, ComputeBuffer vertexBuffer)
+        public void ApplyFalloffMap(ShaderSettings shaderSettings, ComputeBuffer vertexBuffer)
         {
-            int resolution = generalSettings.chunkSize;
+            Vector2Int resolution = GeneralSettings.chunkSize;
             ComputeShader falloffComputeShader = shaderSettings.falloffComputeShader;
             
             // Find the kernel in the compute shader.
             var noiseKernel = falloffComputeShader.FindKernel("Falloff_Map");
 
             // Set shader properties
-            falloffComputeShader.SetInt(MapWidth, resolution);
-            falloffComputeShader.SetInt(MapHeight, resolution);
+            falloffComputeShader.SetInt(MapWidth, resolution.x);
+            falloffComputeShader.SetInt(MapHeight, resolution.y);
             
             falloffComputeShader.SetBuffer(noiseKernel, VertexBuffer, vertexBuffer);
             falloffComputeShader.SetBuffer(noiseKernel, FalloffMapBuffer, _falloffMapBuffer);
 
             // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(resolution / 16f);
-            var dispatchY = Mathf.CeilToInt(resolution / 16f);
+            var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
 
             // Dispatch the compute shader to generate the mesh parameters.
             falloffComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);

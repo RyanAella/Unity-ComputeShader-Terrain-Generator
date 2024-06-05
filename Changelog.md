@@ -1,5 +1,11 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [..] - 
+### Added
+- UV generation
+- `Billow Noise` and `Ridge Noise`
+- `Domain Warping` and `FBM` are now dynamic
+
 ## [0.16.0] - 2024-06-03
 ### Added
 - `Falloff Map Integration`: Implemented the ability to use a falloff map within the Compute Shader, enhancing terrain edge smoothness and realism.

@@ -5,64 +5,80 @@
  * License: Licence
  */
 
+using System;
+using _Scripts.Helpers;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace _Scripts.ScriptableObjects
 {
-    public enum NoiseType
-    {
-        SimplexNoise = 0,
-        FractionalBrownianMotion = 1,
-        DomainWarping = 2,
-        Noiseless = 3
-    }
-
     /// <summary>
     /// This ScriptableObject class contains settings related to noise generation.
     /// </summary>
-    [CreateAssetMenu(menuName =
-        "ScriptableObjects/Settings/Noise")] // This attribute creates a menu entry in the Unity Editor to create a NoiseSettings ScriptableObject.
+    [CreateAssetMenu(menuName = "ScriptableObjects/Settings/Noise")]
+    [Serializable]
     public class NoiseSettings : ScriptableObject
     {
         #region Seed Settings
 
-        [Header("Seed")] // Groups the following fields under the "Seed" header in the Inspector.
-        public bool useRandomSeed = true; // Determines if a random seed is used for noise generation.
+        [Header("Seed Settings")]
+        [Tooltip("Determines if a random seed is used for noise generation.")]
+        public bool useRandomSeed = true;
 
-        private bool _seedLocked; // A flag to prevent changing the seed after it is set.
+        private bool _seedLocked;
 
-        public string seed = "Hello World!"; // Default seed value if not using a random seed.
+        [Tooltip("Seed value if not using a random seed.")]
+        public string seed = "Hello World!";
 
+        [Tooltip("Scale factor for calculating the seed offset.")]
         [Range(10000.0f, 1000000.0f)]
-        public float seedScale = 100000.0f; // Scale factor for calculating the seed offset.
+        public float seedScale = 100000.0f;
 
         #endregion
 
         #region Noise Parameters
 
-        [Header("Noise")] // Groups the following fields under the "Noise" header in the Inspector.
+        [Header("General Noise Settings")]
+        [Tooltip("The scale for noise generation, affecting the frequency of noise.")]
         [Range(0.0001f, 10.0f)]
-        public float noiseScale = 0.5f; // The scale for noise generation, affecting the frequency of noise.
+        public float noiseScale = 0.5f;
+        [Tooltip("The maximum height of the terrain.")]
+        [Range(1, 200)]
+        public float maxTerrainHeight = 180.0f;
+        [Tooltip("The water level relative to the maximum terrain height.")]
+        [Range(0, 1)]
+        public float waterLevel = 0.3f;
 
-        [Range(0.5f, 5.0f)]
-        public float
-            noiseHeight =
-                2.0f; // The height factor for the noise, affecting how much variation there is in the generated terrain.
-
+        [Header("FBM")]
+        [Tooltip("The number of octaves in the noise function, impacting the level of detail.")]
         [Range(1, 10)]
-        public int octaves = 6; // The number of octaves in the noise function, impacting the level of detail.
+        public int octaves = 6;
 
-        [Range(0.3f, 0.7f)] public float persistence = 0.5f; // The amplitude persistence for each octave.
+        public float amplitude = 1.0f;
+        public float frequency = 1.0f;
 
-        [Range(1.8f, 10.0f)] public float lacunarity = 2.01f; // The frequency multiplier for each octave.
+        [Tooltip("The amplitude persistence for each octave.")]
+        [Range(0f, 1f)]
+        public float persistence = 0.5f;
 
-        public Vector2 offset = new Vector2(16,16);
+        [Tooltip("The frequency multiplier for each octave.")]
+        [Range(1.8f, 10.0f)]
+        public float lacunarity = 2.01f;
+
+        public NoiseLayer[] noiseLayers = Array.Empty<NoiseLayer>();
+        [HideInInspector] public Vector2[] noiseLayerOffsetVectors;
+
+        [Header("Domain Warping")]
+        public int warpSteps = 3;
+        public float warpStepSize = 10;
+        public float domainWarpingMultiplicative = 4.0f;
+        public Vector2 offset = new Vector2(16, 16);
+        [HideInInspector]
+        public Vector2[] offsetVectors;
         
-        [Range(1, 200)] public float maxTerrainHeight = 180.0f; // The maximum height of the terrain. 
-
-        [Range(0, 1)] public float waterLevel = 0.3f; // The maximum height of the terrain. 
-
+        // ToDo: Check if I need them
         public NoiseType noiseType;
+        public float sharpnessScalar = 0.25f;
 
         #endregion
 
@@ -74,10 +90,9 @@ namespace _Scripts.ScriptableObjects
         /// <param name="inSeed">The seed value to set.</param>
         public void SetSeed(string inSeed)
         {
-            if (_seedLocked) return; // If the seed is locked, prevent changes.
-
-            seed = inSeed; // Set the seed to the new value.
-            _seedLocked = true; // Lock the seed to prevent further changes.
+            if (_seedLocked) return;
+            seed = inSeed;
+            _seedLocked = true;
         }
 
         /// <summary>
@@ -86,9 +101,31 @@ namespace _Scripts.ScriptableObjects
         /// <returns>The current seed as a string.</returns>
         public string GetSeed()
         {
-            return seed; // Returns the current seed value.
+            return seed;
+        }
+
+        private void OnEnable()
+        {
+            UpdateNoiseLayers();
+        }
+
+        private void OnValidate()
+        {
+            UpdateNoiseLayers();
+        }
+
+        private void UpdateNoiseLayers()
+        {
+            NoiseLayer[] newNoiseLayers = new NoiseLayer[octaves];
+            for (int i = 0; i < Mathf.Min(octaves, noiseLayers.Length); i++)
+            {
+                newNoiseLayers[i] = noiseLayers[i];
+            }
+            noiseLayers = newNoiseLayers;
         }
 
         #endregion
     }
 }
+
+

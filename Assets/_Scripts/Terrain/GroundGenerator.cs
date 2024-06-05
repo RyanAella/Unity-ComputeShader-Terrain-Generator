@@ -21,6 +21,7 @@ namespace _Scripts.Terrain
         #region Variables
 
         private Vector3[] _vertices;
+        private Vector2[] _uv;
         private int[] _triangles;
 
         private List<Vector4> _colourPalette;
@@ -36,18 +37,17 @@ namespace _Scripts.Terrain
         /// <param name="meshGenerationManager"></param>
         /// <param name="colourGenerationManager"></param>
         /// <param name="falloffMapManagerGenerationManager"></param>
-        /// <param name="shaderSettings"></param>
         /// <param name="generalSettings"></param>
+        /// <param name="shaderSettings"></param>
         /// <param name="noiseSettings"></param>
         /// <param name="colourGradient"></param>
         /// <param name="meshFilter"></param>
         public void GenerateGround(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, FalloffMapManager falloffMapManagerGenerationManager,
-            ShaderSettings shaderSettings, GeneralSettings generalSettings, NoiseSettings noiseSettings,
+            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, FalloffMapManager falloffMapManagerGenerationManager, GeneralSettings generalSettings,
+            ShaderSettings shaderSettings, NoiseSettings noiseSettings,
             List<Vector4> colourGradient, MeshFilter meshFilter)
         {
-            bool success = GenerateNoiseAndMesh(noiseGenerationManager, meshGenerationManager, falloffMapManagerGenerationManager, shaderSettings,
-                generalSettings, noiseSettings, meshFilter);
+            bool success = GenerateNoiseAndMesh(noiseGenerationManager, meshGenerationManager, falloffMapManagerGenerationManager, generalSettings, shaderSettings, noiseSettings, meshFilter);
 
             // // Create a list of colour palette vectors based on the color keys in the colour gradient.
             // // Each vector represents a color with components for red, green, blue, and alpha.
@@ -56,7 +56,7 @@ namespace _Scripts.Terrain
             //         new Vector4(colourKey.color.r, colourKey.color.g, colourKey.color.b, colourKey.color.a))
             //     .ToList();
 
-            ColourMesh(success, colourGenerationManager, generalSettings.chunkSize,
+            ColourMesh(success, colourGenerationManager, GeneralSettings.chunkSize,
                 shaderSettings, colourGradient, meshFilter);
 
             AdjustMeshHeight(success, noiseSettings, meshFilter);
@@ -68,42 +68,44 @@ namespace _Scripts.Terrain
         /// <param name="noiseGenerationManager"></param>
         /// <param name="meshGenerationManager"></param>
         /// <param name="falloffMapManager"></param>
-        /// <param name="shaderSettings"></param>
         /// <param name="generalSettings"></param>
+        /// <param name="shaderSettings"></param>
         /// <param name="noiseSettings"></param>
         /// <param name="meshFilter"></param>
         /// <returns></returns>
         private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, FalloffMapManager falloffMapManager, ShaderSettings shaderSettings, GeneralSettings generalSettings,
+            MeshGenerationManager meshGenerationManager, FalloffMapManager falloffMapManager, GeneralSettings generalSettings, ShaderSettings shaderSettings,
             NoiseSettings noiseSettings, MeshFilter meshFilter)
         {
             // Get the chunkSize of the mesh.
-            int resolution = generalSettings.chunkSize;
+            Vector2Int resolution = GeneralSettings.chunkSize;
 
             // Create arrays to store the vertices and triangles of the mesh.
             // The number of vertices is determined by the chunkSize of the mesh.
-            _vertices = new Vector3[resolution * resolution];
+            _vertices = new Vector3[resolution.x * resolution.y];
+
+            _uv = new Vector2[resolution.x * resolution.y];
 
             // The number of triangles is determined by the chunkSize of the mesh minus 1.
             // Each quad in the mesh is represented by 2 triangles, so there are 6 indices per quad.
-            _triangles = new int[(resolution - 1) * (resolution - 1) * 6];
+            _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, chunkSize, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, generalSettings, noiseSettings, _vertices, _triangles, falloffMapManager, true);
+            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, noiseSettings, _vertices, _uv, _triangles, falloffMapManager, true);
 
             // Creates a new Mesh object.
             // Sets the mesh of the MeshFilter to the newly created mesh.
             meshFilter.mesh = new Mesh
             {
                 // Sets the index format of the mesh to UInt32, which is required for large meshes.
-                indexFormat = IndexFormat.UInt32,
+                // indexFormat = IndexFormat.UInt32,
                 name = "Procedural GroundGenerator Mesh GPU"
             };
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            meshGenerationManager.CreateMesh(meshFilter.sharedMesh, _vertices, _triangles);
+            meshGenerationManager.CreateMesh(meshFilter.sharedMesh, _vertices, _uv, _triangles);
 
             return true;
         }
@@ -117,7 +119,7 @@ namespace _Scripts.Terrain
         /// <param name="shaderSettings"></param>
         /// <param name="colourGradient"></param>
         /// <param name="meshFilter"></param>
-        public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, int resolution,
+        public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, Vector2Int resolution,
             ShaderSettings shaderSettings, List<Vector4> colourGradient, MeshFilter meshFilter)
         {
             // If the mesh has not been generated, return early.
@@ -125,6 +127,7 @@ namespace _Scripts.Terrain
 
             int colourCount = colourGradient.Count;
 
+            // ToDo: 
             // Initialize the buffers for the vertices and colors
             colourGenerationManager.InitializeBuffers(resolution, colourCount);
 
@@ -133,6 +136,7 @@ namespace _Scripts.Terrain
                 new[] { 0.3f, 1 },
                 colourGradient.ToArray(), colourCount);
 
+            // ToDo:
             colourGenerationManager.ReleaseBuffers();
         }
 

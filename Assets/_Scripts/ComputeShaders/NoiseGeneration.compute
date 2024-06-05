@@ -21,9 +21,18 @@ uint map_height; // Height of the noise map
 // float seed_offset; // Offset for the noise seed
 float noise_scale; // Scale of the noise
 float noise_height; // Height factor for the noise
+
+// FBM
 int octaves; // Number of noise octaves
-float lacunarity; // Frequency multiplier for each octave
+float amplitude;
+float frequency;
 float persistence; // Amplitude multiplier for each octave
+float lacunarity; // Frequency multiplier for each octave
+
+// Domain Warping
+int warp_steps;
+float domain_warping_multiplicative;
+
 float2 offset; // Offset for the noise
 
 float max_terrain_height; // Maximum height of the terrain
@@ -32,7 +41,20 @@ int noise_type;
 
 // Read-write structured buffers for noise data and mesh information.
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
+RWStructuredBuffer<float2> _UV_Buffer;
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
+RWStructuredBuffer<int> _Noise_Layer_Buffer;
+RWStructuredBuffer<float2> _Noise_Layer_Offset_Vectors;
+RWStructuredBuffer<float2> _Domain_Warping_Offset_Vectors;
+
+// This function generates pseudo-random numbers using a commonly employed technique in shader programming.
+// It uses a dot product and a sine function to create pseudo-random values efficiently.
+// This method is widely found in shader tutorials, examples, and open-source projects.
+// It represents general graphics programming knowledge rather than being sourced from a specific origin.
+float rand(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+}
 
 float random_between()
 {
@@ -58,99 +80,75 @@ float3 noise(const float2 xy)
     return value;
 }
 
-float3 fractional_brownian_motion(float2 xy)
+float billow(float value)
 {
-    // Initialize the accumulated noise value to zero.
+    value = abs(value);
+    return value;
+}
+
+float ridge(float value)
+{
+    value = 1 - billow(value);
+    return value;
+}
+
+float3 fractional_brownian_motion(float2 pos)
+{
     float3 value = float3(0.0f, 0.0f, 0.0f);
     // Initialize the initial amplitude for noise generation.
-    float amplitude = 1.0f;
+    float amp = amplitude;
     // Initialize the initial frequency for noise generation.
-    float frequency = 1.0f;
+    float freq = frequency;
 
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {
-        float2 octave_offset = float2(random_between() + offset.x, random_between() + offset.y);
-        
+        float2 octave_offset = float2(random_between() + _Noise_Layer_Offset_Vectors[o].x,
+                                      random_between() + _Noise_Layer_Offset_Vectors[o].y);
+
         // Calculate UV coordinates for noise generation.
-        const float2 uv = xy * frequency + octave_offset;
+        const float2 uv = pos * freq + octave_offset;
 
         // Generate Simplex noise and add it to the accumulated value.
-        value += amplitude * /*abs*/(noise(uv));
+        float3 noise_value = noise(uv);
+
+        switch (_Noise_Layer_Buffer[o])
+        {
+        case 0: // Regular
+            break;
+        case 1:
+            noise_value.y = billow(noise_value.y);
+            break;
+        case 2:
+            noise_value.y = ridge(noise_value.y);
+            break;
+        }
+
+        value += amp * noise_value;
 
         // Increase the amplitude and frequency for the next octave to add more detail to the noise.
-        amplitude *= persistence;
-        frequency *= lacunarity;
+        amp *= persistence;
+        freq *= lacunarity;
     }
 
     return value;
 }
 
-float3 domain_warping(const float2 xy)
+float3 domain_warping(const float2 p)
 {
-    const float2 p = xy;
+    float2 r = float2(0.0f, 0.0f);
 
-    float2 q, r;
-
-    q.x = fractional_brownian_motion(p + float2(0.0, 0.0)).y;
-    q.y = fractional_brownian_motion(p + float2(5.2, 1.3)).y;
-
-    // float3 value = fractional_brownian_motion(float2(fbm1, fbm2));
-
-    r.x = fractional_brownian_motion(p + 4.0 * q + float2(1.7, 9.2)).y;
-    r.y = fractional_brownian_motion(p + 4.0 * q + float2(8.3, 2.8)).y;
-
-    return fractional_brownian_motion(p + 4.0f * r);
-}
-
-float ridge_noise(const float y)
-{
-    float n = abs(y); // create creases
-    n = 1 - n; // invert so creases are at top
-    // n = n * n; // sharpen creases
-
-    return n;
-}
-
-// function generateHeight(x, y) {
-//   
-//     let h = noise(x * frequency, y * frequency);
-//   
-//     // warp the noise
-//     if (warped) {
-//     
-//         let pX = x + (noise((x + 20) * warpFrequency, (y)      * warpFrequency) - 0.5) * warpAmplitude;
-//         let pY = y + (noise((x)      * warpFrequency, (y + 20) * warpFrequency) - 0.5) * warpAmplitude;
-//     
-//     
-//         h = noise(pX * frequency, pY * frequency);
-//     }
-//   
-//     // subtract the threshold
-//     h = max(0, h - threshold);
-//     h /= (1 - threshold);
-//   
-//     return h;
-// }
-
-float3 make_noise(const int vertex_index, const float sample_x, const float sample_y, uint3 id)
-{
-    float3 value = float3(0.0f, 0.0f, 0.0f);
-
-    if (noise_type == 0)
+    for (int i = 0; i < warp_steps; i++)
     {
-        value = noise(float2(sample_x, sample_y));
-    }
-    else if (noise_type == 1)
-    {
-        value = fractional_brownian_motion(float2(sample_x, sample_y));
-    }
-    else if (noise_type == 2)
-    {
-        value = domain_warping(float2(sample_x, sample_y));
+        float posX = fractional_brownian_motion(
+            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i]).y;
+        float posY = fractional_brownian_motion(
+            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + 1]).y;
+
+        r = float2(posX, posY);
     }
 
-    return value;
+    return fractional_brownian_motion(p + domain_warping_multiplicative * r);
 }
 
 void make_vertices(uint3 id, const float half_width, const float half_height)
@@ -159,24 +157,36 @@ void make_vertices(uint3 id, const float half_width, const float half_height)
     if (id.y < map_height && id.x < map_width)
     {
         // Compute the index of the vertex within the buffer.
-        const int vertex_index = id.y * map_width + id.x;
+        const int vertex_index = id.y * map_width + id.x; // ((width - 1)/i)+1
 
         // Adjust the x and y coordinates for noise sampling based on the map's center.
         const float2 samples = ((float2(id.x, id.y) - float2(half_width, half_height)) / noise_scale);
 
         // Generate the noise value for the current vertex.
-        float3 value = make_noise(vertex_index, samples.x, samples.y, id);
+        float3 value = domain_warping(samples);
 
         // Determine the vertex's position in world space relative to the top-left corner of the map.
         const float top_left_x = (map_width - 1) / -2.0f;
         const float top_left_z = (map_height - 1) / -2.0f;
         const float3 vertex = float3(top_left_x + id.x, value.y, top_left_z + id.y);
 
-        // Store the calculated vertex position in the vertex buffer.
         _Vertex_Buffer[vertex_index] = vertex;
     }
 }
 
+void make_uvs(uint3 id)
+{
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
+    if (id.y < map_height && id.x < map_width)
+    {
+        // Compute the index of the vertex within the buffer.
+        const int uv_index = id.y * map_width + id.x;
+
+        float2 uv = float2(id.x / (float)map_width, id.y / (float)map_height);
+
+        _UV_Buffer[uv_index] = uv;
+    }
+}
 
 void make_triangles(uint3 id)
 {
@@ -209,7 +219,7 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // Calculate the maximum valid x and y coordinates based on the map dimensions.
     uint max_id_x = map_width - 1;
     uint max_id_y = map_height - 1;
-    
+
     // Ensure the thread ID is within the map dimensions.
     // This prevents out-of-bounds access to the map data.
     if (id.x > max_id_x || id.y > max_id_y)
@@ -226,8 +236,9 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // The vertices represent the corners of the triangles that will form the terrain mesh.
     make_vertices(id, half_width, half_height);
 
+    make_uvs(id);
+
     // Generate triangles for the terrain mesh using the previously generated vertices.
     // Each triangle represents a small section of the terrain surface.
     make_triangles(id);
 }
-

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 266078e6033b6f64198bd5ed80a89e47, type: 3}
+  m_Name: 2_GroundNoiseSettingsDomainWarping
+  m_EditorClassIdentifier: 
+  useRandomSeed: 0
+  seed: 26052022
+  seedScale: 100000
+  noiseScale: 0.7
+  maxTerrainHeight: 50
+  waterLevel: 0.3
+  octaves: 9
+  amplitude: 1
+  frequency: 1
+  persistence: 0.5
+  lacunarity: 2.01
+  noiseLayers: 000000000000000000000000000000000000000000000000000000000000000000000000
+  noiseLayerOffsetVectors:
+  - {x: -82840, y: 70311}
+  - {x: 32497, y: 34391}
+  - {x: 76400, y: -34775}
+  - {x: 75424, y: -44748}
+  - {x: -13376, y: -51214}
+  - {x: 18179, y: 84482}
+  - {x: -31399, y: 16034}
+  - {x: -87324, y: 77503}
+  - {x: -778, y: 4935}
+  warpSteps: 3
+  warpStepSize: 10
+  domainWarpingMultiplicative: 6.7
+  offset: {x: 10, y: 10}
+  offsetVectors:
+  - {x: 0, y: 0}
+  - {x: 13.452967, y: 10.835108}
+  - {x: 15.553143, y: 19.08913}
+  - {x: 14.028667, y: 16.30372}
+  - {x: 0, y: 0}
+  - {x: 0, y: 0}
+  noiseType: 1
+  sharpnessScalar: 0.25

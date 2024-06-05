@@ -44,10 +44,10 @@ namespace _Scripts.Helpers
         /// Initializes the compute buffers used for local min-max computation and global min-max computation, as well as the clamped vertices buffer.
         /// </summary>
         /// <param name="resolution">The chunkSize of the buffers.</param>
-        public static void InitializeBuffers(int resolution)
+        public static void InitializeBuffers(Vector2Int resolution)
         {
             // Create a new compute buffer for the local min-max values with a size determined by the chunkSize.
-            _localMinMaxBuffer = new ComputeBuffer(resolution * resolution, sizeof(float));
+            _localMinMaxBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float));
 
             // Create a new compute buffer for the global min-max values with a size of 2.
             _globalMinMaxBuffer = new ComputeBuffer(2, sizeof(float));
@@ -72,7 +72,7 @@ namespace _Scripts.Helpers
         /// <param name="shaderSettings"></param>
         /// <param name="verticesBuffer">The buffer containing the vertices.</param>
         /// <returns>The array of global minimum and maximum height values.</returns>
-        public static void CompareHeightValues(int resolution, ShaderSettings shaderSettings,
+        public static void CompareHeightValues(Vector2Int resolution, ShaderSettings shaderSettings,
             ComputeBuffer verticesBuffer)
         {
             ComputeShader computeShader = shaderSettings.valueClampComputeShader;
@@ -100,14 +100,14 @@ namespace _Scripts.Helpers
         /// <param name="computeShader">The compute shader to use for the computation.</param>
         /// <param name="verticesBuffer">The buffer containing the vertices.</param>
         /// <returns>The array of local minimum and maximum values.</returns>
-        private static void ComputeLocalMinMax(int resolution, ComputeShader computeShader,
+        private static void ComputeLocalMinMax(Vector2Int resolution, ComputeShader computeShader,
             ComputeBuffer verticesBuffer)
         {
             // Find the kernel for the compute shader
             var computeLocal = computeShader.FindKernel("Compute_Local_Min_Max");
 
             // Set the chunkSize of the vertices buffer
-            computeShader.SetInt(VerticesBufferLength, resolution * resolution);
+            computeShader.SetInt(VerticesBufferLength, resolution.x * resolution.y);
 
             // Set the length of the local min-max buffer
             computeShader.SetInt(LocalMinMaxBufferLength, 2);
@@ -123,8 +123,8 @@ namespace _Scripts.Helpers
             computeShader.SetBuffer(computeLocal, LocalMinMaxBuffer, _localMinMaxBuffer);
 
             // Calculate the dispatch dimensions
-            var dispatchX = Mathf.CeilToInt((float)resolution / 16);
-            var dispatchY = Mathf.CeilToInt((float)resolution / 16);
+            var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
 
             // Dispatch the compute shader
             computeShader.Dispatch(computeLocal, dispatchX, dispatchY, 1);
@@ -136,13 +136,13 @@ namespace _Scripts.Helpers
         /// <param name="resolution">The chunkSize of the compute shader.</param>
         /// <param name="computeShader">The compute shader to use for the computation.</param>
         /// <returns>The array of global minimum and maximum values.</returns>
-        private static void ComputeGlobalMinMax(int resolution, ComputeShader computeShader)
+        private static void ComputeGlobalMinMax(Vector2Int resolution, ComputeShader computeShader)
         {
             // Find the compute shader kernel for computing global min-max
             var computeGlobal = computeShader.FindKernel("Compute_Global_Min_Max");
 
             // Set the buffer length based on chunkSize
-            computeShader.SetInt(LocalMinMaxBufferLength, resolution * resolution);
+            computeShader.SetInt(LocalMinMaxBufferLength, resolution.x * resolution.y);
             
             computeShader.SetBuffer(computeGlobal, LocalMinMaxBuffer, _localMinMaxBuffer);
             computeShader.SetBuffer(computeGlobal, GlobalMinMaxBuffer, _globalMinMaxBuffer);
@@ -162,22 +162,22 @@ namespace _Scripts.Helpers
         /// <param name="verticesBuffer">The buffer containing the vertices of the terrain.</param>
         /// <param name="resolution">The chunkSize of the terrain.</param>
         private static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
-            int resolution)
+            Vector2Int resolution)
         {
             // Find the kernel in the compute shader for clamping height values.
             int clampKernel = computeShader.FindKernel("Clamp_Height_Values");
 
             // Set the map width and height in the compute shader.
-            computeShader.SetInt(MapWidth, resolution);
-            computeShader.SetInt(MapHeight, resolution);
+            computeShader.SetInt(MapWidth, resolution.x);
+            computeShader.SetInt(MapHeight, resolution.y);
             
             computeShader.SetBuffer(clampKernel, GlobalMinMaxBuffer, _globalMinMaxBuffer);
 
             computeShader.SetBuffer(clampKernel, VertexBuffer, verticesBuffer);
 
             // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(resolution / 16f);
-            var dispatchY = Mathf.CeilToInt(resolution / 16f);
+            var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
+            var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
 
             // Dispatch the compute shader to clamp the height values.
             computeShader.Dispatch(clampKernel, dispatchX, dispatchY, 1);
