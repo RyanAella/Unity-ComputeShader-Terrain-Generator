@@ -7,6 +7,8 @@
 
 
 using System.Collections.Generic;
+using _Scripts.Helpers;
+using _Scripts.ScriptableObjects;
 using UnityEngine;
 
 namespace _Scripts.Manager
@@ -21,6 +23,7 @@ namespace _Scripts.Manager
 
         // Compute buffer for storing the color palette.
         private ComputeBuffer _colourPaletteBuffer; // Stores color palette
+        private ComputeBuffer _colourPaletteHeightsBuffer; // Stores color palette
 
         // Shader property IDs for accessing shader variables.
         private static readonly int VertexBuffer = Shader.PropertyToID("Vertex_Buffer"); // ID for vertex buffer
@@ -34,12 +37,13 @@ namespace _Scripts.Manager
             VerticesBufferLength = Shader.PropertyToID("vertices_buffer_length"); // ID for vertices buffer length
 
         private static readonly int
-            ColourPaletteBuffer = Shader.PropertyToID("Colour_Palette_Buffer"); // ID for color palette buffer
+            ColourPaletteBuffer = Shader.PropertyToID("Colour_Palette_Buffer"), // ID for color palette buffer
+            ColourPaletteHeightsBuffer = Shader.PropertyToID("Colour_Palette_Heights_Buffer"); // ID for color palette buffer
 
         private static readonly int ColourCount = Shader.PropertyToID("colour_count"); // ID for color count
-        
+
         private int _verticesBufferLength; // Length of the vertices buffer
-        
+
         #endregion
 
         #region Methods
@@ -52,58 +56,62 @@ namespace _Scripts.Manager
         /// <param name="resolution">The chunkSize of the mesh.</param>
         /// <param name="minMax">The array containing the minimum and maximum height values for the gradient.</param>
         /// <param name="colourPalette">The array of colors to use for coloring the mesh.</param>
+        /// <param name="colourPaletteHeights"></param>
         /// <param name="colourCount"></param>
         public void ColourMesh(ComputeShader computeShader, MeshFilter meshFilter, Vector2Int resolution,
-            float[] minMax, Vector4[] colourPalette, int colourCount)
+            float[] minMax, Vector4[] colourPalette, float[] colourPaletteHeights, int colourCount)
         {
             if (!meshFilter || !meshFilter.sharedMesh)
             {
                 Debug.LogError("MeshFilter or mesh is not assigned.");
                 return;
             }
-            
+
             // Get the Mesh from the MeshFilter
             Mesh mesh = meshFilter.sharedMesh;
-        
+
             // Get the vertices from the Mesh
             Vector3[] vertices = mesh.vertices;
-        
+
             // Set the data for the vertex buffer
             _vertexBuffer.SetData(vertices);
-        
+
             // Find the kernel and set the buffers
             int kernel = computeShader.FindKernel("Colour_Mesh");
-            
+
             computeShader.SetBuffer(kernel, VertexBuffer, _vertexBuffer);
             computeShader.SetBuffer(kernel, ColourBuffer, _colorBuffer);
-        
+
             // Set the color palette buffer
             _colourPaletteBuffer.SetData(colourPalette);
             computeShader.SetBuffer(kernel, ColourPaletteBuffer, _colourPaletteBuffer);
+            
+            _colourPaletteHeightsBuffer.SetData(colourPaletteHeights);
+            computeShader.SetBuffer(kernel, ColourPaletteHeightsBuffer, _colourPaletteHeightsBuffer);
             computeShader.SetInt(ColourCount, colourCount);
-        
+
             // Set the map width and height in the compute shader
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
-        
+
             // Set the height parameters for the gradient
             computeShader.SetFloat(MinHeight, minMax[0]);
             computeShader.SetFloat(MaxHeight, minMax[1]);
-        
+
             // Calculate the length of the vertices buffer
             computeShader.SetInt(VerticesBufferLength, _verticesBufferLength);
-        
+
             // Calculate the number of thread groups to dispatch.
             int dispatchX = Mathf.CeilToInt(resolution.x / 8f);
             int dispatchY = Mathf.CeilToInt(resolution.y / 8f);
-        
+
             // Dispatch the Compute Shader
             computeShader.Dispatch(kernel, dispatchX, dispatchY, 1);
-        
+
             // Get the colors from the Compute Shader
             Color[] colors = new Color[vertices.Length];
             _colorBuffer.GetData(colors);
-        
+
             // Apply the colors to the Mesh
             mesh.colors = colors;
         }
@@ -116,7 +124,7 @@ namespace _Scripts.Manager
         public void InitializeBuffers(Vector2Int resolution, int colourCount)
         {
             int vertexCount = _verticesBufferLength = resolution.y * resolution.y;
-            
+
             // Create a ComputeBuffer for storing the vertices of the mesh.
             // The buffer size is determined by the number of vertices in the mesh.
             // Each vertex is represented by a Vector3, so the buffer size is 3 times the number of vertices.
@@ -131,6 +139,7 @@ namespace _Scripts.Manager
             // The buffer size is determined by the number of colors in the palette.
             // Each color is represented by a Vector4 (RGBA), so the buffer size is 4 times the number of colors.
             _colourPaletteBuffer = new ComputeBuffer(colourCount, sizeof(float) * 4);
+            _colourPaletteHeightsBuffer = new ComputeBuffer(colourCount, sizeof(float));
         }
 
         /// <summary>
@@ -143,40 +152,66 @@ namespace _Scripts.Manager
 
             // Release the Compute Buffer for colors
             _colorBuffer?.Release();
-            
+
             // Release the Compute Buffer for color palette
             _colourPaletteBuffer?.Release();
+            _colourPaletteHeightsBuffer?.Release();
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="gradient"></param>
+        /// <param name="colours"></param>
         /// <param name="minRange"></param>
         /// <param name="maxRange"></param>
+        /// <param name="length"></param>
+        /// <param name="heights"></param>
         /// <returns></returns>
-        public static List<Vector4> GetColorPalette(Gradient gradient, float minRange, float maxRange)
+        public static List<Vector4> GetColorPalette(TerrainColour[] colours /*Gradient gradient*/, float minRange,
+            float maxRange, out int length, out List<float> heights)
         {
             List<Vector4> palette = new List<Vector4>();
+            heights = new List<float>();
 
-            foreach (var colorKey in gradient.colorKeys)
+             // foreach (var colorKey in gradient.colorKeys)
+             // {
+             //     if (colorKey.time >= minRange && colorKey.time <= maxRange)
+             //     {
+             //         // Find the corresponding alpha key
+             //         float alpha = 1.0f; // Default alpha
+             //         foreach (var alphaKey in gradient.alphaKeys)
+             //         {
+             //             if (Mathf.Approximately(alphaKey.time, colorKey.time))
+             //             {
+             //                 alpha = alphaKey.alpha;
+             //                 break;
+             //             }
+             //         }
+             //
+             //         palette.Add(new Vector4(colorKey.color.r, colorKey.color.g, colorKey.color.b, alpha));
+             //     }
+             // }
+
+            // Durchlaufen aller TerrainColour-Objekte
+            for (int i = 0; i < colours.Length; i++)
             {
-                if (colorKey.time >= minRange && colorKey.time <= maxRange)
+                // Überprüfen, ob der Höhenwert innerhalb des gewünschten Bereichs liegt
+                if (colours[i].Height >= minRange && colours[i].Height <= maxRange)
                 {
-                    // Find the corresponding alpha key
-                    float alpha = 1.0f; // Default alpha
-                    foreach (var alphaKey in gradient.alphaKeys)
-                    {
-                        if (Mathf.Approximately(alphaKey.time, colorKey.time))
-                        {
-                            alpha = alphaKey.alpha;
-                            break;
-                        }
-                    }
+                    // Extrahieren des RGB-Werts und des Alphas
+                    var rgb = colours[i].Colour;
+                    var alpha = colours[i].Colour.a; // Standard-Alpha-Wert, falls nicht anders definiert
+            
+                    // Hinzufügen des neuen Vektor4-Elements zur Palette
+                    palette.Add(new Vector4(rgb.r, rgb.g, rgb.b, alpha));
+                    heights.Add(colours[i].Height);
 
-                    palette.Add(new Vector4(colorKey.color.r, colorKey.color.g, colorKey.color.b, alpha));
+                    // Optionaler Debugging-Ausdruck
+                    // Debug.Log($"Added colour: {rgb} with height: {colours[i].Height}");
                 }
             }
+
+            length = palette.Count;
 
             return palette;
         }

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 266078e6033b6f64198bd5ed80a89e47, type: 3}
+  m_Name: 3_GroundNoiseSettingsBillowNoise
+  m_EditorClassIdentifier: 
+  useRandomSeed: 0
+  seed: 26052022
+  seedScale: 100000
+  noiseScale: 1.2
+  octaves: 1
+  amplitude: 1
+  frequency: 1
+  persistence: 0.62
+  lacunarity: 2
+  noiseLayerSettings:
+  - noiseLayer: 1
+    strength: 1
+  noiseLayerOffsetVectors:
+  - {x: -82824, y: 70306}
+  warpSteps: 0
+  warpStepSize: 0
+  domainWarpingMultiplicative: 0
+  offset: {x: 26, y: 5}
+  offsetVectors: []

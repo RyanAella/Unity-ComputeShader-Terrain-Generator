@@ -7,6 +7,7 @@
 
 
 using System;
+using _Scripts.Helpers;
 using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
@@ -17,15 +18,28 @@ namespace _Scripts.ScriptableObjects
     {
         #region Variables
 
-        // public Vector2Int chunkSize = new(20, 20); // Resolution of the generated mesh
+        public Vector2Int resolution = new(20, 20); // Resolution of the generated mesh
 
-        public static Vector2Int chunkSize = new(241, 241); // Size of the chunks in the mesh
+        // public Vector2Int chunkSize = new(241, 241); // Size of the chunks in the mesh
 
-        [Range(0, 6)] public int levelOfDetail; // For i = 2, 4, 6, 8, 10, 12
+        // [Range(0, 6)] public int levelOfDetail; // For i = 2, 4, 6, 8, 10, 12
+        //
+        // public int meshSimplificationIncrement;
+
+        [Tooltip("The colours of the mesh.")]
+        public TerrainColour[] colours; // Colours of the terrain
         
-        public int meshSimplificationIncrement;
-
-        public Gradient colourGradient; // Gradient of the colour of the mesh
+        // [Tooltip("Gradient of the colour of the mesh.")]
+        // public Gradient colourGradient; // Gradient of the colour of the mesh.
+        //
+        [Tooltip("The maximum height of the terrain.")]
+        [Range(1, 200)]
+        public float maxTerrainHeight = 180.0f; // The maximum height of the terrain.
+        [Tooltip("The water level relative to the maximum terrain height.")]
+        [Range(0, 1)]
+        public float waterLevel = 0.3f; // The water level relative to the maximum terrain height.
+        
+        public float minValue;
 
         #endregion
     }

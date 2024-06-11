@@ -10,26 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 266078e6033b6f64198bd5ed80a89e47, type: 3}
-  m_Name: 4_GroundNoiseSettingsRidgeNoise
+  m_Name: 4_WaterNoiseSettingsRidgeNoise
   m_EditorClassIdentifier: 
   useRandomSeed: 0
   seed: 26052022
   seedScale: 100000
-  noiseScale: 0.7
-  maxTerrainHeight: 50
-  waterLevel: 0.3
+  noiseScale: 1.2
   octaves: 1
   amplitude: 1
   frequency: 1
-  persistence: 0.5
-  lacunarity: 2.01
-  noiseLayers: 02000000
+  persistence: 0.62
+  lacunarity: 2
+  noiseLayerSettings:
+  - noiseLayer: 2
+    strength: 1
   noiseLayerOffsetVectors:
-  - {x: -82834, y: 70317}
+  - {x: -82824, y: 70306}
   warpSteps: 0
   warpStepSize: 0
   domainWarpingMultiplicative: 0
-  offset: {x: 16, y: 16}
+  offset: {x: 26, y: 5}
   offsetVectors: []
-  noiseType: 1
-  sharpnessScalar: 0.25

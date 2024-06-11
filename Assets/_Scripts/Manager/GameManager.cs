@@ -1,8 +1,9 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 26-04-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: This script manages the generation of terrain meshes (ground and water) using compute shaders in Unity.
+ *              It handles initialization, validation of parameters, and spawning of the player character on the generated terrain.
+ * License: License
  */
 
 using System.Collections.Generic;
@@ -20,39 +21,42 @@ namespace _Scripts.Manager
     {
         #region Variables
 
-        [Header("General Settings")] [SerializeField]
-        private GeneralSettings generalSettings;
-
-        [Header("Shader Settings")] [SerializeField]
-        private ShaderSettings shaderSettings;
+        [Header("Settings")] 
+        [SerializeField] private GeneralSettings generalSettings; // General settings for the game
+        [SerializeField] private NoiseSettings groundNoiseSettings; // Noise settings for the ground
+        [SerializeField] private NoiseSettings waterNoiseSettings; // Noise settings for the water
+        
+        [SerializeField] private Shaders shaders; // Shader settings for the compute shader
 
         [Header("Generators")] [SerializeField]
-        private GroundGenerator groundGenerator;
+        private GroundGenerator groundGenerator; // Ground generator object
 
-        [SerializeField] private WaterGenerator waterGenerator;
+        [SerializeField] private WaterGenerator waterGenerator; // Water generator object
 
-        [Header("Ground Generation")] [SerializeField]
-        private NoiseSettings groundNoiseSettings;
+        [Header("References")] [SerializeField]
+        private bool spawnPlayer = false;
 
-        [Header("Water Generation")] [SerializeField]
-        private NoiseSettings waterNoiseSettings;
+        [SerializeField] private GameObject player; // Player object
 
-        [SerializeField] private GameObject player;
+        private TerrainSettings _terrainSettings; // Terrain settings
+        private TerrainGenerationManagers _managers; // Terrain generation managers
 
-        // Reference to managers for noise, mesh and colourGradient generation.
-        private NoiseGenerationManager _noiseGenerationManager; // Manager for noise generation
-        private FalloffMapManager _falloffMapManager; // Manager for falloffMapManager generation
-        private MeshGenerationManager _meshGenerationManager; // Manager for mesh generation
-        private ColourGenerationManager _colourGenerationManager; // Manager for colourGradient generation
+        private List<Vector4> _colourPaletteWater; // Colour palette for the water
+        private List<Vector4> _colourPaletteGround; // Colour palette for the ground
 
-        private List<Vector4> _colourPaletteWater;
-        private List<Vector4> _colourPaletteGround;
+        private int _groundColourCount; // Represents the number of colours in the ground colour palette
+        private int _waterColourCount; // Represents the number of colours in the water colour palette
 
-        private Vector2[] _offsetVectorsGround;
-        private Vector2[] _offsetVectorsWater;
+        private GroundGenerator _ground; // Ground generator object
+        private WaterGenerator _water; // Water generator object
 
-        private GroundGenerator _ground;
-        private WaterGenerator _water;
+        private MeshFilter _groundMeshFilter; // MeshFilter component of the ground object
+        private MeshCollider _groundCollider; // MeshCollider component of the ground object
+        private MeshFilter _waterMeshFilter; // MeshFilter component of the water object
+        private MeshCollider _waterCollider; // MeshCollider component of the water object
+        
+        private List<float> _groundColourHeights;
+        private List<float> _waterColourHeights;
 
         #endregion
 
@@ -64,191 +68,239 @@ namespace _Scripts.Manager
         /// </summary>
         private void Start()
         {
+            // Validate the parameters before proceeding
             ValidateParameters();
 
-            InitializeManagers();
-            InitializeColourPalette();
-            InitializeParameters();
+            // Initialize the necessary components
+            Init();
+
+            // Initialize the buffers for the various managers
             InitializeBuffers();
 
-            bool success = GenerateTerrain();
+            // Generate the terrain mesh
+            GenerateTerrain();
 
-            // if (success)
-            // {
-            //     Vector3 position = new Vector3(transform.position.x, transform.position.y + groundNoiseSettings.maxTerrainHeight, transform.position.z);
-            //     Instantiate(player, position, Quaternion.identity);
-            // }
+            // If the terrain generation was successful, instantiate the player at the top of the terrain
+            if (spawnPlayer)
+            {
+                Vector3 position = new Vector3(transform.position.x,
+                    transform.position.y + generalSettings.maxTerrainHeight, transform.position.z);
+                Instantiate(player, position, Quaternion.identity);
+            }
 
+            // Release the buffers used by various managers
             ReleaseBuffers();
         }
 
+        /// <summary>
+        /// Validates the parameters and sets the lacunarity of noise settings to 1 if it's less than 1.
+        /// Instantiates the ground and water objects if they are null.
+        /// </summary>
         private void ValidateParameters()
         {
+            // Ensure that the lacunarity of ground noise settings is at least 1
             if (groundNoiseSettings.lacunarity < 1)
             {
                 groundNoiseSettings.lacunarity = 1;
             }
 
+            // Ensure that the lacunarity of water noise settings is at least 1
             if (waterNoiseSettings.lacunarity < 1)
             {
                 waterNoiseSettings.lacunarity = 1;
             }
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        private void InitializeManagers()
-        {
-            _noiseGenerationManager = new NoiseGenerationManager();
-
-            _falloffMapManager = new FalloffMapManager();
-
-            _meshGenerationManager = new MeshGenerationManager();
-
-            _colourGenerationManager = new ColourGenerationManager();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private void InitializeColourPalette()
-        {
-            _colourPaletteGround = ColourGenerationManager.GetColorPalette(generalSettings.colourGradient, 0.3f, 1.0f);
-            _colourPaletteWater = ColourGenerationManager.GetColorPalette(generalSettings.colourGradient, 0.0f, 0.3f);
-        }
-
-        private void InitializeParameters()
-        {
-            InitializeOffsetVectors(groundNoiseSettings);
-            InitializeOffsetVectors(waterNoiseSettings);
-        }
-
-        private void InitializeOffsetVectors(NoiseSettings settings)
-        {
-            System.Random pseudoRandom = new System.Random(settings.seed.GetHashCode());
-
-            // Offset vectors for fractional brownian motion
-            settings.noiseLayerOffsetVectors = new Vector2[settings.noiseLayers.Length];
-            for (int i = 0; i < settings.noiseLayers.Length; i++)
-            {
-                settings.noiseLayerOffsetVectors[i] = new Vector2(
-                    pseudoRandom.Next(-100000, 100000) + settings.offset.x,
-                    pseudoRandom.Next(-100000, 100000) + settings.offset.y);
-            }
-
-            // Offset vectors for domain warping
-            int warpSteps = settings.warpSteps;
-            settings.offsetVectors = new Vector2[warpSteps * 2];
-
-            for (int i = 0; i < warpSteps; i++)
-            {
-                settings.offsetVectors[i] =
-                    new Vector2((float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.x,
-                        (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.y);
-                settings.offsetVectors[i + 1] =
-                    new Vector2((float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.x,
-                        (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.y);
-
-                if (i == 0) settings.offsetVectors[0] = Vector2.zero;
-            }
-        }
-
-        private void InitializeBuffers()
-        {
-            Vector2Int chunkSize = GeneralSettings.chunkSize;
-
-            _noiseGenerationManager.InitializeBuffers(chunkSize, groundNoiseSettings);
-
-            _falloffMapManager.InitializeBuffers(chunkSize);
-
-            GeneratorFunctions.InitializeBuffers(chunkSize);
-
-            // ToDo:
-            // _colourGenerationManager.InitializeBuffers();
-        }
-
-        private void ReleaseBuffers()
-        {
-            _noiseGenerationManager.ReleaseBuffers();
-
-            _falloffMapManager.ReleaseBuffers();
-
-            GeneratorFunctions.ReleaseBuffers();
-
-            // ToDo:
-            // _colourGenerationManager.ReleaseBuffers();
-        }
-
-        /// <summary>
-        /// Generates a mesh using the provided chunkSize and noise settings.
-        /// </summary>
-        /// <returns>True if the mesh generation was successful, false otherwise.</returns>
-        private bool GenerateTerrain()
-        {
+            // Instantiate the ground object if it is null
             if (_ground == null)
             {
                 _ground = Instantiate(groundGenerator, transform.position, Quaternion.identity, transform);
             }
 
+            // Instantiate the water object if it is null
             if (_water == null)
             {
                 _water = Instantiate(waterGenerator, transform.position, Quaternion.identity, transform);
             }
+        }
 
-            // try
-            // {
-            // Cache MeshFilter and MeshCollider components
-            MeshFilter groundMeshFilter = _ground.GetComponent<MeshFilter>();
-            MeshCollider groundCollider = _ground.GetComponent<MeshCollider>();
-            MeshFilter waterMeshFilter = _water.GetComponent<MeshFilter>();
-            MeshCollider waterCollider = _water.GetComponent<MeshCollider>();
-
-            // If MeshCollider component doesn't exist, add it and assign sharedMesh
-            if (groundMeshFilter != null)
+        /// <summary>
+        ///     Validates the parameters and sets the lacunarity of noise settings to 1 if it's less than 1.
+        /// </summary>
+        private void Init()
+        {
+            //
+            _terrainSettings = new TerrainSettings
             {
-                if (groundCollider == null)
-                {
-                    groundCollider = _ground.gameObject.AddComponent<MeshCollider>();
-                    groundCollider.cookingOptions = MeshColliderCookingOptions.None;
-                }
+                GeneralSettings =  generalSettings,
+                GroundNoiseSettings = groundNoiseSettings,
+                WaterNoiseSettings = waterNoiseSettings
+            };
+            
+            // Initialize Managers
+            _managers = new TerrainGenerationManagers
+            {
+                NoiseGenerationManager = new NoiseGenerationManager(),
+                FalloffMapManager = new FalloffMapManager(),
+                MeshGenerationManager = new MeshGenerationManager(),
+                GroundColourGenerationManager = new ColourGenerationManager(),
+                WaterColourGenerationManager = new ColourGenerationManager()
+            };
 
-                _ground.GenerateGround(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager,
-                    _falloffMapManager, generalSettings, shaderSettings, groundNoiseSettings, _colourPaletteGround,
-                    groundMeshFilter);
+            // Initialize Colour Palettes
+            _colourPaletteGround =
+                ColourGenerationManager.GetColorPalette(generalSettings.colours, 0.0f, 1.0f, out _groundColourCount, out _groundColourHeights);
+            _colourPaletteWater =
+                ColourGenerationManager.GetColorPalette(generalSettings.colours, 0.0f, 1.0f, out _waterColourCount, out _waterColourHeights);
 
-                groundCollider.sharedMesh = groundMeshFilter.sharedMesh;
+            // Initialize Offset Vectors
+            InitializeOffsetVectors(groundNoiseSettings);
+            InitializeOffsetVectors(waterNoiseSettings);
 
-                // If MeshCollider component doesn't exist, add it and assign sharedMesh
-                if (waterMeshFilter != null)
-                {
-                    if (waterCollider == null)
-                    {
-                        waterCollider = _water.gameObject.AddComponent<MeshCollider>();
-                        waterCollider.cookingOptions = MeshColliderCookingOptions.None;
-                    }
-                }
+            // Cache MeshFilter and MeshCollider components
+            _groundMeshFilter = _ground.GetComponent<MeshFilter>();
+            _groundCollider = _ground.GetComponent<MeshCollider>();
+            _waterMeshFilter = _water.GetComponent<MeshFilter>();
+            _waterCollider = _water.GetComponent<MeshCollider>();
 
-                _water.GenerateWater(_noiseGenerationManager, _meshGenerationManager, _colourGenerationManager,
-                    _falloffMapManager, generalSettings, shaderSettings, waterNoiseSettings, _colourPaletteWater,
-                    waterMeshFilter,
-                    groundNoiseSettings.maxTerrainHeight);
+            // Set cooking options for MeshColliders
+            _groundCollider.cookingOptions = MeshColliderCookingOptions.None;
+            _waterCollider.cookingOptions = MeshColliderCookingOptions.None;
+        }
 
-                waterCollider.sharedMesh = waterMeshFilter.sharedMesh;
+        /// <summary>
+        /// Initializes the offset vectors for the given noise settings.
+        /// </summary>
+        /// <param name="settings">The noise settings to initialize the offset vectors for.</param>
+        private void InitializeOffsetVectors(NoiseSettings settings)
+        {
+            // Create a pseudo-random number generator based on the noise settings seed
+            var pseudoRandom = new System.Random(settings.seed.GetHashCode());
+
+            // Generate offset vectors for fractional brownian motion
+            settings.noiseLayerOffsetVectors = new Vector2[settings.noiseLayerSettings.Length];
+            for (int i = 0; i < settings.noiseLayerSettings.Length; i++)
+            {
+                int randomX = pseudoRandom.Next(-100000, 100000);
+                int randomY = pseudoRandom.Next(-100000, 100000);
+
+                // Generate a random offset within a range and add it to the noise settings offset
+                settings.noiseLayerOffsetVectors[i] =
+                    new Vector2(randomX + settings.offset.x, randomY + settings.offset.y);
             }
 
+            // Generate offset vectors for domain warping
+            int warpSteps = settings.warpSteps;
+            settings.offsetVectors = new Vector2[warpSteps * 2];
+
+            // Loop through each warp step
+            for (int i = 0; i < warpSteps; i++)
+            {
+                // Generate random offsets for domain warping
+                float xOffset1 = (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.x;
+                float yOffset1 = (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.y;
+
+                float xOffset2 = (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.x;
+                float yOffset2 = (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.y;
+
+                // Set the offset vectors for the current step
+                settings.offsetVectors[i + i] = new Vector2(xOffset1, yOffset1);
+                settings.offsetVectors[i + i + 1] = new Vector2(xOffset2, yOffset2);
+
+                // Set the first offset vector to zero for domain warping
+                if (i == 0) settings.offsetVectors[0] = Vector2.zero;
+            }
+        }
+
+        /// <summary>
+        /// Initializes the buffers for the various managers.
+        /// </summary>
+        private void InitializeBuffers()
+        {
+            // Get the chunk size from GeneralSettings
+            var resolution = generalSettings.resolution;
+
+            // Initialize noise generation buffers
+            _managers.NoiseGenerationManager.InitializeBuffers(resolution, groundNoiseSettings);
+
+            // Initialize falloff map buffers
+            _managers.FalloffMapManager.InitializeBuffers(resolution);
+
+            // Initialize generator function buffers
+            GeneratorFunctions.InitializeBuffers(resolution);
+
+            // Initialize ground colour generation buffers
+            _managers.GroundColourGenerationManager.InitializeBuffers(resolution, _groundColourCount);
+
+            // Initialize water colour generation buffers
+            _managers.WaterColourGenerationManager.InitializeBuffers(resolution, _waterColourCount);
+        }
+
+        /// <summary>
+        /// Releases the buffers used by various managers.
+        /// </summary>
+        private void ReleaseBuffers()
+        {
+            // Release noise generation buffers
+            _managers.NoiseGenerationManager.ReleaseBuffers();
+
+            // Release falloff map buffers
+            _managers.FalloffMapManager.ReleaseBuffers();
+
+            // Release generator function buffers
+            GeneratorFunctions.ReleaseBuffers();
+
+            // Release colour generation buffers
+            _managers.GroundColourGenerationManager.ReleaseBuffers();
+            _managers.WaterColourGenerationManager.ReleaseBuffers();
+        }
+
+        /// <summary>
+        ///     Generates terrain meshes for ground and water based on the provided noise settings.
+        /// </summary>
+        /// <returns>True if the terrain mesh generation was successful, false otherwise.</returns>
+        private void GenerateTerrain()
+        {
+            // Check if MeshFilter and MeshCollider components are present for ground and water
+            bool groundComponentsPresent = _groundMeshFilter != null && _groundCollider != null;
+            bool waterComponentsPresent = _waterMeshFilter != null && _waterCollider != null;
+
+            // Check if the required components for ground generation are present
+            if (groundComponentsPresent)
+            {
+                // Generate ground terrain
+                _ground.GenerateGround(_managers, _terrainSettings, shaders, _colourPaletteGround, _groundColourHeights.ToArray(),
+                    _groundMeshFilter, _groundColourCount);
+            }
             else
             {
-                throw new System.Exception("MeshFilter component not found on the ground object.");
+                // Log an error if MeshFilter or MeshCollider component is missing on the ground object
+                Debug.LogError("MeshFilter or MeshCollider component not found on the ground object.");
             }
-            // }
-            // catch (System.Exception ex)
-            // {
-            //     Debug.LogError($"Error in GenerateTerrain: {ex.Message}");
-            //     return false;
-            // }
 
-            return true;
+            // Check if the required components for water generation are present
+            if (waterComponentsPresent)
+            {
+                // Generate water terrain
+                _water.GenerateWater(_managers, _terrainSettings, shaders, _colourPaletteWater, _waterColourHeights.ToArray(),
+                    _waterMeshFilter, generalSettings.maxTerrainHeight, _waterColourCount);
+            }
+            else
+            {
+                // Log an error if MeshFilter or MeshCollider component is missing on the water object
+                Debug.LogError("MeshFilter or MeshCollider component not found on the water object.");
+            }
+
+            // Assign generated ground mesh to the ground collider if ground components are present
+            if (groundComponentsPresent)
+            {
+                _groundCollider.sharedMesh = _groundMeshFilter.sharedMesh;
+            }
+
+            // Assign generated water mesh to the water collider if water components are present
+            if (waterComponentsPresent)
+            {
+                _waterCollider.sharedMesh = _waterMeshFilter.sharedMesh;
+            }
         }
 
         #endregion

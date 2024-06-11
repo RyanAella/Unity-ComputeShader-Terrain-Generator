@@ -16,6 +16,7 @@ RWStructuredBuffer<float4> Colour_Buffer;
 
 // Buffer for storing the color palette used for coloring.
 RWStructuredBuffer<float4> Colour_Palette_Buffer;
+RWStructuredBuffer<float> Colour_Palette_Heights_Buffer;
 
 // Number of colors in the color palette.
 int colour_count;
@@ -31,33 +32,98 @@ float max_height;
 // Total length of the vertex buffer.
 int vertices_buffer_length;
 
+// void get_height(const int index)
+// {
+//     // Get the height of the vertex
+//     const float height = Vertex_Buffer[index].y;
+//
+//     if (height >= 0 && height <= 1)
+//     {
+//         // Iterate through the color palette to find the appropriate color for the vertex height
+//         for (int k = 0; k < colour_count - 1; k++)
+//         {
+//             const float range_start = (float)k / (colour_count - 1);
+//             const float range_end = (float)(k + 1) / (colour_count - 1);
+//
+//             if (height >= range_start && height <= range_end)
+//             {
+//                 // Calculate the interpolation factor
+//                 const float t = (height - range_start) / (range_end - range_start);
+//                 
+//                 // Interpolate the color using the color palette
+//                 float4 startColor = Colour_Palette_Buffer[k];
+//                 float4 endColor = Colour_Palette_Buffer[k + 1];
+//
+//                 float4 colour = lerp(startColor, endColor, t);
+//                 
+//                 // Set alpha value based on the gradient's alpha value
+//                 // We assume here that the alpha value is the same for both start and end colors
+//                 colour.a = lerp(startColor.a, endColor.a, t);
+//
+//                 Colour_Buffer[index] = colour;
+//                 break;
+//             }
+//         }
+//     }
+//     else
+//     {
+//         // Set the color to black for vertices outside the range [0, 1]
+//         Colour_Buffer[index] = float4(0, 0, 0, 0);
+//     }
+// }
+
 void get_height(const int index)
 {
     // Get the height of the vertex
     const float height = Vertex_Buffer[index].y;
 
-    if (height >= 0 && height <= 1)
+    float4 colour = float4(0, 0, 0, 0.5f);
+
+    if (height >= min_height && height <= max_height)
     {
+        float range_end;
+        float range_start;
+
         // Iterate through the color palette to find the appropriate color for the vertex height
-        for (int k = 0; k < colour_count - 1; k++)
+        for (int k = 0; k < colour_count; k++)
         {
-            const float range_start = (float)k / (colour_count - 1);
-            const float range_end = (float)(k + 1) / (colour_count - 1);
+            if (k == 0)
+            {
+                range_start = 0.0f;
+                range_end = Colour_Palette_Heights_Buffer[k];
+            }
+            else
+            {
+                range_start = Colour_Palette_Heights_Buffer[k - 1];
+                range_end = Colour_Palette_Heights_Buffer[k];
+            }
 
             if (height >= range_start && height <= range_end)
             {
                 // Calculate the interpolation factor
                 const float t = (height - range_start) / (range_end - range_start);
-                
-                // Interpolate the color using the color palette
-                float4 startColor = Colour_Palette_Buffer[k];
-                float4 endColor = Colour_Palette_Buffer[k + 1];
 
-                float4 colour = lerp(startColor, endColor, t);
-                
+                // Interpolate the color using the color palette
+                float4 start_colour;
+                float4 end_colour;
+
+                // Interpolate the color using the color palette
+                if (k == 0)
+                {
+                    start_colour = colour;
+                    end_colour = Colour_Palette_Buffer[k];
+                }
+                else
+                {
+                    start_colour = Colour_Palette_Buffer[k - 1];
+                    end_colour = Colour_Palette_Buffer[k];
+                }
+
+                colour = lerp(start_colour, end_colour, t);
+
                 // Set alpha value based on the gradient's alpha value
                 // We assume here that the alpha value is the same for both start and end colors
-                colour.a = lerp(startColor.a, endColor.a, t);
+                colour.a = lerp(start_colour.a, end_colour.a, t);
 
                 Colour_Buffer[index] = colour;
                 break;
@@ -67,7 +133,7 @@ void get_height(const int index)
     else
     {
         // Set the color to black for vertices outside the range [0, 1]
-        Colour_Buffer[index] = float4(0, 0, 0, 0);
+        Colour_Buffer[index] = colour;
     }
 }
 

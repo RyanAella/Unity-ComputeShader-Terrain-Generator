@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2052716012966210242}
   - component: {fileID: 2676614034585243010}
   - component: {fileID: 427994085218794844}
+  - component: {fileID: 6471179468696839730}
   m_Layer: 0
   m_Name: Ground
   m_TagString: Untagged
@@ -96,3 +97,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88f81eb8fd1886d4d870c7f9050c7e87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!64 &6471179468696839730
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910679601600728358}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 14
+  m_Mesh: {fileID: 0}

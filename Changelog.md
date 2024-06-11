@@ -1,14 +1,27 @@
 # Changelog Unity Compute Shader Terrain Generator
 
-## [..] - 
+## [0.17.0] - 2024-06-11
 ### Added
-- UV generation
-- `Billow Noise` and `Ridge Noise`
-- `Domain Warping` and `FBM` are now dynamic
+- Implemented UV generation.
+- Introduced `Billow Noise` and `Ridge Noise` functionalities.
+- Made `Domain Warping` and `FBM` dynamic.
+
+### Changed
+- Aligned water mesh noise settings with ground mesh.
+- Consolidated all settings into `TerrainSettings`.
+- Restructured all managers under `TerrainGenerationManagers`.
+- Replaced `colourGradient` with `TerrainColour` array containing `Height` and `Colour`, allowing for the use of an arbitrary number of colors.
+
+### Fixed
+- Rectified incorrect calculation of domain warping offset vectors.
+- Addressed issues with colour assignment.
+- Conducted general code cleanups and minor bug fixes to improve stability and performance.
+
+- Tested various colour variations to achieve a more realistic appearance.
 
 ## [0.16.0] - 2024-06-03
 ### Added
-- `Falloff Map Integration`: Implemented the ability to use a falloff map within the Compute Shader, enhancing terrain edge smoothness and realism.
+- Implemented the ability to use a `falloffMap` within the Compute Shader, enhancing terrain edge smoothness and realism.
 
 ### Changed
 - `Parameter Optimization`: Reduced unnecessary parameter passing in various methods to streamline the code and improve performance.
@@ -73,14 +86,14 @@
 - Moved some parameters from `GameMnager` to `NoiseSettings`.
 
 ### Fixed
-- Resolved an issue where some parts of the mesh were not colored due to y-values falling outside the 0-1 range.
+- Resolved an issue where some parts of the mesh were not coloured due to y-values falling outside the 0-1 range.
 
 ## [0.10.1] - 2024-05-13
 ### Changed
 - Added code comments for improved readability and maintainability.
 - Conducted code cleanup and organization for better clarity.
-- Introduced a new function to ensure that the y-values are within the correct range for colors.
-- Relocated the mesh coloring process to the CPU to facilitate debugging.
+- Introduced a new function to ensure that the y-values are within the correct range for colours.
+- Relocated the mesh colouring process to the CPU to facilitate debugging.
 
 ## [0.9.0] - 2024-05-10
 - Testing

@@ -18,7 +18,7 @@ uint map_width; // Width of the noise map
 uint map_height; // Height of the noise map
 
 // Parameters for noise generation.
-// float seed_offset; // Offset for the noise seed
+float seed_offset; // Offset for the noise seed
 float noise_scale; // Scale of the noise
 float noise_height; // Height factor for the noise
 
@@ -44,6 +44,7 @@ RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<float2> _UV_Buffer;
 RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
 RWStructuredBuffer<int> _Noise_Layer_Buffer;
+RWStructuredBuffer<int> Noise_Layer_Strength_Buffer;
 RWStructuredBuffer<float2> _Noise_Layer_Offset_Vectors;
 RWStructuredBuffer<float2> _Domain_Warping_Offset_Vectors;
 
@@ -157,10 +158,10 @@ void make_vertices(uint3 id, const float half_width, const float half_height)
     if (id.y < map_height && id.x < map_width)
     {
         // Compute the index of the vertex within the buffer.
-        const int vertex_index = id.y * map_width + id.x; // ((width - 1)/i)+1
+        const int vertex_index = id.y * map_width + id.x;
 
         // Adjust the x and y coordinates for noise sampling based on the map's center.
-        const float2 samples = ((float2(id.x, id.y) - float2(half_width, half_height)) / noise_scale);
+        const float2 samples =  ((float2(id.x + seed_offset, id.y + seed_offset) - float2(half_width, half_height)) / noise_scale);
 
         // Generate the noise value for the current vertex.
         float3 value = domain_warping(samples);
@@ -216,13 +217,19 @@ void make_triangles(uint3 id)
 [numthreads(16, 16, 1)]
 void Noise_Generator(uint3 id : SV_DispatchThreadID)
 {
-    // Calculate the maximum valid x and y coordinates based on the map dimensions.
-    uint max_id_x = map_width - 1;
-    uint max_id_y = map_height - 1;
+    // // Calculate the maximum valid x and y coordinates based on the map dimensions.
+    // uint max_id_x = map_width - 1;
+    // uint max_id_y = map_height - 1;
+    //
+    // // Ensure the thread ID is within the map dimensions.
+    // // This prevents out-of-bounds access to the map data.
+    // if (id.x > max_id_x || id.y > max_id_y)
+    // {
+    //     return; // Exit early if out of bounds
+    // }
 
     // Ensure the thread ID is within the map dimensions.
-    // This prevents out-of-bounds access to the map data.
-    if (id.x > max_id_x || id.y > max_id_y)
+    if (id.x >= map_width || id.y >= map_height)
     {
         return; // Exit early if out of bounds
     }
@@ -236,7 +243,7 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // The vertices represent the corners of the triangles that will form the terrain mesh.
     make_vertices(id, half_width, half_height);
 
-    make_uvs(id);
+    // make_uvs(id);
 
     // Generate triangles for the terrain mesh using the previously generated vertices.
     // Each triangle represents a small section of the terrain surface.

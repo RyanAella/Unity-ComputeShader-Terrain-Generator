@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 607e997fc49ea834c8ead24e15067e0a, type: 3}
-  m_Name: ShaderSettings
+  m_Name: Shaders
   m_EditorClassIdentifier: 
   noiseGenerationComputeShader: {fileID: 7200000, guid: 719e192517c0e9e4ebee10cbc2bd575f, type: 3}
   valueClampComputeShader: {fileID: 7200000, guid: f1b0a1452535c476780a7843ad91c01f, type: 3}

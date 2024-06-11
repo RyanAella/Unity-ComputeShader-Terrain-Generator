@@ -37,10 +37,10 @@ namespace _Scripts.Helpers
             _falloffMapBuffer?.Release();
         }
 
-        public void ApplyFalloffMap(ShaderSettings shaderSettings, ComputeBuffer vertexBuffer)
+        public void ApplyFalloffMap(Shaders shaders, GeneralSettings generalSettings, ComputeBuffer vertexBuffer)
         {
-            Vector2Int resolution = GeneralSettings.chunkSize;
-            ComputeShader falloffComputeShader = shaderSettings.falloffComputeShader;
+            Vector2Int resolution = generalSettings.resolution;
+            ComputeShader falloffComputeShader = shaders.falloffComputeShader;
             
             // Find the kernel in the compute shader.
             var noiseKernel = falloffComputeShader.FindKernel("Falloff_Map");

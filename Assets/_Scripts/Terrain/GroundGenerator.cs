@@ -1,111 +1,91 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 21-05-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: This script generates a ground mesh using noise and falloff maps, applies colour based on a gradient palette,
+ *              and adjusts the mesh height. It integrates with several manager classes to handle the different aspects of mesh
+ *              generation and colour application.
+ * License: MIT License
  */
-
 
 using System.Collections.Generic;
 using _Scripts.Helpers;
 using _Scripts.Manager;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace _Scripts.Terrain
 {
+    /// <summary>
+    /// This class is responsible for generating the ground mesh and applying colour to it.
+    /// </summary>
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class GroundGenerator : MonoBehaviour
     {
-        #region Variables
-
-        private Vector3[] _vertices;
-        private Vector2[] _uv;
-        private int[] _triangles;
-
-        private List<Vector4> _colourPalette;
-
-        #endregion
-
         #region Methods
 
         /// <summary>
-        /// 
+        /// Generates the ground mesh and applies colour to it.
         /// </summary>
-        /// <param name="noiseGenerationManager"></param>
-        /// <param name="meshGenerationManager"></param>
-        /// <param name="colourGenerationManager"></param>
-        /// <param name="falloffMapManagerGenerationManager"></param>
-        /// <param name="generalSettings"></param>
-        /// <param name="shaderSettings"></param>
-        /// <param name="noiseSettings"></param>
-        /// <param name="colourGradient"></param>
-        /// <param name="meshFilter"></param>
-        public void GenerateGround(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, FalloffMapManager falloffMapManagerGenerationManager, GeneralSettings generalSettings,
-            ShaderSettings shaderSettings, NoiseSettings noiseSettings,
-            List<Vector4> colourGradient, MeshFilter meshFilter)
+        /// <param name="managers"></param>
+        /// <param name="terrainSettings"></param>
+        /// <param name="shaders">The shader settings.</param>
+        /// <param name="colourGradient">The colour gradient palette.</param>
+        /// <param name="colourHeights"></param>
+        /// <param name="meshFilter">The mesh filter.</param>
+        /// <param name="groundColourCount">The number of colours in the palette.</param>
+        public void GenerateGround(TerrainGenerationManagers managers, TerrainSettings terrainSettings,
+            Shaders shaders, List<Vector4> colourGradient, float[] colourHeights, MeshFilter meshFilter,
+            int groundColourCount)
         {
-            bool success = GenerateNoiseAndMesh(noiseGenerationManager, meshGenerationManager, falloffMapManagerGenerationManager, generalSettings, shaderSettings, noiseSettings, meshFilter);
+            // Generate the noise and mesh.
+            if (!GenerateNoiseAndMesh(managers, shaders, terrainSettings, meshFilter))
+            {
+                return; // Stop further processing if mesh generation fails.
+            }
 
-            // // Create a list of colour palette vectors based on the color keys in the colour gradient.
-            // // Each vector represents a color with components for red, green, blue, and alpha.
-            // _colourPalette = colourGradient.colorKeys
-            //     .Select(colourKey =>
-            //         new Vector4(colourKey.color.r, colourKey.color.g, colourKey.color.b, colourKey.color.a))
-            //     .ToList();
+            // Colour the mesh.
+            ColourMesh(managers, terrainSettings.GeneralSettings.resolution, shaders, colourGradient, colourHeights,
+                meshFilter, groundColourCount);
 
-            ColourMesh(success, colourGenerationManager, GeneralSettings.chunkSize,
-                shaderSettings, colourGradient, meshFilter);
-
-            AdjustMeshHeight(success, noiseSettings, meshFilter);
+            // Adjust the mesh height.
+            AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
         }
 
         /// <summary>
-        /// 
+        /// Generates a mesh using the provided noise generation manager, mesh generation manager, falloff map manager, shader settings, noise settings, and mesh filter.
         /// </summary>
-        /// <param name="noiseGenerationManager"></param>
-        /// <param name="meshGenerationManager"></param>
-        /// <param name="falloffMapManager"></param>
-        /// <param name="generalSettings"></param>
-        /// <param name="shaderSettings"></param>
-        /// <param name="noiseSettings"></param>
-        /// <param name="meshFilter"></param>
-        /// <returns></returns>
-        private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, FalloffMapManager falloffMapManager, GeneralSettings generalSettings, ShaderSettings shaderSettings,
-            NoiseSettings noiseSettings, MeshFilter meshFilter)
+        /// <param name="managers"></param>
+        /// <param name="shaders">The shader settings.</param>
+        /// <param name="terrainSettings"></param>
+        /// <param name="meshFilter">The mesh filter.</param>
+        /// <returns>True if the mesh generation was successful, false otherwise.</returns>
+        private bool GenerateNoiseAndMesh(TerrainGenerationManagers managers, Shaders shaders,
+            TerrainSettings terrainSettings, MeshFilter meshFilter)
         {
             // Get the chunkSize of the mesh.
-            Vector2Int resolution = GeneralSettings.chunkSize;
+            Vector2Int resolution = terrainSettings.GeneralSettings.resolution;
 
             // Create arrays to store the vertices and triangles of the mesh.
             // The number of vertices is determined by the chunkSize of the mesh.
-            _vertices = new Vector3[resolution.x * resolution.y];
+            Vector3[] vertices = new Vector3[resolution.x * resolution.y];
 
-            _uv = new Vector2[resolution.x * resolution.y];
+            Vector2[] uv = new Vector2[resolution.x * resolution.y];
 
             // The number of triangles is determined by the chunkSize of the mesh minus 1.
             // Each quad in the mesh is represented by 2 triangles, so there are 6 indices per quad.
-            _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
+            int[] triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, chunkSize, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, noiseSettings, _vertices, _uv, _triangles, falloffMapManager, true);
+            managers.NoiseGenerationManager.GenerateNoiseParameters(shaders, terrainSettings,
+                terrainSettings.GroundNoiseSettings, vertices,
+                uv, triangles, managers, true);
 
-            // Creates a new Mesh object.
-            // Sets the mesh of the MeshFilter to the newly created mesh.
-            meshFilter.mesh = new Mesh
-            {
-                // Sets the index format of the mesh to UInt32, which is required for large meshes.
-                // indexFormat = IndexFormat.UInt32,
-                name = "Procedural GroundGenerator Mesh GPU"
-            };
+            string meshName = "Ground";
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            meshGenerationManager.CreateMesh(meshFilter.sharedMesh, _vertices, _uv, _triangles);
+            managers.MeshGenerationManager.CreateMesh(meshFilter, meshName, vertices, uv, triangles);
 
             return true;
         }
@@ -113,52 +93,38 @@ namespace _Scripts.Terrain
         /// <summary>
         /// Colours the mesh based on the generated mesh and the specified colourGradient palette.
         /// </summary>
-        /// <param name="success">Indicates whether the mesh has been generated or not.</param>
-        /// <param name="colourGenerationManager"></param>
-        /// <param name="resolution"></param>
-        /// <param name="shaderSettings"></param>
-        /// <param name="colourGradient"></param>
-        /// <param name="meshFilter"></param>
-        public void ColourMesh(bool success, ColourGenerationManager colourGenerationManager, Vector2Int resolution,
-            ShaderSettings shaderSettings, List<Vector4> colourGradient, MeshFilter meshFilter)
+        /// <param name="managers"></param>
+        /// <param name="resolution">The resolution of the mesh.</param>
+        /// <param name="shaders">The settings for the shader.</param>
+        /// <param name="colourGradient">The list of colours for the gradient.</param>
+        /// <param name="colourHeights"></param>
+        /// <param name="meshFilter">The MeshFilter component to apply the colours to.</param>
+        /// <param name="colourCount"></param>
+        public void ColourMesh(TerrainGenerationManagers managers, Vector2Int resolution,
+            Shaders shaders, List<Vector4> colourGradient, float[] colourHeights, MeshFilter meshFilter,
+            int colourCount)
         {
-            // If the mesh has not been generated, return early.
-            if (!success) return;
-
-            int colourCount = colourGradient.Count;
-
-            // ToDo: 
-            // Initialize the buffers for the vertices and colors
-            colourGenerationManager.InitializeBuffers(resolution, colourCount);
-
-            // Use the ColourGenerationManager class to colourGradient the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colourGradient palette.
-            colourGenerationManager.ColourMesh(shaderSettings.colourGenerationComputeShader, meshFilter, resolution,
-                new[] { 0.3f, 1 },
-                colourGradient.ToArray(), colourCount);
-
-            // ToDo:
-            colourGenerationManager.ReleaseBuffers();
+            // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colour gradient palette.
+            managers.GroundColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
+                resolution,
+                new[] { 0.0f, 1 }, colourGradient.ToArray(), colourHeights, colourCount);
         }
 
         /// <summary>
         /// Adjusts the height of the mesh based on the maximum terrain height specified in the noise settings.
         /// </summary>
-        /// <param name="success">Indicates whether the mesh has been generated or not.</param>
-        /// <param name="noiseSettings"></param>
-        /// <param name="meshFilter"></param>
-        private void AdjustMeshHeight(bool success, NoiseSettings noiseSettings, MeshFilter meshFilter)
+        /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
+        /// <param name="generalSettings">The general settings containing the maximum terrain height.</param>
+        private void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
         {
-            // If the mesh has not been generated, return early.
-            if (!success) return;
-
-
             // Get the mesh from the MeshFilter.
             Mesh mesh = meshFilter.sharedMesh;
 
             // Get the vertices of the mesh.
             Vector3[] meshVertices = mesh.vertices;
 
-            float heightMultiplier = noiseSettings.maxTerrainHeight;
+            // Calculate the height multiplier based on the maximum terrain height specified in the noise settings.
+            float heightMultiplier = generalSettings.maxTerrainHeight;
 
             // Adjust the height of each vertex by multiplying it by the maximum terrain height specified in the noise settings.
             for (int i = 0; i < meshVertices.Length; i++)

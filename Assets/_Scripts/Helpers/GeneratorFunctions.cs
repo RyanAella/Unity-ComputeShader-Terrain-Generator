@@ -69,13 +69,13 @@ namespace _Scripts.Helpers
         /// Computes the global minimum and maximum height values from the given vertices using a compute shader.
         /// </summary>
         /// <param name="resolution">The chunkSize of the compute shader.</param>
-        /// <param name="shaderSettings"></param>
+        /// <param name="shaders"></param>
         /// <param name="verticesBuffer">The buffer containing the vertices.</param>
         /// <returns>The array of global minimum and maximum height values.</returns>
-        public static void CompareHeightValues(Vector2Int resolution, ShaderSettings shaderSettings,
+        public static void CompareHeightValues(Vector2Int resolution, Shaders shaders,
             ComputeBuffer verticesBuffer)
         {
-            ComputeShader computeShader = shaderSettings.valueClampComputeShader;
+            ComputeShader computeShader = shaders.valueClampComputeShader;
             
             // Compute local min-max values once
             ComputeLocalMinMax(resolution, computeShader, verticesBuffer);
@@ -161,7 +161,7 @@ namespace _Scripts.Helpers
         /// <param name="computeShader">The compute shader to use for clamping the height values.</param>
         /// <param name="verticesBuffer">The buffer containing the vertices of the terrain.</param>
         /// <param name="resolution">The chunkSize of the terrain.</param>
-        private static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
+        public static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
             Vector2Int resolution)
         {
             // Find the kernel in the compute shader for clamping height values.

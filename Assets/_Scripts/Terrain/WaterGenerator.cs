@@ -26,9 +26,6 @@ namespace _Scripts.Terrain
 
         private List<Vector4> _colourPalette;
 
-        private NoiseGenerationManager _noiseGenerationManager;
-        private ColourGenerationManager _colourGenerationManager;
-
         #endregion
 
         #region Methods
@@ -36,77 +33,67 @@ namespace _Scripts.Terrain
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="noiseGenerationManager"></param>
-        /// <param name="meshGenerationManager"></param>
-        /// <param name="colourGenerationManager"></param>
-        /// <param name="falloffMapManager"></param>
-        /// <param name="generalSettings"></param>
-        /// <param name="shaderSettings"></param>
-        /// <param name="noiseSettings"></param>
+        /// <param name="managers"></param>
+        /// <param name="terrainSettings"></param>
+        /// <param name="shaders"></param>
         /// <param name="colourGradient"></param>
+        /// <param name="colourHeights"></param>
         /// <param name="meshFilter"></param>
         /// <param name="maxHeight"></param>
-        public void GenerateWater(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, ColourGenerationManager colourGenerationManager, FalloffMapManager falloffMapManager, GeneralSettings generalSettings,
-            ShaderSettings shaderSettings, NoiseSettings noiseSettings,
-            List<Vector4> colourGradient, MeshFilter meshFilter, float maxHeight)
+        /// <param name="colourCount"></param>
+        public void GenerateWater(TerrainGenerationManagers managers, TerrainSettings terrainSettings, Shaders shaders, List<Vector4> colourGradient, float[] colourHeights,
+            MeshFilter meshFilter, float maxHeight, int colourCount)
         {
-            _noiseGenerationManager = noiseGenerationManager;
-            _colourGenerationManager = colourGenerationManager;
+            bool success = GenerateNoiseAndMesh(managers, terrainSettings, shaders, meshFilter);
 
-            Vector2Int resolution = GeneralSettings.chunkSize;
+            ColourMesh(managers, terrainSettings, success, shaders, colourGradient, colourHeights, meshFilter, colourCount);
 
-            bool success = GenerateNoiseAndMesh(_noiseGenerationManager, meshGenerationManager, falloffMapManager, generalSettings, shaderSettings, noiseSettings, meshFilter);
-            
-            ColourMesh(success, resolution, shaderSettings, colourGradient, meshFilter);
-            
             // Put it at the right position
             var pos = transform.position;
-            transform.position = new Vector3(pos.x, maxHeight * noiseSettings.waterLevel, pos.z);
+            transform.position = new Vector3(pos.x, maxHeight * 0.25f/*terrainSettings.GeneralSettings.waterLevel*/, pos.z);
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="noiseGenerationManager"></param>
-        /// <param name="meshGenerationManager"></param>
-        /// <param name="falloffMapManager"></param>
-        /// <param name="generalSettings"></param>
-        /// <param name="shaderSettings"></param>
-        /// <param name="noiseSettings"></param>
+        /// <param name="managers"></param>
+        /// <param name="terrainSettings"></param>
+        /// <param name="shaders"></param>
         /// <param name="meshFilter"></param>
         /// <returns></returns>
-        private bool GenerateNoiseAndMesh(NoiseGenerationManager noiseGenerationManager,
-            MeshGenerationManager meshGenerationManager, FalloffMapManager falloffMapManager, GeneralSettings generalSettings, ShaderSettings shaderSettings, NoiseSettings noiseSettings, MeshFilter meshFilter)
+        private bool GenerateNoiseAndMesh(TerrainGenerationManagers managers, TerrainSettings terrainSettings,
+            Shaders shaders, MeshFilter meshFilter)
         {
-            Vector2Int resolution = GeneralSettings.chunkSize;
-            
+            Vector2Int resolution = terrainSettings.GeneralSettings.resolution;
+
             // Create arrays to store the vertices and triangles of the mesh.
             // The number of vertices is determined by the chunkSize of the mesh.
             _vertices = new Vector3[resolution.x * resolution.y];
-            
+
             _uv = new Vector2[resolution.x * resolution.y];
-            
+
             // The number of triangles is determined by the chunkSize of the mesh minus 1.
             // Each quad in the mesh is represented by 2 triangles, so there are 6 indices per quad.
             _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
-            
+
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, chunkSize, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            noiseGenerationManager.GenerateNoiseParameters(shaderSettings, noiseSettings, _vertices, _uv, _triangles, falloffMapManager, false);
-            
-            // Creates a new Mesh object.
-            // Sets the mesh of the MeshFilter to the newly created mesh.
-            meshFilter.mesh = new Mesh
+            managers.NoiseGenerationManager.GenerateNoiseParameters(shaders, terrainSettings, terrainSettings.WaterNoiseSettings, _vertices,
+                _uv, _triangles, managers, false);
+
+            for (int i = 0; i < _vertices.Length; i++)
             {
-                // Sets the index format of the mesh to UInt32, which is required for large meshes.
-                // indexFormat = IndexFormat.UInt32,
-                name = "Procedural GroundGenerator Mesh GPU"
-            };
+                var vector3 = _vertices[i];
+                vector3.y = Mathf.Clamp(vector3.y, 0.0f, terrainSettings.GeneralSettings.waterLevel);
             
+                _vertices[i] = vector3;
+            }
+
+            string meshName = "Water";
+
             // Create the mesh using the generated vertices and triangles.
             // The meshFilter, vertices, and triangles arrays are passed as arguments.
-            meshGenerationManager.CreateMesh(meshFilter.sharedMesh, _vertices, _uv, _triangles);
+            managers.MeshGenerationManager.CreateMesh(meshFilter, meshName, _vertices, _uv, _triangles);
 
             return true;
         }
@@ -114,27 +101,23 @@ namespace _Scripts.Terrain
         /// <summary>
         /// Colours the mesh based on the generated mesh and the specified colourGradient palette.
         /// </summary>
+        /// <param name="managers"></param>
+        /// <param name="terrainSettings"></param>
         /// <param name="success">Indicates whether the mesh has been generated or not.</param>
-        /// <param name="resolution"></param>
-        /// <param name="shaderSettings"></param>
+        /// <param name="shaders"></param>
         /// <param name="colourGradient"></param>
+        /// <param name="colourHeights"></param>
         /// <param name="meshFilter"></param>
-        public void ColourMesh(bool success, Vector2Int resolution, ShaderSettings shaderSettings, List<Vector4> colourGradient, MeshFilter meshFilter)
+        /// <param name="colourCount"></param>
+        public void ColourMesh(TerrainGenerationManagers managers, TerrainSettings terrainSettings, bool success, Shaders shaders,
+            List<Vector4> colourGradient, float[] colourHeights, MeshFilter meshFilter, int colourCount)
         {
             // If the mesh has not been generated, return early.
             if (!success) return;
 
-            int colourCount = colourGradient.Count;
-
-            // Initialize the buffers for the vertices and colors
-            _colourGenerationManager.InitializeBuffers(resolution, colourCount);
-
             // Use the ColourGenerationManager class to colourGradient the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colourGradient palette.
-            _colourGenerationManager.ColourMesh(shaderSettings.colourGenerationComputeShader, meshFilter, resolution,
-                new[] { 0, 0.3f },
-                colourGradient.ToArray(), colourCount);
-
-            _colourGenerationManager.ReleaseBuffers();
+            managers.WaterColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
+                terrainSettings.GeneralSettings.resolution, new[] { 0, terrainSettings.GeneralSettings.waterLevel}, colourGradient.ToArray(), colourHeights, colourCount);
         }
 
         #endregion

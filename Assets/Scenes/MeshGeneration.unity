@@ -200,8 +200,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 347041723}
-  - component: {fileID: 347041722}
-  - component: {fileID: 347041721}
   - component: {fileID: 347041720}
   m_Layer: 0
   m_Name: GameManager_SimplexNoise
@@ -222,63 +220,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 0ccdea88b95a274488430d992048399a, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: 3d5f10b81e502434b939fa55a281a7e9, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 0ccdea88b95a274488430d992048399a, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 5453957653003088392, guid: fc8556fef0b4ee4489e446c6c30120c3, type: 3}
---- !u!23 &347041721
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 347041719}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: cc9ff1313f7eafbfb9b64613a4ac977f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &347041722
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 347041719}
-  m_Mesh: {fileID: 0}
 --- !u!4 &347041723
 Transform:
   m_ObjectHideFlags: 0
@@ -421,8 +370,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 910322927}
-  - component: {fileID: 910322926}
-  - component: {fileID: 910322925}
   - component: {fileID: 910322924}
   m_Layer: 0
   m_Name: GameManager_DomainWarping
@@ -443,63 +390,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 15219070817da0847bfe95c1cd608b7c, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: a36affb8dd1b4c54ea30c6ded5732c9a, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 15219070817da0847bfe95c1cd608b7c, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 5453957653003088392, guid: fc8556fef0b4ee4489e446c6c30120c3, type: 3}
---- !u!23 &910322925
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910322923}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: cc9ff1313f7eafbfb9b64613a4ac977f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &910322926
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910322923}
-  m_Mesh: {fileID: 0}
 --- !u!4 &910322927
 Transform:
   m_ObjectHideFlags: 0
@@ -687,12 +585,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 163ec0eede7afe425ae8e3915a1c2121, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: 6dcd8aba10835994db6f2713dca37e5f, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 163ec0eede7afe425ae8e3915a1c2121, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 5453957653003088392, guid: fc8556fef0b4ee4489e446c6c30120c3, type: 3}
 --- !u!1 &1014492194
 GameObject:
@@ -703,8 +602,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1014492198}
-  - component: {fileID: 1014492197}
-  - component: {fileID: 1014492196}
   - component: {fileID: 1014492195}
   m_Layer: 0
   m_Name: GameManager_FBM
@@ -725,63 +622,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 4fe8318f69a5d454498f7516eddacfe2, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: 97ebc324ea5fab840ab6e27cfcf8bcbc, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 4fe8318f69a5d454498f7516eddacfe2, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 0}
---- !u!23 &1014492196
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1014492194}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: cc9ff1313f7eafbfb9b64613a4ac977f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1014492197
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1014492194}
-  m_Mesh: {fileID: 0}
 --- !u!4 &1014492198
 Transform:
   m_ObjectHideFlags: 0
@@ -876,8 +724,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1690311961}
-  - component: {fileID: 1690311964}
-  - component: {fileID: 1690311963}
   - component: {fileID: 1690311962}
   m_Layer: 0
   m_Name: GameManager_BillowNoise
@@ -913,63 +759,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: 29a0228b323df3b22b12e72299b4769f, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: 896ff071e1cec0f46b6eebb92bd3cfcb, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: 29a0228b323df3b22b12e72299b4769f, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 5453957653003088392, guid: fc8556fef0b4ee4489e446c6c30120c3, type: 3}
---- !u!23 &1690311963
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1690311960}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: cc9ff1313f7eafbfb9b64613a4ac977f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1690311964
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1690311960}
-  m_Mesh: {fileID: 0}
 --- !u!1 &1728052898
 GameObject:
   m_ObjectHideFlags: 0
@@ -1214,8 +1011,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1946337041}
-  - component: {fileID: 1946337044}
-  - component: {fileID: 1946337043}
   - component: {fileID: 1946337042}
   m_Layer: 0
   m_Name: GameManager_RidgeNoise
@@ -1251,63 +1046,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c0b04c3540db5b1ad93fd3a34704ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generalSettings: {fileID: 11400000, guid: 3ef73261e02b5d442a200fb7d099f09c, type: 2}
-  shaderSettings: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
+  generalSettings: {fileID: 11400000, guid: 6a2c945da2fe4c4468aaf9e65c1be74f, type: 2}
+  groundNoiseSettings: {fileID: 11400000, guid: be349e941704ef7b6a283b3af558f648, type: 2}
+  waterNoiseSettings: {fileID: 11400000, guid: 48a7d7628668a4744b6a77cf185053fd, type: 2}
+  shaders: {fileID: 11400000, guid: 6857e4f093c22474ba5dc74be463f7b4, type: 2}
   groundGenerator: {fileID: 427994085218794844, guid: bd903299021389c4bb091ac92e9037db, type: 3}
   waterGenerator: {fileID: 4772762727422793568, guid: a0e7d9d031faf0240bf497377a2cfc75, type: 3}
-  groundNoiseSettings: {fileID: 11400000, guid: be349e941704ef7b6a283b3af558f648, type: 2}
-  waterNoiseSettings: {fileID: 11400000, guid: a7656126cdc0507458a220373de9ee57, type: 2}
+  spawnPlayer: 0
   player: {fileID: 5453957653003088392, guid: fc8556fef0b4ee4489e446c6c30120c3, type: 3}
---- !u!23 &1946337043
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1946337040}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: cc9ff1313f7eafbfb9b64613a4ac977f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1946337044
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1946337040}
-  m_Mesh: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

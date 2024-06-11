@@ -11,9 +11,9 @@ using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
-    [CreateAssetMenu(fileName = "ShaderSettings", menuName = "ShaderSettings")]
+    [CreateAssetMenu(fileName = "Shaders", menuName = "Shaders")]
     [Serializable]
-    public class ShaderSettings : ScriptableObject
+    public class Shaders : ScriptableObject
     {
         #region Variables
 
