@@ -27,6 +27,8 @@ namespace _Scripts.Manager
         [SerializeField] private NoiseSettings waterNoiseSettings; // Noise settings for the water
         
         [SerializeField] private Shaders shaders; // Shader settings for the compute shader
+        
+        [SerializeField] private ColourGradient colourGradient; // Colour gradient for the terrain
 
         [Header("Generators")] [SerializeField]
         private GroundGenerator groundGenerator; // Ground generator object
@@ -34,18 +36,17 @@ namespace _Scripts.Manager
         [SerializeField] private WaterGenerator waterGenerator; // Water generator object
 
         [Header("References")] [SerializeField]
-        private bool spawnPlayer = false;
+        private bool spawnPlayer;
 
         [SerializeField] private GameObject player; // Player object
 
         private TerrainSettings _terrainSettings; // Terrain settings
         private TerrainGenerationManagers _managers; // Terrain generation managers
 
-        private List<Vector4> _colourPaletteWater; // Colour palette for the water
-        private List<Vector4> _colourPaletteGround; // Colour palette for the ground
+        private List<Vector4> _colourPalette; // Colour palette for the ground
 
-        private int _groundColourCount; // Represents the number of colours in the ground colour palette
-        private int _waterColourCount; // Represents the number of colours in the water colour palette
+        private int _colourCount; // Represents the number of colours in the ground colour palette
+        // private int _waterColourCount; // Represents the number of colours in the water colour palette
 
         private GroundGenerator _ground; // Ground generator object
         private WaterGenerator _water; // Water generator object
@@ -55,8 +56,7 @@ namespace _Scripts.Manager
         private MeshFilter _waterMeshFilter; // MeshFilter component of the water object
         private MeshCollider _waterCollider; // MeshCollider component of the water object
         
-        private List<float> _groundColourHeights;
-        private List<float> _waterColourHeights;
+        private List<float> _colourHeights;
 
         #endregion
 
@@ -75,7 +75,7 @@ namespace _Scripts.Manager
             Init();
 
             // Initialize the buffers for the various managers
-            InitializeBuffers();
+            ComputeBufferManager.InitializeBuffers(generalSettings.resolution, _terrainSettings, _colourCount);
 
             // Generate the terrain mesh
             GenerateTerrain();
@@ -142,15 +142,12 @@ namespace _Scripts.Manager
                 NoiseGenerationManager = new NoiseGenerationManager(),
                 FalloffMapManager = new FalloffMapManager(),
                 MeshGenerationManager = new MeshGenerationManager(),
-                GroundColourGenerationManager = new ColourGenerationManager(),
-                WaterColourGenerationManager = new ColourGenerationManager()
+                ColourGenerationManager = new ColourGenerationManager()
             };
 
             // Initialize Colour Palettes
-            _colourPaletteGround =
-                ColourGenerationManager.GetColorPalette(generalSettings.colours, 0.0f, 1.0f, out _groundColourCount, out _groundColourHeights);
-            _colourPaletteWater =
-                ColourGenerationManager.GetColorPalette(generalSettings.colours, 0.0f, 1.0f, out _waterColourCount, out _waterColourHeights);
+            _colourPalette =
+                ColourGenerationManager.GetColorPalette(colourGradient.colours, out _colourCount, out _colourHeights);
 
             // Initialize Offset Vectors
             InitializeOffsetVectors(groundNoiseSettings);
@@ -171,7 +168,7 @@ namespace _Scripts.Manager
         /// Initializes the offset vectors for the given noise settings.
         /// </summary>
         /// <param name="settings">The noise settings to initialize the offset vectors for.</param>
-        private void InitializeOffsetVectors(NoiseSettings settings)
+        private static void InitializeOffsetVectors(NoiseSettings settings)
         {
             // Create a pseudo-random number generator based on the noise settings seed
             var pseudoRandom = new System.Random(settings.seed.GetHashCode());
@@ -212,46 +209,21 @@ namespace _Scripts.Manager
         }
 
         /// <summary>
-        /// Initializes the buffers for the various managers.
-        /// </summary>
-        private void InitializeBuffers()
-        {
-            // Get the chunk size from GeneralSettings
-            var resolution = generalSettings.resolution;
-
-            // Initialize noise generation buffers
-            _managers.NoiseGenerationManager.InitializeBuffers(resolution, groundNoiseSettings);
-
-            // Initialize falloff map buffers
-            _managers.FalloffMapManager.InitializeBuffers(resolution);
-
-            // Initialize generator function buffers
-            GeneratorFunctions.InitializeBuffers(resolution);
-
-            // Initialize ground colour generation buffers
-            _managers.GroundColourGenerationManager.InitializeBuffers(resolution, _groundColourCount);
-
-            // Initialize water colour generation buffers
-            _managers.WaterColourGenerationManager.InitializeBuffers(resolution, _waterColourCount);
-        }
-
-        /// <summary>
         /// Releases the buffers used by various managers.
         /// </summary>
         private void ReleaseBuffers()
         {
             // Release noise generation buffers
-            _managers.NoiseGenerationManager.ReleaseBuffers();
+            NoiseGenerationManager.ReleaseBuffers();
 
             // Release falloff map buffers
-            _managers.FalloffMapManager.ReleaseBuffers();
+            FalloffMapManager.ReleaseBuffers();
 
             // Release generator function buffers
             GeneratorFunctions.ReleaseBuffers();
 
             // Release colour generation buffers
-            _managers.GroundColourGenerationManager.ReleaseBuffers();
-            _managers.WaterColourGenerationManager.ReleaseBuffers();
+            _managers.ColourGenerationManager.ReleaseBuffers();
         }
 
         /// <summary>
@@ -268,8 +240,8 @@ namespace _Scripts.Manager
             if (groundComponentsPresent)
             {
                 // Generate ground terrain
-                _ground.GenerateGround(_managers, _terrainSettings, shaders, _colourPaletteGround, _groundColourHeights.ToArray(),
-                    _groundMeshFilter, _groundColourCount);
+                _ground.GenerateGround(_managers, _terrainSettings, shaders, _colourPalette, _colourHeights.ToArray(),
+                    _groundMeshFilter, _colourCount);
             }
             else
             {
@@ -281,8 +253,8 @@ namespace _Scripts.Manager
             if (waterComponentsPresent)
             {
                 // Generate water terrain
-                _water.GenerateWater(_managers, _terrainSettings, shaders, _colourPaletteWater, _waterColourHeights.ToArray(),
-                    _waterMeshFilter, generalSettings.maxTerrainHeight, _waterColourCount);
+                _water.GenerateWater(_managers, _terrainSettings, shaders, _colourPalette, _colourHeights.ToArray(),
+                    _waterMeshFilter, generalSettings.maxTerrainHeight, _colourCount);
             }
             else
             {

@@ -12,6 +12,8 @@ using UnityEngine;
 
 namespace _Scripts.Helpers
 {
+    #region Structs
+    
     public struct TerrainSettings
     {
         public GeneralSettings GeneralSettings;
@@ -24,34 +26,44 @@ namespace _Scripts.Helpers
         public NoiseGenerationManager NoiseGenerationManager { get; set; }
         public FalloffMapManager FalloffMapManager { get; set; }
         public MeshGenerationManager MeshGenerationManager { get; set; }
-        public ColourGenerationManager GroundColourGenerationManager { get; set; }
-        public ColourGenerationManager WaterColourGenerationManager { get; set; }
+        public ColourGenerationManager ColourGenerationManager { get; set; }
 
-        public TerrainGenerationManagers(NoiseGenerationManager noiseGenerationManager,
+        public TerrainGenerationManagers(
+            NoiseGenerationManager noiseGenerationManager,
             FalloffMapManager falloffMapManager,
             MeshGenerationManager meshGenerationManager,
-            ColourGenerationManager groundColourGenerationManager,
-            ColourGenerationManager waterColourGenerationManager)
+            ColourGenerationManager colourGenerationManager)
         {
             NoiseGenerationManager = noiseGenerationManager;
             FalloffMapManager = falloffMapManager;
             MeshGenerationManager = meshGenerationManager;
-            GroundColourGenerationManager = groundColourGenerationManager;
-            WaterColourGenerationManager = waterColourGenerationManager;
+            ColourGenerationManager = colourGenerationManager;
         }
     }
     
     [Serializable]
     public struct TerrainColour
     {
-        public float Height;
-        public Color Colour;
+        public float height;
+        public Color colour;
     }
     
     [Serializable]
     public struct NoiseLayerSettings
     {
         public NoiseLayer noiseLayer;
-        public float strength;
     }
+    
+    #endregion
+
+    #region Enums
+
+    public enum NoiseLayer
+    {
+        Regular = 0,
+        Billow = 1,
+        Ridge = 2,
+    }
+
+    #endregion
 }

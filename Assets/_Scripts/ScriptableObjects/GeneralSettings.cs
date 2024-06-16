@@ -25,12 +25,7 @@ namespace _Scripts.ScriptableObjects
         // [Range(0, 6)] public int levelOfDetail; // For i = 2, 4, 6, 8, 10, 12
         //
         // public int meshSimplificationIncrement;
-
-        [Tooltip("The colours of the mesh.")]
-        public TerrainColour[] colours; // Colours of the terrain
         
-        // [Tooltip("Gradient of the colour of the mesh.")]
-        // public Gradient colourGradient; // Gradient of the colour of the mesh.
         //
         [Tooltip("The maximum height of the terrain.")]
         [Range(1, 200)]
@@ -38,6 +33,8 @@ namespace _Scripts.ScriptableObjects
         [Tooltip("The water level relative to the maximum terrain height.")]
         [Range(0, 1)]
         public float waterLevel = 0.3f; // The water level relative to the maximum terrain height.
+
+        public float waterColourHeight = 0.3f;
         
         public float minValue;
 

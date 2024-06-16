@@ -21,6 +21,15 @@ namespace _Scripts.Terrain
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class GroundGenerator : MonoBehaviour
     {
+        #region Variables
+    
+        private Vector3[] _vertices;
+        private Vector2[] _uv;
+        private Vector3[] _normals;
+        private int[] _triangles;
+    
+        #endregion
+        
         #region Methods
 
         /// <summary>
@@ -43,10 +52,12 @@ namespace _Scripts.Terrain
                 return; // Stop further processing if mesh generation fails.
             }
 
-            // Colour the mesh.
-            ColourMesh(managers, terrainSettings.GeneralSettings.resolution, shaders, colourGradient, colourHeights,
-                meshFilter, groundColourCount);
+            Material material = gameObject.GetComponent<MeshRenderer>().sharedMaterial;
 
+            // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colour gradient palette.
+            managers.ColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
+                terrainSettings.GeneralSettings.resolution, new[] { terrainSettings.GeneralSettings.waterLevel , 1f }, colourGradient.ToArray(), colourHeights, groundColourCount, false, material);
+            
             // Adjust the mesh height.
             AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
         }
@@ -65,49 +76,27 @@ namespace _Scripts.Terrain
             // Get the chunkSize of the mesh.
             Vector2Int resolution = terrainSettings.GeneralSettings.resolution;
 
-            // Create arrays to store the vertices and triangles of the mesh.
-            // The number of vertices is determined by the chunkSize of the mesh.
-            Vector3[] vertices = new Vector3[resolution.x * resolution.y];
-
-            Vector2[] uv = new Vector2[resolution.x * resolution.y];
-
-            // The number of triangles is determined by the chunkSize of the mesh minus 1.
-            // Each quad in the mesh is represented by 2 triangles, so there are 6 indices per quad.
-            int[] triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
+            // Initialize arrays if not already initialized or if the size has changed.
+            if (_vertices == null || _vertices.Length != resolution.x * resolution.y)
+            {
+                _vertices = new Vector3[resolution.x * resolution.y];
+                _uv = new Vector2[resolution.x * resolution.y];
+                _normals = new Vector3[resolution.x * resolution.y];
+                _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
+            }
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).
             // The valueClampComputeShader, chunkSize, noiseSettings, vertices, and triangles arrays are passed as arguments.
-            managers.NoiseGenerationManager.GenerateNoiseParameters(shaders, terrainSettings,
-                terrainSettings.GroundNoiseSettings, vertices,
-                uv, triangles, managers, true);
+            NoiseGenerationManager.GenerateNoiseParameters(shaders, terrainSettings,
+                terrainSettings.GroundNoiseSettings, _vertices, _uv, _normals, _triangles, false);
 
-            string meshName = "Ground";
+            const string meshName = "Ground";
 
             // Create the mesh using the generated vertices and triangles.
             // The _meshFilter, vertices, and triangles arrays are passed as arguments.
-            managers.MeshGenerationManager.CreateMesh(meshFilter, meshName, vertices, uv, triangles);
+            managers.MeshGenerationManager.CreateMesh(managers, shaders, terrainSettings, meshFilter, meshName, _vertices, _uv, _normals, _triangles);
 
             return true;
-        }
-
-        /// <summary>
-        /// Colours the mesh based on the generated mesh and the specified colourGradient palette.
-        /// </summary>
-        /// <param name="managers"></param>
-        /// <param name="resolution">The resolution of the mesh.</param>
-        /// <param name="shaders">The settings for the shader.</param>
-        /// <param name="colourGradient">The list of colours for the gradient.</param>
-        /// <param name="colourHeights"></param>
-        /// <param name="meshFilter">The MeshFilter component to apply the colours to.</param>
-        /// <param name="colourCount"></param>
-        public void ColourMesh(TerrainGenerationManagers managers, Vector2Int resolution,
-            Shaders shaders, List<Vector4> colourGradient, float[] colourHeights, MeshFilter meshFilter,
-            int colourCount)
-        {
-            // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colour gradient palette.
-            managers.GroundColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
-                resolution,
-                new[] { 0.0f, 1 }, colourGradient.ToArray(), colourHeights, colourCount);
         }
 
         /// <summary>
@@ -115,7 +104,7 @@ namespace _Scripts.Terrain
         /// </summary>
         /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
         /// <param name="generalSettings">The general settings containing the maximum terrain height.</param>
-        private void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
+        private static void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
         {
             // Get the mesh from the MeshFilter.
             Mesh mesh = meshFilter.sharedMesh;

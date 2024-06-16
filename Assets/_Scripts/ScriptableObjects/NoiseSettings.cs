@@ -42,7 +42,7 @@ namespace _Scripts.ScriptableObjects
 
         [Header("FBM")]
         [Tooltip("The number of octaves in the noise function, impacting the level of detail.")]
-        [Range(1, 10)]
+        [Range(1, 100)]
         public int octaves = 6; // The number of octaves in the noise function, impacting the level of detail.
 
         [Tooltip("The amplitude for the noise function.")]
@@ -117,7 +117,6 @@ namespace _Scripts.ScriptableObjects
             for (int i = 0; i < Mathf.Min(octaves, noiseLayerSettings.Length); i++)
             {
                 newNoiseLayers[i].noiseLayer = noiseLayerSettings[i].noiseLayer;
-                newNoiseLayers[i].strength = noiseLayerSettings[i].strength;
             }
         
             noiseLayerSettings = newNoiseLayers;

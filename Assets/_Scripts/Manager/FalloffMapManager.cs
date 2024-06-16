@@ -6,16 +6,15 @@
  */
 
 
+using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
 
-namespace _Scripts.Helpers
+namespace _Scripts.Manager
 {
     public class FalloffMapManager
     {
         #region Variables
-        
-        private ComputeBuffer _falloffMapBuffer; // Compute buffer for vertices
 
         private static readonly int MapWidth = Shader.PropertyToID("map_width"); // ID for map width
         private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
@@ -26,18 +25,13 @@ namespace _Scripts.Helpers
         #endregion
 
         #region Methods
-
-        public void InitializeBuffers(Vector2Int resolution)
-        {
-            _falloffMapBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float));
-        }
         
-        public void ReleaseBuffers()
+        public static void ReleaseBuffers()
         {
-            _falloffMapBuffer?.Release();
+            ComputeBufferManager.Instance.FalloffMapBuffer?.Release();
         }
 
-        public void ApplyFalloffMap(Shaders shaders, GeneralSettings generalSettings, ComputeBuffer vertexBuffer)
+        public void ApplyFalloffMap(Shaders shaders, GeneralSettings generalSettings)
         {
             Vector2Int resolution = generalSettings.resolution;
             ComputeShader falloffComputeShader = shaders.falloffComputeShader;
@@ -49,8 +43,8 @@ namespace _Scripts.Helpers
             falloffComputeShader.SetInt(MapWidth, resolution.x);
             falloffComputeShader.SetInt(MapHeight, resolution.y);
             
-            falloffComputeShader.SetBuffer(noiseKernel, VertexBuffer, vertexBuffer);
-            falloffComputeShader.SetBuffer(noiseKernel, FalloffMapBuffer, _falloffMapBuffer);
+            falloffComputeShader.SetBuffer(noiseKernel, VertexBuffer, ComputeBufferManager.Instance.VerticesBuffer);
+            falloffComputeShader.SetBuffer(noiseKernel, FalloffMapBuffer, ComputeBufferManager.Instance.FalloffMapBuffer);
 
             // Calculate the number of thread groups to dispatch.
             var dispatchX = Mathf.CeilToInt(resolution.x / 16f);

@@ -14,14 +14,6 @@ namespace _Scripts.Manager
 {
     public class NoiseGenerationManager
     {
-        private ComputeBuffer _verticesBuffer; // Compute buffer for vertices
-        private ComputeBuffer _uvBuffer;
-        private ComputeBuffer _trianglesBuffer; // Compute buffer for triangles
-        private ComputeBuffer _domainWarpingOffsetBuffer;
-        private ComputeBuffer _noiseLayerBuffer;
-        private ComputeBuffer _noiseLayerStrengthBuffer;
-        private ComputeBuffer _noiseLayerOffsetVectors;
-
         private static readonly int MapWidth = Shader.PropertyToID("map_width"); // ID for map width
         private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
         private static readonly int SeedOffset = Shader.PropertyToID("seed_offset"); // ID for seed offset
@@ -46,31 +38,9 @@ namespace _Scripts.Manager
         private static readonly int DomainWarpingOffsetVectors = Shader.PropertyToID("_Domain_Warping_Offset_Vectors");
         private static readonly int NoiseLayerBuffer = Shader.PropertyToID("_Noise_Layer_Buffer");
         private static readonly int NoiseLayerOffsetVectors = Shader.PropertyToID("_Noise_Layer_Offset_Vectors");
-        private static readonly int NoiseLayerStrengthBuffer = Shader.PropertyToID("Noise_Layer_Strength_Buffer");
-
-        /// <summary>
-        ///     Initializes the compute buffers based on the given chunkSize.
-        /// </summary>
-        /// <param name="resolution">The chunkSize of the mesh to be generated.</param>
-        /// <param name="noiseSettings"></param>
-        public void InitializeBuffers(Vector2Int resolution, NoiseSettings noiseSettings)
-        {
-            // Allocate memory for the noise map buffer.
-            _verticesBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 3);
-            _uvBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 2);
-            // Allocate memory for the triangles buffer.
-            _trianglesBuffer = new ComputeBuffer((resolution.x - 1) * (resolution.y - 1) * 6, sizeof(int));
-
-            _noiseLayerBuffer = new ComputeBuffer(noiseSettings.octaves, sizeof(int));
-            _noiseLayerStrengthBuffer = new ComputeBuffer(noiseSettings.octaves, sizeof(int));
-
-            _noiseLayerOffsetVectors =
-                new ComputeBuffer(noiseSettings.noiseLayerOffsetVectors.Length, sizeof(float) * 2);
-
-            _domainWarpingOffsetBuffer =
-                new ComputeBuffer((noiseSettings.offsetVectors.Length != 0) ? noiseSettings.offsetVectors.Length : 1,
-                    sizeof(float) * 2);
-        }
+        private static readonly int MinValue = Shader.PropertyToID("min_value");
+        private static readonly int NormalsBuffer = Shader.PropertyToID("_Normals_Buffer");
+        private static readonly int TriangleCount = Shader.PropertyToID("triangle_count");
 
         /// <summary>
         /// Releases the compute buffers when they are no longer needed.
@@ -79,25 +49,28 @@ namespace _Scripts.Manager
         /// This method is used to release the memory allocated for the compute buffers.
         /// It should be called when the buffers are no longer in use to prevent memory leaks.
         /// </remarks>
-        public void ReleaseBuffers()
+        public static void ReleaseBuffers()
         {
             // Release the vertices buffer
-            _verticesBuffer?.Release();
+            ComputeBufferManager.Instance.VerticesBuffer?.Release();
 
             //Release the uv buffer
-            _uvBuffer?.Release();
+            ComputeBufferManager.Instance.UVBuffer?.Release();
+
+            //Release the normals buffer
+            ComputeBufferManager.Instance.NormalsBuffer?.Release();
 
             // Release the triangles buffer
-            _trianglesBuffer?.Release();
+            ComputeBufferManager.Instance.TrianglesBuffer?.Release();
 
             // Release the noise layer buffer
-            _noiseLayerBuffer?.Release();
+            ComputeBufferManager.Instance.NoiseLayerBuffer?.Release();
 
             // Release the noise layer offset vectors buffer
-            _noiseLayerOffsetVectors?.Release();
+            ComputeBufferManager.Instance.NoiseLayerOffsetVectors?.Release();
 
             // Release the domain warping offset buffer
-            _domainWarpingOffsetBuffer?.Release();
+            ComputeBufferManager.Instance.DomainWarpingOffsetBuffer?.Release();
         }
 
         /// <summary>
@@ -108,29 +81,30 @@ namespace _Scripts.Manager
         /// <param name="noiseSettings">The noise settings for generating the mesh.</param>
         /// <param name="vertices">Array to store the generated vertices.</param>
         /// <param name="uv"></param>
+        /// <param name="normals"></param>
         /// <param name="triangles">Array to store the generated triangles.</param>
-        /// <param name="managers"></param>
-        /// <param name="isGround"></param>
+        /// <param name="isWater"></param>
         /// <returns>An array containing the minimum and maximum height values of the generated mesh.</returns>
-        public void GenerateNoiseParameters(Shaders shaders, TerrainSettings terrainSettings,
-            NoiseSettings noiseSettings,  Vector3[] vertices, Vector2[] uv,
-            int[] triangles, TerrainGenerationManagers managers, bool isGround)
+        public static void GenerateNoiseParameters(Shaders shaders, TerrainSettings terrainSettings,
+            NoiseSettings noiseSettings, Vector3[] vertices, Vector2[] uv, Vector3[] normals, int[] triangles, bool isWater)
         {
-            GenerateNoise(shaders, noiseSettings, terrainSettings.GeneralSettings);
+            GenerateNoise(shaders, noiseSettings, terrainSettings.GeneralSettings, isWater);
 
             // Compare the height values of the generated vertices and return the minimum and maximum values.
-            GeneratorFunctions.CompareHeightValues(terrainSettings.GeneralSettings.resolution, shaders, _verticesBuffer);
+            GeneratorFunctions.CompareHeightValues(terrainSettings.GeneralSettings.resolution, shaders,
+                ComputeBufferManager.Instance.VerticesBuffer);
 
             // NOTE: For single chunks, if an island is desired
             // if (isGround)
             // {
-            //     managers.FalloffMapManager.ApplyFalloffMap(generalSettings, shaders, _verticesBuffer);
+            //     managers.FalloffMapManager.ApplyFalloffMap(generalSettings, shaders, ComputeBufferManager.Instance.VerticesBuffer);
             // }
 
             // Retrieve the generated vertices and triangles from the compute buffers.
-            _verticesBuffer.GetData(vertices);
-            _uvBuffer.GetData(uv);
-            _trianglesBuffer.GetData(triangles);
+            ComputeBufferManager.Instance.VerticesBuffer.GetData(vertices);
+            ComputeBufferManager.Instance.UVBuffer.GetData(uv);
+            ComputeBufferManager.Instance.NormalsBuffer.GetData(normals);
+            ComputeBufferManager.Instance.TrianglesBuffer.GetData(triangles);
         }
 
         /// <summary>
@@ -139,9 +113,12 @@ namespace _Scripts.Manager
         /// <param name="shaders"></param>
         /// <param name="noiseSettings"></param>
         /// <param name="generalSettings"></param>
-        private void GenerateNoise(Shaders shaders, NoiseSettings noiseSettings,
-            GeneralSettings generalSettings)
+        /// <param name="isWater"></param>
+        private static void GenerateNoise(Shaders shaders, NoiseSettings noiseSettings,
+            GeneralSettings generalSettings, bool isWater)
         {
+            Vector2Int resolution = generalSettings.resolution;
+
             // Get the noise compute shader
             ComputeShader noiseComputeShader = shaders.noiseGenerationComputeShader;
 
@@ -153,19 +130,20 @@ namespace _Scripts.Manager
                 noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
 
             // Get the coordinates
-            var seedOffset = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
+            float seedOffsetBase = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
+            Vector2 seedOffset = new Vector2(seedOffsetBase / resolution.x, seedOffsetBase * resolution.y);
 
             // Find the kernel in the compute shader.
             var noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
 
             // Set shader properties
-            noiseComputeShader.SetInt(MapWidth, generalSettings.resolution.x);
-            noiseComputeShader.SetInt(MapHeight, generalSettings.resolution.y);
+            noiseComputeShader.SetInt(MapWidth, resolution.x);
+            noiseComputeShader.SetInt(MapHeight, resolution.y);
 
-            noiseComputeShader.SetFloat(SeedOffset, seedOffset);
+            noiseComputeShader.SetVector(SeedOffset, seedOffset);
             noiseComputeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
 
-            noiseComputeShader.SetFloat("min_value", generalSettings.minValue);
+            noiseComputeShader.SetFloat(MinValue, generalSettings.minValue);
 
             // FBM
             noiseComputeShader.SetInt(Octaves, noiseSettings.octaves);
@@ -182,33 +160,32 @@ namespace _Scripts.Manager
 
             noiseComputeShader.SetFloat(MaxTerrainHeight, generalSettings.maxTerrainHeight);
 
+            noiseComputeShader.SetInt(TriangleCount, ((resolution.x - 1) * (resolution.y - 1) * 6) / 3);
+            
+            noiseComputeShader.SetBool("is_water", isWater);
+
             int[] noiseLayerIntegers = new int[noiseSettings.noiseLayerSettings.Length];
             for (int i = 0; i < noiseSettings.noiseLayerSettings.Length; i++)
             {
                 noiseLayerIntegers[i] = (int)noiseSettings.noiseLayerSettings[i].noiseLayer;
             }
 
-            int[] noiseLayerStrengths = new int[noiseSettings.noiseLayerSettings.Length];
-            for (int i = 0; i < noiseSettings.noiseLayerSettings.Length; i++)
-            {
-                noiseLayerStrengths[i] = (int)noiseSettings.noiseLayerSettings[i].strength;
-            }
-
-            _noiseLayerBuffer.SetData(noiseLayerIntegers);
-            _noiseLayerStrengthBuffer.SetData(noiseLayerStrengths);
+            ComputeBufferManager.Instance.NoiseLayerBuffer.SetData(noiseLayerIntegers);
 
             // Set the compute buffers
-            noiseComputeShader.SetBuffer(noiseKernel, VertexBuffer, _verticesBuffer);
-            noiseComputeShader.SetBuffer(noiseKernel, UVBuffer, _uvBuffer);
-            noiseComputeShader.SetBuffer(noiseKernel, TriangleBuffer, _trianglesBuffer);
-            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerBuffer, _noiseLayerBuffer);
-            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerStrengthBuffer, _noiseLayerStrengthBuffer);
+            noiseComputeShader.SetBuffer(noiseKernel, VertexBuffer, ComputeBufferManager.Instance.VerticesBuffer);
+            noiseComputeShader.SetBuffer(noiseKernel, UVBuffer, ComputeBufferManager.Instance.UVBuffer);
+            noiseComputeShader.SetBuffer(noiseKernel, NormalsBuffer, ComputeBufferManager.Instance.NormalsBuffer);
+            noiseComputeShader.SetBuffer(noiseKernel, TriangleBuffer, ComputeBufferManager.Instance.TrianglesBuffer);
+            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerBuffer, ComputeBufferManager.Instance.NoiseLayerBuffer);
 
-            _noiseLayerOffsetVectors.SetData(noiseSettings.noiseLayerOffsetVectors);
-            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerOffsetVectors, _noiseLayerOffsetVectors);
+            ComputeBufferManager.Instance.NoiseLayerOffsetVectors.SetData(noiseSettings.noiseLayerOffsetVectors);
+            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerOffsetVectors,
+                ComputeBufferManager.Instance.NoiseLayerOffsetVectors);
 
-            _domainWarpingOffsetBuffer.SetData(noiseSettings.offsetVectors);
-            noiseComputeShader.SetBuffer(noiseKernel, DomainWarpingOffsetVectors, _domainWarpingOffsetBuffer);
+            ComputeBufferManager.Instance.DomainWarpingOffsetBuffer.SetData(noiseSettings.offsetVectors);
+            noiseComputeShader.SetBuffer(noiseKernel, DomainWarpingOffsetVectors,
+                ComputeBufferManager.Instance.DomainWarpingOffsetBuffer);
 
             // Calculate the number of thread groups to dispatch.
             var dispatchX = Mathf.CeilToInt(generalSettings.resolution.x / 16f);

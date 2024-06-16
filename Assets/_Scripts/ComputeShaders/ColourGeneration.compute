@@ -29,57 +29,69 @@ int map_height;
 float min_height;
 float max_height;
 
+float time;
+
+bool is_water;
+
 // Total length of the vertex buffer.
 int vertices_buffer_length;
-
-// void get_height(const int index)
-// {
-//     // Get the height of the vertex
-//     const float height = Vertex_Buffer[index].y;
-//
-//     if (height >= 0 && height <= 1)
-//     {
-//         // Iterate through the color palette to find the appropriate color for the vertex height
-//         for (int k = 0; k < colour_count - 1; k++)
-//         {
-//             const float range_start = (float)k / (colour_count - 1);
-//             const float range_end = (float)(k + 1) / (colour_count - 1);
-//
-//             if (height >= range_start && height <= range_end)
-//             {
-//                 // Calculate the interpolation factor
-//                 const float t = (height - range_start) / (range_end - range_start);
-//                 
-//                 // Interpolate the color using the color palette
-//                 float4 startColor = Colour_Palette_Buffer[k];
-//                 float4 endColor = Colour_Palette_Buffer[k + 1];
-//
-//                 float4 colour = lerp(startColor, endColor, t);
-//                 
-//                 // Set alpha value based on the gradient's alpha value
-//                 // We assume here that the alpha value is the same for both start and end colors
-//                 colour.a = lerp(startColor.a, endColor.a, t);
-//
-//                 Colour_Buffer[index] = colour;
-//                 break;
-//             }
-//         }
-//     }
-//     else
-//     {
-//         // Set the color to black for vertices outside the range [0, 1]
-//         Colour_Buffer[index] = float4(0, 0, 0, 0);
-//     }
-// }
 
 void get_height(const int index)
 {
     // Get the height of the vertex
     const float height = Vertex_Buffer[index].y;
 
-    float4 colour = float4(0, 0, 0, 0.5f);
+    if (height >= 0 && height <= 1)
+    {
+        // Iterate through the color palette to find the appropriate color for the vertex height
+        for (int k = 0; k < colour_count - 1; k++)
+        {
+            const float range_start = (float)k / (colour_count - 1);
+            const float range_end = (float)(k + 1) / (colour_count - 1);
 
-    if (height >= min_height && height <= max_height)
+            if (height >= range_start && height <= range_end)
+            {
+                // Calculate the interpolation factor
+                const float t = (height - range_start) / (range_end - range_start);
+                
+                // Interpolate the color using the color palette
+                float4 startColor = Colour_Palette_Buffer[k];
+                float4 endColor = Colour_Palette_Buffer[k + 1];
+
+                float4 colour = lerp(startColor, endColor, t);
+                
+                // Set alpha value based on the gradient's alpha value
+                // We assume here that the alpha value is the same for both start and end colors
+                colour.a = lerp(startColor.a, endColor.a, t);
+
+                Colour_Buffer[index] = colour;
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Set the color to black for vertices outside the range [0, 1]
+        Colour_Buffer[index] = float4(1, 1, 1, 0);
+    }
+}
+
+float smooth(float edge0, float edge1, float x)
+{
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, max_height);
+    return t * t * (3.0 - 2.0 * t);
+}
+
+void determine_colour(const int index)
+{
+    // Get the height of the vertex
+    float height = Vertex_Buffer[index].y;
+
+    float4 colour = float4(0, 0, 0, 0);
+
+    bool in_range = height >= min_height && height <= max_height;
+
+    if (in_range)
     {
         float range_end;
         float range_start;
@@ -97,27 +109,17 @@ void get_height(const int index)
                 range_start = Colour_Palette_Heights_Buffer[k - 1];
                 range_end = Colour_Palette_Heights_Buffer[k];
             }
-
+            
             if (height >= range_start && height <= range_end)
             {
                 // Calculate the interpolation factor
-                const float t = (height - range_start) / (range_end - range_start);
+                // const float t = (height - range_start) / (range_end - range_start);
 
+                float t = smoothstep(range_start, range_end, height);
+                
                 // Interpolate the color using the color palette
-                float4 start_colour;
-                float4 end_colour;
-
-                // Interpolate the color using the color palette
-                if (k == 0)
-                {
-                    start_colour = colour;
-                    end_colour = Colour_Palette_Buffer[k];
-                }
-                else
-                {
-                    start_colour = Colour_Palette_Buffer[k - 1];
-                    end_colour = Colour_Palette_Buffer[k];
-                }
+                float4 start_colour = (k == 0) ? float4(0, 0, 0, 0) : Colour_Palette_Buffer[k - 1];
+                float4 end_colour = Colour_Palette_Buffer[k];                
 
                 colour = lerp(start_colour, end_colour, t);
 
@@ -125,17 +127,101 @@ void get_height(const int index)
                 // We assume here that the alpha value is the same for both start and end colors
                 colour.a = lerp(start_colour.a, end_colour.a, t);
 
+                // Store the determined color in a separate buffer or texture
                 Colour_Buffer[index] = colour;
+
                 break;
             }
         }
     }
-    else
+    else if (height < min_height)
     {
-        // Set the color to black for vertices outside the range [0, 1]
-        Colour_Buffer[index] = colour;
+        // // Find the color corresponding to the height just above min_height
+        // float4 closest_colour = Colour_Palette_Buffer[0];
+        //
+        // for (int k = 0; k < colour_count; k++)
+        // {
+        //     if (Colour_Palette_Heights_Buffer[k] >= min_height)
+        //     {
+        //         closest_colour = Colour_Palette_Buffer[k];
+        //         break;
+        //     }
+        // }
+        //
+        // // Use the color at the closest height above min_height
+        // Colour_Buffer[index] = closest_colour;
+
+        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
     }
+    else if (height > max_height)
+    {
+        Colour_Buffer[index] = Colour_Palette_Buffer[colour_count - 1];
+    }
+
 }
+
+// void get_height_and_color(const int index)
+// {
+//     // Get the original height of the vertex
+//     float originalHeight = Vertex_Buffer[index].y;
+//
+//     // Determine the color based on the original height
+//     determine_colour(originalHeight);
+//
+//     // Apply wave movement for visual effect
+//     float waveMovement = clamp((sin(originalHeight * 100 + time)), min_height, 0.2f);
+//     float modifiedHeight = originalHeight + waveMovement;
+//
+//     // Optionally, apply the modified height to the vertex position for visual effect
+//     // This does not affect the color determination but influences how the height is visually represented
+//     // Vertex_Buffer[index].y = modifiedHeight;
+// }
+
+// float smoothstep(float edge0, float edge1, float x)
+// {
+//     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+//     return x * x * (3.0 - 2.0 * x);
+// }
+//
+// void determine_colour(const int index)
+// {
+//     // Get the height of the vertex
+//     float height = Vertex_Buffer[index].y;
+//     float4 colour = float4(0, 0, 0, 0);
+//
+//     if (height >= min_height && height <= max_height)
+//     {
+//         float range_start, range_end;
+//         for (int k = 0; k < colour_count; k++)
+//         {
+//             if (k == 0)
+//             {
+//                 range_start = 0.0f;
+//                 range_end = Colour_Palette_Heights_Buffer[k];
+//             }
+//             else
+//             {
+//                 range_start = Colour_Palette_Heights_Buffer[k - 1];
+//                 range_end = Colour_Palette_Heights_Buffer[k];
+//             }
+//
+//             if (height >= range_start && height <= range_end)
+//             {
+//                 float t = smoothstep(range_start, range_end, height);
+//                 float4 start_colour = (k == 0) ? colour : Colour_Palette_Buffer[k - 1];
+//                 float4 end_colour = Colour_Palette_Buffer[k];
+//                 colour = lerp(start_colour, end_colour, t);
+//                 colour.a = lerp(start_colour.a, end_colour.a, t);
+//                 Colour_Buffer[index] = colour;
+//                 break;
+//             }
+//         }
+//     }
+//     else
+//     {
+//         Colour_Buffer[index] = colour;
+//     }
+// }
 
 /// <summary>
 /// Color the mesh based on the vertex height and color palette.
@@ -153,5 +239,5 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    get_height(index);
+    determine_colour(index);
 }

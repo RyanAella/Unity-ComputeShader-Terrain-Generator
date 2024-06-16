@@ -1,5 +1,19 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.18.0] - 2024-06-15
+### Added
+- Implemented `ComputeBufferManager` to optimize buffer usage by avoiding unnecessary recreations.
+  This enhancement improves performance by reusing buffers for frequently accessed data.
+- Enhanced `ColourGeneration` with a `smooth` option for smoother color transitions across terrain features.
+- Introduced `ColourGradient` as a `ScriptableObject` to facilitate flexible and dynamic color management.
+- Added `Water.shadergraph` to enhance water shader functionality for realistic water rendering.
+
+### Fixed
+- Addressed UV generation issue, ensuring accurate texture mapping now processed on the CPU.
+
+### Code Cleanup
+- Improved code efficiency through refactoring for enhanced maintainability and performance optimizations.
+
 ## [0.17.0] - 2024-06-11
 ### Added
 - Implemented UV generation.
@@ -83,7 +97,7 @@
 - `AdjustMeshHeight` method to ensure the mesh displays visible height differences.
 
 ### Changed
-- Moved some parameters from `GameMnager` to `NoiseSettings`.
+- Moved some parameters from `GameManager` to `NoiseSettings`.
 
 ### Fixed
 - Resolved an issue where some parts of the mesh were not coloured due to y-values falling outside the 0-1 range.
