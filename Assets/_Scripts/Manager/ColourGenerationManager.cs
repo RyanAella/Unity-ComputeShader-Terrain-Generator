@@ -59,6 +59,9 @@ namespace _Scripts.Manager
                 Debug.LogError("MeshFilter or mesh is not assigned.");
                 return;
             }
+            
+            int verticesPerLineX = resolution.x * 2 + 1;
+            int verticesPerLineZ = resolution.y * 2 + 1;
 
             // Get the Mesh from the MeshFilter
             Mesh mesh = meshFilter.sharedMesh;
@@ -84,23 +87,23 @@ namespace _Scripts.Manager
             computeShader.SetInt(ColourCount, colourCount);
             
             // Set the map width and height in the compute shader
-            computeShader.SetInt(MapWidth, resolution.x);
-            computeShader.SetInt(MapHeight, resolution.y);
+            computeShader.SetInt(MapWidth, verticesPerLineX);
+            computeShader.SetInt(MapHeight, verticesPerLineZ);
             
             // Set the height parameters for the gradient
             computeShader.SetFloat(MinHeight, minMax[0]);
             computeShader.SetFloat(MaxHeight, minMax[1]);
             
             // Calculate the length of the vertices buffer
-            computeShader.SetInt(VerticesBufferLength, resolution.y * resolution.y);
+            computeShader.SetInt(VerticesBufferLength, verticesPerLineX * verticesPerLineZ);
             
             computeShader.SetFloat("time", Time.time);
             
             computeShader.SetBool("is_water", isWater);
             
             // Calculate the number of thread groups to dispatch.
-            int dispatchX = Mathf.CeilToInt(resolution.x / 8f);
-            int dispatchY = Mathf.CeilToInt(resolution.y / 8f);
+            int dispatchX = Mathf.CeilToInt(verticesPerLineX / 8f);
+            int dispatchY = Mathf.CeilToInt(verticesPerLineZ / 8f);
             
             // Dispatch the Compute Shader
             computeShader.Dispatch(kernel, dispatchX, dispatchY, 1);

@@ -56,13 +56,16 @@ namespace _Scripts.Helpers
 
         private void InitBuffers(Vector2Int resolution, NoiseSettings noiseSettings, int colourCount)
         {
+            int verticesPerLineX = resolution.x * 2 + 1;
+            int verticesPerLineZ = resolution.y * 2 + 1;
+            
             // NOTE: NoiseGenerationManager
             // Allocate memory for the noise map buffer.
-            VerticesBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 3);
-            UVBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 2);
-            NormalsBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 3);
+            VerticesBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
+            UVBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 2);
+            NormalsBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
             // Allocate memory for the triangles buffer.
-            TrianglesBuffer = new ComputeBuffer((resolution.x - 1) * (resolution.y - 1) * 6, sizeof(int));
+            TrianglesBuffer = new ComputeBuffer((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6, sizeof(int));
 
             NoiseLayerBuffer = new ComputeBuffer(noiseSettings.octaves, sizeof(int));
 
@@ -71,11 +74,11 @@ namespace _Scripts.Helpers
             DomainWarpingOffsetBuffer = new ComputeBuffer((noiseSettings.offsetVectors.Length!= 0)? noiseSettings.offsetVectors.Length : 1, sizeof(float) * 2);
 
             // NOTE: FalloffMapManager
-            FalloffMapBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float));
+            FalloffMapBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
             
             // NOTE: GeneratorFunctions
             // Create a new compute buffer for the local min-max values with a size determined by the chunkSize.
-            LocalMinMaxBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float));
+            LocalMinMaxBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
 
             // Create a new compute buffer for the global min-max values with a size of 2.
             GlobalMinMaxBuffer = new ComputeBuffer(2, sizeof(float));
@@ -85,7 +88,7 @@ namespace _Scripts.Helpers
             // Create a ComputeBuffer for storing the colors of the mesh.
             // The buffer size is determined by the number of vertices in the mesh.
             // Each color is represented by a Vector4 (RGBA), so the buffer size is 4 times the number of vertices.
-            ColourBuffer = new ComputeBuffer(resolution.x * resolution.y, sizeof(float) * 4);
+            ColourBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 4);
             
             // // Create a ComputeBuffer for storing the color palette.
             // // The buffer size is determined by the number of colors in the palette.
@@ -105,7 +108,7 @@ namespace _Scripts.Helpers
         {
             // Release the vertices buffer
             VerticesBuffer?.Release();
-
+            
             //Release the uv buffer
             UVBuffer?.Release();
             

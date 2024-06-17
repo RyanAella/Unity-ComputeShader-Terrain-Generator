@@ -53,12 +53,12 @@ namespace _Scripts.Terrain
             }
 
             Material material = gameObject.GetComponent<MeshRenderer>().sharedMaterial;
-
+            
             // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colour gradient palette.
             managers.ColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
                 terrainSettings.GeneralSettings.resolution, new[] { terrainSettings.GeneralSettings.waterLevel , 1f }, colourGradient.ToArray(), colourHeights, groundColourCount, false, material);
             
-            // Adjust the mesh height.
+            // // Adjust the mesh height.
             AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
         }
 
@@ -75,14 +75,17 @@ namespace _Scripts.Terrain
         {
             // Get the chunkSize of the mesh.
             Vector2Int resolution = terrainSettings.GeneralSettings.resolution;
+            
+            int verticesPerLineX = resolution.x * 2 + 1;
+            int verticesPerLineZ = resolution.y * 2 + 1;
 
             // Initialize arrays if not already initialized or if the size has changed.
-            if (_vertices == null || _vertices.Length != resolution.x * resolution.y)
+            if (_vertices == null || _vertices.Length != verticesPerLineX * verticesPerLineZ)
             {
-                _vertices = new Vector3[resolution.x * resolution.y];
-                _uv = new Vector2[resolution.x * resolution.y];
-                _normals = new Vector3[resolution.x * resolution.y];
-                _triangles = new int[(resolution.x - 1) * (resolution.y - 1) * 6];
+                _vertices = new Vector3[verticesPerLineX * verticesPerLineZ];
+                _uv = new Vector2[verticesPerLineX * verticesPerLineZ];
+                _normals = new Vector3[verticesPerLineX * verticesPerLineZ];
+                _triangles = new int[(verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6];
             }
 
             // Use the compute shader to generate mesh parameters (vertices and triangles).

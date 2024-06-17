@@ -59,7 +59,7 @@ namespace _Scripts.Manager
 
             //Release the normals buffer
             ComputeBufferManager.Instance.NormalsBuffer?.Release();
-
+            
             // Release the triangles buffer
             ComputeBufferManager.Instance.TrianglesBuffer?.Release();
 
@@ -86,7 +86,8 @@ namespace _Scripts.Manager
         /// <param name="isWater"></param>
         /// <returns>An array containing the minimum and maximum height values of the generated mesh.</returns>
         public static void GenerateNoiseParameters(Shaders shaders, TerrainSettings terrainSettings,
-            NoiseSettings noiseSettings, Vector3[] vertices, Vector2[] uv, Vector3[] normals, int[] triangles, bool isWater)
+            NoiseSettings noiseSettings, Vector3[] vertices, Vector2[] uv, Vector3[] normals, int[] triangles,
+            bool isWater)
         {
             GenerateNoise(shaders, noiseSettings, terrainSettings.GeneralSettings, isWater);
 
@@ -118,6 +119,9 @@ namespace _Scripts.Manager
             GeneralSettings generalSettings, bool isWater)
         {
             Vector2Int resolution = generalSettings.resolution;
+            
+            int verticesPerLineX = resolution.x * 2 + 1;
+            int verticesPerLineZ = resolution.y * 2 + 1;
 
             // Get the noise compute shader
             ComputeShader noiseComputeShader = shaders.noiseGenerationComputeShader;
@@ -131,14 +135,14 @@ namespace _Scripts.Manager
 
             // Get the coordinates
             float seedOffsetBase = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
-            Vector2 seedOffset = new Vector2(seedOffsetBase / resolution.x, seedOffsetBase * resolution.y);
+            Vector2 seedOffset = new Vector2(seedOffsetBase / verticesPerLineX, seedOffsetBase * verticesPerLineZ);
 
             // Find the kernel in the compute shader.
             var noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
 
             // Set shader properties
-            noiseComputeShader.SetInt(MapWidth, resolution.x);
-            noiseComputeShader.SetInt(MapHeight, resolution.y);
+            noiseComputeShader.SetInt(MapWidth, verticesPerLineX);
+            noiseComputeShader.SetInt(MapHeight, verticesPerLineZ);
 
             noiseComputeShader.SetVector(SeedOffset, seedOffset);
             noiseComputeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
@@ -160,8 +164,8 @@ namespace _Scripts.Manager
 
             noiseComputeShader.SetFloat(MaxTerrainHeight, generalSettings.maxTerrainHeight);
 
-            noiseComputeShader.SetInt(TriangleCount, ((resolution.x - 1) * (resolution.y - 1) * 6) / 3);
-            
+            noiseComputeShader.SetInt(TriangleCount, ((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6) / 3);
+
             noiseComputeShader.SetBool("is_water", isWater);
 
             int[] noiseLayerIntegers = new int[noiseSettings.noiseLayerSettings.Length];
@@ -188,8 +192,8 @@ namespace _Scripts.Manager
                 ComputeBufferManager.Instance.DomainWarpingOffsetBuffer);
 
             // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(generalSettings.resolution.x / 16f);
-            var dispatchY = Mathf.CeilToInt(generalSettings.resolution.y / 16f);
+            var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
+            var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
 
             // Dispatch the compute shader to generate the mesh parameters.
             noiseComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);

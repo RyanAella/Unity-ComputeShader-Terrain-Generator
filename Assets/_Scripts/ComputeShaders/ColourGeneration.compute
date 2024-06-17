@@ -89,7 +89,7 @@ void determine_colour(const int index)
 
     float4 colour = float4(0, 0, 0, 0);
 
-    bool in_range = height >= min_height && height <= max_height;
+    const bool in_range = height >= min_height && height <= max_height;
 
     if (in_range)
     {
