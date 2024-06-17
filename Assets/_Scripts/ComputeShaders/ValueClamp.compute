@@ -154,7 +154,7 @@ void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
     // Initialize local Min/Max with extreme values
     min_value = _Global_Min_Max_Buffer[0];
     max_value = _Global_Min_Max_Buffer[1];
-
+    
     // Calculate the index based on the thread ID
     const int index = id.y * map_width + id.x;
 

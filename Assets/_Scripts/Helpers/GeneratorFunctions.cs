@@ -57,21 +57,23 @@ namespace _Scripts.Helpers
             ComputeBuffer verticesBuffer)
         {
             ComputeShader computeShader = shaders.valueClampComputeShader;
+
+            Vector2Int resolutionXY = new Vector2Int(resolution.x * 2 + 1, resolution.y * 2 + 1);
             
             // Compute local min-max values once
-            ComputeLocalMinMax(resolution, computeShader, verticesBuffer);
+            ComputeLocalMinMax(resolutionXY, computeShader, verticesBuffer);
 
             // Compute global min-max values
-            ComputeGlobalMinMax(resolution, computeShader);
+            ComputeGlobalMinMax(resolutionXY, computeShader);
 
             // Clamp height values using the computed global min-max values
-            ClampHeightValues(computeShader, verticesBuffer, resolution);
+            ClampHeightValues(computeShader, verticesBuffer, resolutionXY);
             
             // Compute local min-max values once
-            ComputeLocalMinMax(resolution, computeShader, verticesBuffer);
+            ComputeLocalMinMax(resolutionXY, computeShader, verticesBuffer);
             
             // Compute global min-max values
-            ComputeGlobalMinMax(resolution, computeShader);
+            ComputeGlobalMinMax(resolutionXY, computeShader);
         }
 
         /// <summary>
@@ -130,6 +132,9 @@ namespace _Scripts.Helpers
 
             // Dispatch the compute shader
             computeShader.Dispatch(computeGlobal, 1, 1, 1);
+
+            float[] minMax = new float[2];
+            ComputeBufferManager.Instance.GlobalMinMaxBuffer.GetData(minMax);
         }
 
         /// <summary>

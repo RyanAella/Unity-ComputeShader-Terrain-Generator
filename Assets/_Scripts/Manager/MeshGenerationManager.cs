@@ -56,17 +56,17 @@ namespace _Scripts.Manager
             // Sets the normals of the mesh.
             // mesh.normals = normals;
 
-            mesh.normals = CalculateNormals(managers, shaders, settings, vertices, triangles);
-
+            // mesh.normals = CalculateNormals(managers, shaders, settings, vertices, triangles);
+            
             // Sets the triangles of the mesh.
             mesh.triangles = triangles;
 
             // Recalculates the normals of the mesh based on the vertices and triangles.
             mesh.RecalculateBounds();
-
+            mesh.RecalculateNormals();
             mesh.RecalculateTangents();
 
-            meshFilter.mesh = mesh;
+            meshFilter.mesh = meshFilter.sharedMesh = mesh;
         }
 
         /// <summary>
