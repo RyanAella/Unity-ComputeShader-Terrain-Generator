@@ -1,4 +1,11 @@
-// Each #kernel tells which function to compile; you can have many kernels
+/*
+ * Author: Rebecca Biebl
+ * Creation Date: 
+ * Description: 
+ * License: MIT Licence
+ */
+
+// Define kernel functions for the compute shader.
 #pragma kernel Falloff_Map 0
 
 // Unsigned integer variables for the dimensions of the noise map.
@@ -8,6 +15,7 @@ uint map_height; // Height of the noise map
 RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
 RWStructuredBuffer<float> _Falloff_Map_Buffer; // Stores the noise values for each vertex
 
+// Calculate the gradient based on the input id
 float gradient(uint3 id)
 {
     float x = id.x / (float)map_width * 2.0f - 1.0f;
@@ -17,6 +25,7 @@ float gradient(uint3 id)
     return value;
 }
 
+// Calculate the gradient falloff value based on the distance from the edge
 float gradient_falloff(float distanceFromEdge)
 {
     // Adjust these parameters to control the shape of the falloff
@@ -30,6 +39,7 @@ float gradient_falloff(float distanceFromEdge)
     return -falloff;
 }
 
+// Calculate the Gaussian falloff value based on the distance from the edge
 float gaussian_falloff(float distanceFromEdge)
 {
     float falloffRate = 0.6f;
@@ -38,7 +48,7 @@ float gaussian_falloff(float distanceFromEdge)
     return falloff;
 }
 
-
+// Calculate the falloff value at the given id
 void falloff(uint3 id)
 {
     if (id.y < map_height && id.x < map_width)
@@ -59,6 +69,7 @@ void falloff(uint3 id)
     }
 }
 
+// Main kernel function for generating the falloff map
 [numthreads(16,16,1)]
 void Falloff_Map(uint3 id : SV_DispatchThreadID)
 {

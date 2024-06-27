@@ -1,8 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 13-06-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: This script manages the creation of compute buffers.
+ * License: MIT Licence
  */
 
 
@@ -11,10 +11,13 @@ using UnityEngine;
 
 namespace _Scripts.Helpers
 {
+    /// <summary>
+    /// Manages the creation and release of compute buffers.
+    /// </summary>
     public class ComputeBufferManager
     {
         private static ComputeBufferManager _instance;
-        
+
         // Getter for the buffers
         public ComputeBuffer VerticesBuffer { get; private set; }
         public ComputeBuffer UVBuffer { get; private set; }
@@ -29,12 +32,17 @@ namespace _Scripts.Helpers
         public ComputeBuffer ColourBuffer { get; private set; }
         public ComputeBuffer ColourPaletteBuffer { get; private set; }
         public ComputeBuffer ColourPaletteHeightsBuffer { get; private set; }
-        
+
         #region Methods
-        
+
         // Private Constructor to prevent instantiation
-        private ComputeBufferManager() {}
-        
+        private ComputeBufferManager()
+        {
+        }
+
+        /// <summary>
+        /// Gets the instance of the Compute Buffer Manager.
+        /// </summary>
         public static ComputeBufferManager Instance
         {
             get
@@ -43,57 +51,70 @@ namespace _Scripts.Helpers
                 {
                     _instance = new ComputeBufferManager();
                 }
+
                 return _instance;
             }
         }
 
+        /// <summary>
+        /// Initializes the compute buffers.
+        /// </summary>
         public static void InitializeBuffers(Vector2Int resolution, TerrainSettings terrainSettings, int colourCount)
         {
             var instance = new ComputeBufferManager();
-            instance.InitBuffers(resolution, terrainSettings.GroundNoiseSettings, colourCount);
+            instance.InitBuffers(resolution, terrainSettings.NoiseSettings, colourCount);
             _instance = instance;
         }
 
+        /// <summary>
+        /// Initializes the compute buffers with given settings.
+        /// </summary>
+        /// <param name="resolution">The resolution of the terrain.</param>
+        /// <param name="noiseSettings">The noise settings used for terrain generation.</param>
+        /// <param name="colourCount">The number of colors in the color palette.</param>
         private void InitBuffers(Vector2Int resolution, NoiseSettings noiseSettings, int colourCount)
         {
+            // Calculate vertices per line
             int verticesPerLineX = resolution.x * 2 + 1;
             int verticesPerLineZ = resolution.y * 2 + 1;
-            
-            // NOTE: NoiseGenerationManager
-            // Allocate memory for the noise map buffer.
+
+            // Allocate memory for the vertices buffer.
             VerticesBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
+            
+            // Allocate memory for the UV buffer.
             UVBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 2);
+            
+            // Allocate memory for the normals buffer.
             NormalsBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
+            
             // Allocate memory for the triangles buffer.
             TrianglesBuffer = new ComputeBuffer((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6, sizeof(int));
 
+            // Allocate memory for the noise layer buffer.
             NoiseLayerBuffer = new ComputeBuffer(noiseSettings.octaves, sizeof(int));
-
-            NoiseLayerOffsetVectors = new ComputeBuffer(noiseSettings.noiseLayerOffsetVectors.Length, sizeof(float) * 2);
-
-            DomainWarpingOffsetBuffer = new ComputeBuffer((noiseSettings.offsetVectors.Length!= 0)? noiseSettings.offsetVectors.Length : 1, sizeof(float) * 2);
-
-            // NOTE: FalloffMapManager
-            FalloffMapBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
             
-            // NOTE: GeneratorFunctions
-            // Create a new compute buffer for the local min-max values with a size determined by the chunkSize.
+            // Allocate memory for the noise layer offset vectors buffer.
+            NoiseLayerOffsetVectors = new ComputeBuffer(noiseSettings.noiseLayerOffsetVectors.Length, sizeof(float) * 2);
+            
+            // Allocate memory for the domain warping offset buffer.
+            DomainWarpingOffsetBuffer = new ComputeBuffer((noiseSettings.offsetVectors.Length != 0) ? noiseSettings.offsetVectors.Length : 1, sizeof(float) * 2);
+
+            // Allocate memory for the falloff map buffer.
+            FalloffMapBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
+
+            // Allocate memory for the local min-max values buffer.
             LocalMinMaxBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
 
-            // Create a new compute buffer for the global min-max values with a size of 2.
+            // Allocate memory for the global min-max values buffer.
             GlobalMinMaxBuffer = new ComputeBuffer(2, sizeof(float));
-            
-            // NOTE: ColourGenerationManager
 
-            // Create a ComputeBuffer for storing the colors of the mesh.
-            // The buffer size is determined by the number of vertices in the mesh.
-            // Each color is represented by a Vector4 (RGBA), so the buffer size is 4 times the number of vertices.
+            // Allocate memory for the color buffer.
             ColourBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 4);
-            
-            // // Create a ComputeBuffer for storing the color palette.
-            // // The buffer size is determined by the number of colors in the palette.
-            // // Each color is represented by a Vector4 (RGBA), so the buffer size is 4 times the number of colors.
+
+            // Allocate memory for the color palette buffer.
             ColourPaletteBuffer = new ComputeBuffer(colourCount, sizeof(float) * 4);
+            
+            // Allocate memory for the color palette heights buffer.
             ColourPaletteHeightsBuffer = new ComputeBuffer(colourCount, sizeof(float));
         }
 
@@ -108,10 +129,10 @@ namespace _Scripts.Helpers
         {
             // Release the vertices buffer
             VerticesBuffer?.Release();
-            
+
             //Release the uv buffer
             UVBuffer?.Release();
-            
+
             //Release the normals buffer
             NormalsBuffer?.Release();
 
@@ -126,8 +147,27 @@ namespace _Scripts.Helpers
 
             // Release the domain warping offset buffer
             DomainWarpingOffsetBuffer?.Release();
+
+            // Release the falloff map buffer
+            FalloffMapBuffer?.Release();
+
+            // Release the Compute Buffer for vertices
+            VerticesBuffer?.Release();
+
+            // Release the Compute Buffer for colors
+            ColourBuffer?.Release();
+
+            // Release the Compute Buffer for color palette
+            ColourPaletteBuffer?.Release();
+            ColourPaletteHeightsBuffer?.Release();
+            
+            // Release the local min-max compute buffer
+            LocalMinMaxBuffer?.Release();
+
+            // Release the global min-max compute buffer
+            GlobalMinMaxBuffer?.Release();
         }
-        
+
         #endregion
     }
 }

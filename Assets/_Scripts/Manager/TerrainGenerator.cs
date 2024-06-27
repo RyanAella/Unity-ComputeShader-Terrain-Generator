@@ -3,28 +3,27 @@
  * Creation Date: 26-04-2024
  * Description: This script manages the generation of terrain meshes (ground and water) using compute shaders in Unity.
  *              It handles initialization, validation of parameters, and spawning of the player character on the generated terrain.
- * License: License
+ * License: MIT License
  */
 
 using System.Collections.Generic;
 using UnityEngine;
 using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
-using _Scripts.Terrain;
+using _Scripts.TerrainGenerators;
 
 namespace _Scripts.Manager
 {
     /// <summary>
     /// Manages the generation of a mesh using a compute shader.
     /// </summary>
-    public class GameManager : MonoBehaviour
+    public class TerrainGenerator : MonoBehaviour
     {
         #region Variables
 
         [Header("Settings")] 
         [SerializeField] private GeneralSettings generalSettings; // General settings for the game
-        [SerializeField] private NoiseSettings groundNoiseSettings; // Noise settings for the ground
-        [SerializeField] private NoiseSettings waterNoiseSettings; // Noise settings for the water
+        [SerializeField] private NoiseSettings noiseSettings; // Noise settings
         
         [SerializeField] private Shaders shaders; // Shader settings for the compute shader
         
@@ -40,13 +39,12 @@ namespace _Scripts.Manager
 
         [SerializeField] private GameObject player; // Player object
 
-        private TerrainSettings _terrainSettings; // Terrain settings
-        private TerrainGenerationManagers _managers; // Terrain generation managers
+        private TerrainSettings _terrainSettings; // TerrainGenerators settings
+        private TerrainGenerationManagers _managers; // TerrainGenerators generation managers
 
         private List<Vector4> _colourPalette; // Colour palette for the ground
 
         private int _colourCount; // Represents the number of colours in the ground colour palette
-        // private int _waterColourCount; // Represents the number of colours in the water colour palette
 
         private GroundGenerator _ground; // Ground generator object
         private WaterGenerator _water; // Water generator object
@@ -68,9 +66,6 @@ namespace _Scripts.Manager
         /// </summary>
         private void Start()
         {
-            // Validate the parameters before proceeding
-            ValidateParameters();
-
             // Initialize the necessary components
             Init();
 
@@ -88,8 +83,8 @@ namespace _Scripts.Manager
                 Instantiate(player, position, Quaternion.identity);
             }
 
-            // Release the buffers used by various managers
-            ReleaseBuffers();
+            // Release the buffers
+            ComputeBufferManager.Instance.ReleaseBuffers();
         }
 
         /// <summary>
@@ -99,15 +94,9 @@ namespace _Scripts.Manager
         private void ValidateParameters()
         {
             // Ensure that the lacunarity of ground noise settings is at least 1
-            if (groundNoiseSettings.lacunarity < 1)
+            if (noiseSettings.lacunarity < 1)
             {
-                groundNoiseSettings.lacunarity = 1;
-            }
-
-            // Ensure that the lacunarity of water noise settings is at least 1
-            if (waterNoiseSettings.lacunarity < 1)
-            {
-                waterNoiseSettings.lacunarity = 1;
+                noiseSettings.lacunarity = 1;
             }
 
             // Instantiate the ground object if it is null
@@ -128,12 +117,14 @@ namespace _Scripts.Manager
         /// </summary>
         private void Init()
         {
+            // Validate the parameters before proceeding
+            ValidateParameters();
+            
             //
             _terrainSettings = new TerrainSettings
             {
                 GeneralSettings =  generalSettings,
-                GroundNoiseSettings = groundNoiseSettings,
-                WaterNoiseSettings = waterNoiseSettings
+                NoiseSettings = noiseSettings
             };
             
             // Initialize Managers
@@ -150,8 +141,7 @@ namespace _Scripts.Manager
                 ColourGenerationManager.GetColorPalette(colourGradient.colours, out _colourCount, out _colourHeights);
 
             // Initialize Offset Vectors
-            InitializeOffsetVectors(groundNoiseSettings);
-            InitializeOffsetVectors(waterNoiseSettings);
+            InitializeOffsetVectors(noiseSettings);
 
             // Cache MeshFilter and MeshCollider components
             _groundMeshFilter = _ground.GetComponent<MeshFilter>();
@@ -206,24 +196,6 @@ namespace _Scripts.Manager
                 // Set the first offset vector to zero for domain warping
                 if (i == 0) settings.offsetVectors[0] = Vector2.zero;
             }
-        }
-
-        /// <summary>
-        /// Releases the buffers used by various managers.
-        /// </summary>
-        private void ReleaseBuffers()
-        {
-            // Release noise generation buffers
-            NoiseGenerationManager.ReleaseBuffers();
-
-            // Release falloff map buffers
-            FalloffMapManager.ReleaseBuffers();
-
-            // Release generator function buffers
-            GeneratorFunctions.ReleaseBuffers();
-
-            // Release colour generation buffers
-            _managers.ColourGenerationManager.ReleaseBuffers();
         }
 
         /// <summary>

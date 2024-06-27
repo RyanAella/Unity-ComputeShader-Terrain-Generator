@@ -1,8 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 31-05-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: Manages the generation of a falloff map using a compute shader.
+ * License: MIT Licence
  */
 
 
@@ -12,6 +12,9 @@ using UnityEngine;
 
 namespace _Scripts.Manager
 {
+    /// <summary>
+    /// Manages the generation of a falloff map using a compute shader.
+    /// </summary>
     public class FalloffMapManager
     {
         #region Variables
@@ -20,39 +23,46 @@ namespace _Scripts.Manager
         private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
         
         private static readonly int VertexBuffer = Shader.PropertyToID("_Vertex_Buffer"); // ID for vertex buffer
-        private static readonly int FalloffMapBuffer = Shader.PropertyToID("_Falloff_Map_Buffer");
+        private static readonly int FalloffMapBuffer = Shader.PropertyToID("_Falloff_Map_Buffer"); // ID for falloff map buffer
 
         #endregion
 
         #region Methods
         
-        public static void ReleaseBuffers()
-        {
-            ComputeBufferManager.Instance.FalloffMapBuffer?.Release();
-        }
-
+        /// <summary>
+        /// Applies the falloff map generation using the provided shaders and general settings.
+        /// </summary>
+        /// <param name="shaders">The shader settings to use.</param>
+        /// <param name="generalSettings">The general settings for the falloff map.</param>
         public void ApplyFalloffMap(Shaders shaders, GeneralSettings generalSettings)
         {
+            // Get resolution from general settings
             Vector2Int resolution = generalSettings.resolution;
+            
+            // Calculate vertices per line
+            int verticesPerLineX = resolution.x * 2 + 1;
+            int verticesPerLineZ = resolution.y * 2 + 1;
+            
             ComputeShader falloffComputeShader = shaders.falloffComputeShader;
             
             // Find the kernel in the compute shader.
             var noiseKernel = falloffComputeShader.FindKernel("Falloff_Map");
-
+            
             // Set shader properties
-            falloffComputeShader.SetInt(MapWidth, resolution.x);
-            falloffComputeShader.SetInt(MapHeight, resolution.y);
+            falloffComputeShader.SetInt(MapWidth, verticesPerLineX);
+            falloffComputeShader.SetInt(MapHeight, verticesPerLineZ);
             
             falloffComputeShader.SetBuffer(noiseKernel, VertexBuffer, ComputeBufferManager.Instance.VerticesBuffer);
             falloffComputeShader.SetBuffer(noiseKernel, FalloffMapBuffer, ComputeBufferManager.Instance.FalloffMapBuffer);
 
             // Calculate the number of thread groups to dispatch.
-            var dispatchX = Mathf.CeilToInt(resolution.x / 16f);
-            var dispatchY = Mathf.CeilToInt(resolution.y / 16f);
+            var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
+            var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
 
             // Dispatch the compute shader to generate the mesh parameters.
             falloffComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);
         }
+
 
         #endregion
     }

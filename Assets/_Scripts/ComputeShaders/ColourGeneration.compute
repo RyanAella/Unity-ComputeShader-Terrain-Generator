@@ -1,57 +1,64 @@
 /*
 * Author: Rebecca Biebl
 * Creation Date: 02-05-2024
-* Description: 
-* License: Licence
+* Description: Compute Shader for coloring a mesh based on height and a color palette.
+* License: MIT Licence
 */
 
 // Define the kernel function for coloring the mesh.
 #pragma kernel Colour_Mesh 0
 
 // Buffer for storing the vertices of the mesh.
-RWStructuredBuffer<float3> Vertex_Buffer;
+RWStructuredBuffer<float3> Vertex_Buffer; // Stores the vertices of the mesh.
 
 // Buffer for storing the colors of the mesh vertices.
-RWStructuredBuffer<float4> Colour_Buffer;
+RWStructuredBuffer<float4> Colour_Buffer; // Stores the colors of the mesh vertices.
 
 // Buffer for storing the color palette used for coloring.
-RWStructuredBuffer<float4> Colour_Palette_Buffer;
-RWStructuredBuffer<float> Colour_Palette_Heights_Buffer;
+RWStructuredBuffer<float4> Colour_Palette_Buffer; // Stores the color palette used for coloring.
+RWStructuredBuffer<float> Colour_Palette_Heights_Buffer; // Stores the heights of the color palette.
 
 // Number of colors in the color palette.
-int colour_count;
+int colour_count; // Number of colors in the color palette.
 
 // Dimensions of the map (width and height).
-int map_width;
-int map_height;
+int map_width; // Width of the map.
+int map_height; // Height of the map.
 
 // Minimum and maximum height values of the terrain.
-float min_height;
-float max_height;
+float min_height; // Minimum height value of the terrain.
+float max_height; // Maximum height value of the terrain.
 
-float time;
+float time; // Time variable.
 
-bool is_water;
+bool is_water; // Flag indicating if the terrain represents water.
 
 // Total length of the vertex buffer.
 int vertices_buffer_length;
 
+/// <summary>
+/// Get the height of a vertex and color it based on the height and color palette.
+/// </summary>
+/// <param name="index">The index of the vertex in the buffer.</param>
 void get_height(const int index)
 {
     // Get the height of the vertex
     const float height = Vertex_Buffer[index].y;
 
+    // Check if the height is within the range [0, 1]
     if (height >= 0 && height <= 1)
     {
         // Iterate through the color palette to find the appropriate color for the vertex height
         for (int k = 0; k < colour_count - 1; k++)
         {
+            // Calculate the range of heights for this color range
             const float range_start = (float)k / (colour_count - 1);
             const float range_end = (float)(k + 1) / (colour_count - 1);
 
+            // Check if the vertex height falls within this color range
             if (height >= range_start && height <= range_end)
             {
-                // Calculate the interpolation factor
+                // Calculate the interpolation factor based on the height within the range
                 const float t = (height - range_start) / (range_end - range_start);
                 
                 // Interpolate the color using the color palette
@@ -64,6 +71,7 @@ void get_height(const int index)
                 // We assume here that the alpha value is the same for both start and end colors
                 colour.a = lerp(startColor.a, endColor.a, t);
 
+                // Assign the calculated color to the vertex in the color buffer
                 Colour_Buffer[index] = colour;
                 break;
             }
@@ -76,12 +84,26 @@ void get_height(const int index)
     }
 }
 
+/// <summary>
+/// Smoothly interpolates between two edges based on the input value.
+/// </summary>
+/// <param name="edge0">The lower edge value.</param>
+/// <param name="edge1">The upper edge value.</param>
+/// <param name="x">The input value to interpolate.</param>
+/// <returns>The smoothed interpolation value between the edges.</returns>
 float smooth(float edge0, float edge1, float x)
 {
+    // Calculate the interpolation factor
     float t = clamp((x - edge0) / (edge1 - edge0), 0.0, max_height);
+
+    // Smoothly interpolate between the edges
     return t * t * (3.0 - 2.0 * t);
 }
 
+/// <summary>
+/// Determines the color for a vertex based on its height and the color palette.
+/// </summary>
+/// <param name="index">The index of the vertex in the buffer.</param>
 void determine_colour(const int index)
 {
     // Get the height of the vertex
@@ -113,8 +135,6 @@ void determine_colour(const int index)
             if (height >= range_start && height <= range_end)
             {
                 // Calculate the interpolation factor
-                // const float t = (height - range_start) / (range_end - range_start);
-
                 float t = smoothstep(range_start, range_end, height);
                 
                 // Interpolate the color using the color palette
@@ -136,92 +156,15 @@ void determine_colour(const int index)
     }
     else if (height < min_height)
     {
-        // // Find the color corresponding to the height just above min_height
-        // float4 closest_colour = Colour_Palette_Buffer[0];
-        //
-        // for (int k = 0; k < colour_count; k++)
-        // {
-        //     if (Colour_Palette_Heights_Buffer[k] >= min_height)
-        //     {
-        //         closest_colour = Colour_Palette_Buffer[k];
-        //         break;
-        //     }
-        // }
-        //
-        // // Use the color at the closest height above min_height
-        // Colour_Buffer[index] = closest_colour;
-
+        // Assign a color if the height is below the minimum height
         Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
     }
     else if (height > max_height)
     {
+        // Assign the color from the color palette if the height exceeds the maximum height
         Colour_Buffer[index] = Colour_Palette_Buffer[colour_count - 1];
     }
-
 }
-
-// void get_height_and_color(const int index)
-// {
-//     // Get the original height of the vertex
-//     float originalHeight = Vertex_Buffer[index].y;
-//
-//     // Determine the color based on the original height
-//     determine_colour(originalHeight);
-//
-//     // Apply wave movement for visual effect
-//     float waveMovement = clamp((sin(originalHeight * 100 + time)), min_height, 0.2f);
-//     float modifiedHeight = originalHeight + waveMovement;
-//
-//     // Optionally, apply the modified height to the vertex position for visual effect
-//     // This does not affect the color determination but influences how the height is visually represented
-//     // Vertex_Buffer[index].y = modifiedHeight;
-// }
-
-// float smoothstep(float edge0, float edge1, float x)
-// {
-//     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
-//     return x * x * (3.0 - 2.0 * x);
-// }
-//
-// void determine_colour(const int index)
-// {
-//     // Get the height of the vertex
-//     float height = Vertex_Buffer[index].y;
-//     float4 colour = float4(0, 0, 0, 0);
-//
-//     if (height >= min_height && height <= max_height)
-//     {
-//         float range_start, range_end;
-//         for (int k = 0; k < colour_count; k++)
-//         {
-//             if (k == 0)
-//             {
-//                 range_start = 0.0f;
-//                 range_end = Colour_Palette_Heights_Buffer[k];
-//             }
-//             else
-//             {
-//                 range_start = Colour_Palette_Heights_Buffer[k - 1];
-//                 range_end = Colour_Palette_Heights_Buffer[k];
-//             }
-//
-//             if (height >= range_start && height <= range_end)
-//             {
-//                 float t = smoothstep(range_start, range_end, height);
-//                 float4 start_colour = (k == 0) ? colour : Colour_Palette_Buffer[k - 1];
-//                 float4 end_colour = Colour_Palette_Buffer[k];
-//                 colour = lerp(start_colour, end_colour, t);
-//                 colour.a = lerp(start_colour.a, end_colour.a, t);
-//                 Colour_Buffer[index] = colour;
-//                 break;
-//             }
-//         }
-//     }
-//     else
-//     {
-//         Colour_Buffer[index] = colour;
-//     }
-// }
 
 /// <summary>
 /// Color the mesh based on the vertex height and color palette.
@@ -239,5 +182,6 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
         return;
     }
 
+    // Call the function to determine the color for the vertex
     determine_colour(index);
 }

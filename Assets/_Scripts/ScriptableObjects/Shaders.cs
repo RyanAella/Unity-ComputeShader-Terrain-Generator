@@ -1,8 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 29-05-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: A scriptable object that stores the shaders used in the project.
+ * License: MIT Licence
  */
 
 
@@ -11,6 +11,9 @@ using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
+    /// <summary>
+    /// Scriptable object that stores the shaders used in the project.
+    /// </summary>
     [CreateAssetMenu(fileName = "Shaders", menuName = "Shaders")]
     [Serializable]
     public class Shaders : ScriptableObject
@@ -29,7 +32,7 @@ namespace _Scripts.ScriptableObjects
 
         public ComputeShader colourGenerationComputeShader; // Compute shader for colourGradient generation
         
-        public ComputeShader waterMovementComputeShader;
+        public ComputeShader waterMovementComputeShader; // Compute shader for water movement
 
         #endregion
     }

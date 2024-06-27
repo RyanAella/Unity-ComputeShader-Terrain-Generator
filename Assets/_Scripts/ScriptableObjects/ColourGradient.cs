@@ -1,18 +1,18 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 14-06-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: ScriptableObject representing a Colour Gradient for terrain
+ * License: MIT Licence
  */
 
-
-using System.Collections;
-using System.Collections.Generic;
 using _Scripts.Helpers;
 using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
+    /// <summary>
+    /// ScriptableObject representing a Colour Gradient for terrain
+    /// </summary>
     [CreateAssetMenu(fileName = "ColourGradients", menuName = "ColourGradient")]
     public class ColourGradient : ScriptableObject
     {

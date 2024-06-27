@@ -1,5 +1,15 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.19.0] - 2024-06-27
+### Added
+- Introduced `BaseGenerator` class, serving as a base class for both `GroundGenerator` and `WaterGenerator`.
+
+### Changed
+- `ReleaseBuffers()` method is now exclusively within `ComputeBufferManager`.
+
+### Removed
+- Removed `WaterNoiseSettings` from the project.
+
 ## [0.18.0] - 2024-06-15
 ### Added
 - Implemented `ComputeBufferManager` to optimize buffer usage by avoiding unnecessary recreations.

@@ -2,9 +2,10 @@
 * Author: Rebecca Biebl
 * Creation Date: 26-04-2024
 * Description: Compute shader for noise-based mesh generation.
-* License: Licence
+* License: MIT Licence
 */
 
+// Define kernel functions for the compute shader.
 #pragma kernel Compute_Local_Min_Max 0
 #pragma kernel Compute_Global_Min_Max 1
 #pragma kernel Clamp_Height_Values 2
@@ -21,8 +22,8 @@ uint map_height; // Height of the noise map
 float float_min_value; // Minimum float value
 float float_max_value; // Maximum float value
 
-float min_value;
-float max_value;
+float min_value; // Minimum value used for clamping
+float max_value; // Maximum value used for clamping
 
 // Length of buffers for vertices and local Min/Max values.
 int vertices_buffer_length; // Total length of the vertex buffer
@@ -63,8 +64,11 @@ float inverse_lerp(const float from, const float to, const float value)
     return clamp(result, 0.0f, 1.0f);
 }
 
-// Kernel for computing local Min/Max values
-[numthreads(16, 16, 1)] // Thread group size (8x8x1)
+/// <summary>
+/// Computes the local minimum and maximum values within the thread group.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+[numthreads(16, 16, 1)] // Thread group size
 void Compute_Local_Min_Max(uint3 id : SV_DispatchThreadID)
 {
     // Calculate the index based on the thread ID
@@ -112,30 +116,30 @@ void Compute_Local_Min_Max(uint3 id : SV_DispatchThreadID)
 [numthreads(1, 1, 1)]
 void Compute_Global_Min_Max(uint3 id : SV_DispatchThreadID)
 {
-    // Initialize global Min/Max with extreme values
-    float min = float_max_value;
-    float max = float_min_value;
+    // Initialize global Min/Max values with extreme values for comparison.
+    float min = float_max_value; // Initialize min with maximum float value
+    float max = float_min_value; // Initialize max with minimum float value
 
     // Loop through all local Min/Max values to find the global Min/Max
     for (int i = 0; i < local_min_max_buffer_length; ++i)
     {
-        // Retrieve the local Min/Max values
+        // Retrieve the local Min/Max values at index i
         float2 min_max = _Local_Min_Max_Buffer[i];
 
         // Update global Min/Max based on the local values
         if (min_max.x < min)
         {
-            min = min_max.x;
+            min = min_max.x; // Update min if a lower value is found
         }
         if (min_max.y > max)
         {
-            max = min_max.y;
+            max = min_max.y; // Update max if a higher value is found
         }
     }
 
-    // Store the global Min/Max values
-    _Global_Min_Max_Buffer[0] = min;
-    _Global_Min_Max_Buffer[1] = max;
+    // Store the computed global Min/Max values in the buffer
+    _Global_Min_Max_Buffer[0] = min; // Store the minimum value at index 0
+    _Global_Min_Max_Buffer[1] = max; // Store the maximum value at index 1
 }
 
 /// <summary>
@@ -145,24 +149,25 @@ void Compute_Global_Min_Max(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
 {
-    // Ensure the thread ID is within the map dimensions.
+    // Check if the thread ID is within the map dimensions
     if (id.x >= map_width || id.y >= map_height)
     {
-        return; // Exit early if out of bounds
+        return; // Exit the function early if out of bounds
     }
 
     // Initialize local Min/Max with extreme values
     min_value = _Global_Min_Max_Buffer[0];
     max_value = _Global_Min_Max_Buffer[1];
     
-    // Calculate the index based on the thread ID
+    // Calculate the buffer index based on the thread ID
     const int index = id.y * map_width + id.x;
 
-    // Get the vertex at the current index
+    // Retrieve the vertex at the current index
     float3 vertex = _Vertex_Buffer[index];
 
+    // Normalize the height value
     float normalized_height = inverse_lerp(min_value, max_value, vertex.y);
 
-    // Store the clamped vertex in the clamped buffer
+    // Update the vertex with the clamped height value
     _Vertex_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
 }

@@ -1,8 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 29-05-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: 
+ * License: mit Licence
  */
 
 
@@ -12,6 +12,9 @@ using UnityEngine;
 
 namespace _Scripts.ScriptableObjects
 {
+    /// <summary>
+    /// Scriptable object containing general settings for terrain generation.
+    /// </summary>
     [CreateAssetMenu(menuName = "ScriptableObjects/Settings/GeneralSettings")]
     [Serializable]
     public class GeneralSettings : ScriptableObject
@@ -30,13 +33,10 @@ namespace _Scripts.ScriptableObjects
         [Tooltip("The maximum height of the terrain.")]
         [Range(1, 200)]
         public float maxTerrainHeight = 180.0f; // The maximum height of the terrain.
+        
         [Tooltip("The water level relative to the maximum terrain height.")]
         [Range(0, 1)]
         public float waterLevel = 0.3f; // The water level relative to the maximum terrain height.
-
-        public float waterColourHeight = 0.3f;
-        
-        public float minValue;
 
         #endregion
     }

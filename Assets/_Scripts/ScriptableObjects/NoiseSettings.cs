@@ -1,8 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 30-04-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: This scriptable object class contains settings related to noise generation.
+ * License: MIT Licence
  */
 
 using System;
@@ -78,7 +78,7 @@ namespace _Scripts.ScriptableObjects
         [HideInInspector] public Vector2[] offsetVectors; // Offset vectors for domain warping.
 
         #endregion
-
+        
         #region Methods
 
         /// <summary>
@@ -101,24 +101,37 @@ namespace _Scripts.ScriptableObjects
             return seed;
         }
 
+        /// <summary>
+        /// Called when the object is loaded or initialized.
+        /// </summary>
         private void OnEnable()
         {
             UpdateNoiseLayers();
         }
         
+        /// <summary>
+        /// Called when the script is loaded or a value is changed in the Inspector.
+        /// </summary>
         private void OnValidate()
         {
             UpdateNoiseLayers();
         }
 
+        /// <summary>
+        /// Updates the noise layers based on the number of octaves.
+        /// </summary>
         private void UpdateNoiseLayers()
         {
+            // Create a new array for the updated noise layers
             NoiseLayerSettings[] newNoiseLayers = new NoiseLayerSettings[octaves];
+            
+            // Copy the existing noise layers to the new array
             for (int i = 0; i < Mathf.Min(octaves, noiseLayerSettings.Length); i++)
             {
                 newNoiseLayers[i].noiseLayer = noiseLayerSettings[i].noiseLayer;
             }
         
+            // Update the noise layers to the new array
             noiseLayerSettings = newNoiseLayers;
         }
 

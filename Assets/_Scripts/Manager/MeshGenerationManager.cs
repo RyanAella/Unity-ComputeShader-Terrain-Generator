@@ -1,12 +1,10 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 26-04-2024
- * Description: A script for managing mesh generation in Unity.
- * License: Licence
+ * Description: Class for managing mesh generation.
+ * License: MIT Licence
  */
 
-
-using System;
 using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -24,15 +22,15 @@ namespace _Scripts.Manager
         /// <summary>
         ///     Creates a new mesh based on the given vertices and triangles.
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">The name of the mesh.</param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
-        /// <param name="uvs"></param>
-        /// <param name="normals"></param>
+        /// <param name="uvs">An array of Vector2 that defines the UVs of the mesh.</param>
+        /// <param name="normals">An array of Vector3 that defines the normals of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        /// <param name="managers"></param>
-        /// <param name="shaders"></param>
-        /// <param name="settings"></param>
-        /// <param name="meshFilter"></param>
+        /// <param name="managers">The terrain generation managers.</param>
+        /// <param name="shaders">The shaders used.</param>
+        /// <param name="settings">The terrain settings.</param>
+        /// <param name="meshFilter">The MeshFilter component to apply the mesh to.</param>
         public void CreateMesh(TerrainGenerationManagers managers, Shaders shaders, TerrainSettings settings,
             MeshFilter meshFilter, string name, Vector3[] vertices, Vector2[] uvs, Vector3[] normals, int[] triangles)
         {
@@ -70,31 +68,21 @@ namespace _Scripts.Manager
         }
 
         /// <summary>
-        /// 
+        ///     Calculates the normals for the mesh based on the vertices and triangles.
         /// </summary>
-        /// <param name="managers"></param>
-        /// <param name="shaders"></param>
-        /// <param name="settings"></param>
-        /// <param name="vertices"></param>
-        /// <param name="triangles"></param>
-        /// <returns></returns>
+        /// <param name="managers">The terrain generation managers.</param>
+        /// <param name="shaders">The shaders used.</param>
+        /// <param name="settings">The terrain settings.</param>
+        /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
+        /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
+        /// <returns>An array of Vector3 representing the normals of the mesh.</returns>
         private Vector3[] CalculateNormals(TerrainGenerationManagers managers, Shaders shaders,
             TerrainSettings settings, Vector3[] vertices, int[] triangles)
         {
             Vector3[] vertexNormals = new Vector3[vertices.Length];
             int triangleCount = triangles.Length / 3;
 
-            // Vector2Int resolution = settings.GeneralSettings.resolution;
-            //
-            // ComputeShader computeShader = shaders.meshGenerationComputeShader;
-            //
-            // computeShader.FindKernel("Mesh_Generation");
-
-            // computeShader.SetInt("triangle_count",triangleCount);
-            //
-            // ComputeBuffer _trianglesBuffer = new ComputeBuffer((resolution.x - 1) * (resolution.y - 1) * 6, sizeof(int))
-            // computeShader.SetBuffer("_Triangle_Buffer", );
-
+            // Compute normals for each vertex based on triangles.
             for (int i = 0; i < triangleCount; i++)
             {
                 int normalTriangleIndex = i * 3;
@@ -110,6 +98,7 @@ namespace _Scripts.Manager
                 vertexNormals[vertexIndexC] += triangleNormal;
             }
 
+            // Normalize the vertex normals.
             for (int i = 0; i < vertexNormals.Length; i++)
             {
                 vertexNormals[i].Normalize();
@@ -118,15 +107,26 @@ namespace _Scripts.Manager
             return vertexNormals;
         }
 
+        /// <summary>
+        /// Calculates the surface normal vector for a triangle defined by three vertices.
+        /// </summary>
+        /// <param name="indexA">The index of the first vertex.</param>
+        /// <param name="indexB">The index of the second vertex.</param>
+        /// <param name="indexC">The index of the third vertex.</param>
+        /// <param name="vertices">Array of vertices representing the mesh geometry.</param>
+        /// <returns>The normalized surface normal vector for the triangle.</returns>
         private Vector3 SurfaceNormalFromIndices(int indexA, int indexB, int indexC, Vector3[] vertices)
         {
+            // Get the three points of the triangle from the vertices array.
             Vector3 pointA = vertices[indexA];
             Vector3 pointB = vertices[indexB];
             Vector3 pointC = vertices[indexC];
 
+            // Calculate the two sides of the triangle.
             Vector3 sideAB = pointB - pointA;
             Vector3 sideAC = pointC - pointA;
 
+            // Calculate and return the normalized surface normal vector.
             return Vector3.Cross(sideAB, sideAC).normalized;
         }
 
