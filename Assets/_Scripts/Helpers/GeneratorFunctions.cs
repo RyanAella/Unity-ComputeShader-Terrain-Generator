@@ -127,9 +127,10 @@ namespace _Scripts.Helpers
             // Dispatch the compute shader
             computeShader.Dispatch(computeGlobal, 1, 1, 1);
 
-            // Get the global min-max values
-            float[] minMax = new float[2];
-            ComputeBufferManager.Instance.GlobalMinMaxBuffer.GetData(minMax);
+            // // Get the global min-max values
+            // float[] minMax = new float[2];
+            // ComputeBufferManager.Instance.GlobalMinMaxBuffer.GetData(minMax);
+            // Debug.Log(minMax[0] + " " + minMax[1]);
         }
 
         /// <summary>
@@ -147,7 +148,7 @@ namespace _Scripts.Helpers
             // Set the map width and height in the compute shader.
             computeShader.SetInt(MapWidth, resolution.x);
             computeShader.SetInt(MapHeight, resolution.y);
-    
+            
             // Set the global min-max buffer in the compute shader.
             computeShader.SetBuffer(clampKernel, GlobalMinMaxBuffer, ComputeBufferManager.Instance.GlobalMinMaxBuffer);
 

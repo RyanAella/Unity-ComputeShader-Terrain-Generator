@@ -26,8 +26,10 @@ namespace _Scripts.Manager
         [SerializeField] private NoiseSettings noiseSettings; // Noise settings
         
         [SerializeField] private Shaders shaders; // Shader settings for the compute shader
-        
-        [SerializeField] private ColourGradient colourGradient; // Colour gradient for the terrain
+
+        [SerializeField] private bool useColourPalette;
+        [SerializeField] private ColourGradient colourGradient; // Colour gradient for the ground
+        [SerializeField] private ColourGradient greyscaleGradient; // Colour palette for the ground
 
         [Header("Generators")] [SerializeField]
         private GroundGenerator groundGenerator; // Ground generator object

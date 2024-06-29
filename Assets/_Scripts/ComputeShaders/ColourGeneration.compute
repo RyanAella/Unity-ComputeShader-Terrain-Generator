@@ -162,7 +162,8 @@ void determine_colour(const int index)
     else if (height > max_height)
     {
         // Assign the color from the color palette if the height exceeds the maximum height
-        Colour_Buffer[index] = Colour_Palette_Buffer[colour_count - 1];
+        // Colour_Buffer[index] = Colour_Palette_Buffer[colour_count - 1];
+        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
     }
 }
 

@@ -46,11 +46,17 @@ namespace _Scripts.TerrainGenerators
 
             // Use the ColourGenerationManager class to colour the mesh using the specified compute shader, mesh filter, chunkSize, min/max values, and colour gradient palette.
             managers.ColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
-                terrainSettings.GeneralSettings.resolution, new[] { terrainSettings.GeneralSettings.waterLevel, 1f },
+                terrainSettings.GeneralSettings.resolution, new[] { 0.0f /*terrainSettings.GeneralSettings.waterLevel*/, 1f },
                 colourGradient.ToArray(), colourHeights, groundColourCount, false, material);
 
             // Adjust the mesh height.
             AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
+
+            // foreach (var normal in meshFilter.sharedMesh.normals)
+            // {
+            //     Debug.Log(normal);
+            // }
+            // Debug.Log(meshFilter.sharedMesh.normals.Length);
         }
 
         #endregion
