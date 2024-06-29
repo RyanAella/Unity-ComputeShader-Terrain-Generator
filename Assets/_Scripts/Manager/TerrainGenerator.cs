@@ -192,8 +192,8 @@ namespace _Scripts.Manager
                 float yOffset2 = (float)pseudoRandom.NextDouble() * settings.warpStepSize + settings.offset.y;
 
                 // Set the offset vectors for the current step
-                settings.offsetVectors[i + i] = new Vector2(xOffset1, yOffset1);
-                settings.offsetVectors[i + i + 1] = new Vector2(xOffset2, yOffset2);
+                settings.offsetVectors[i + i] = new Vector2(xOffset1, yOffset1) * 10;
+                settings.offsetVectors[i + i + 1] = new Vector2(xOffset2, yOffset2) * 10;
 
                 // Set the first offset vector to zero for domain warping
                 if (i == 0) settings.offsetVectors[0] = Vector2.zero;

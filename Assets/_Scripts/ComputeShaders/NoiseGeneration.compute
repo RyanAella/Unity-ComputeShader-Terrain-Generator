@@ -81,13 +81,13 @@ float random_between()
 /// 
 /// @param xy The input coordinates for noise generation
 /// @return The generated noise value
-float3 noise(const float2 xy)
+float noise(const float2 xy)
 {
     // Calculate UV coordinates for noise generation.
     const float2 uv = xy / float2(map_width, map_height);
 
     // Generate Simplex noise and add it to the accumulated value.
-    float3 value = SimplexNoise(uv);
+    float value = SimplexNoise(uv);
 
     return value;
 }
@@ -119,10 +119,10 @@ float ridge(float value)
 /// 
 /// @param pos The position for which noise is generated.
 /// @return The generated fractional Brownian motion noise value.
-float3 fractional_brownian_motion(const float2 pos)
+float fractional_brownian_motion(const float2 pos)
 {
     // Initialize the accumulated noise value.
-    float3 value = float3(0.0f, 0.0f, 0.0f);
+    float value = 0.0f;
     // Initialize the initial amplitude for noise generation.
     float amp = amplitude;
     // Initialize the initial frequency for noise generation.
@@ -139,7 +139,7 @@ float3 fractional_brownian_motion(const float2 pos)
         const float2 uv = pos * freq + octave_offset;
 
         // Generate Simplex noise and add it to the accumulated value.
-        float3 noise_value = noise(uv);
+        float noise_value = noise(uv);
 
         // Apply noise transformation based on the noise layer type.
         switch (_Noise_Layer_Buffer[o])
@@ -148,10 +148,10 @@ float3 fractional_brownian_motion(const float2 pos)
             // No transformation for regular noise
             break;
         case 1: // Billow noise
-            noise_value.y = billow(noise_value.y);
+            noise_value = billow(noise_value);
             break;
         case 2: // Ridge noise
-            noise_value.y = ridge(noise_value.y);
+            noise_value = ridge(noise_value);
             break;
         default:
             // Default case, do nothing
@@ -175,7 +175,7 @@ float3 fractional_brownian_motion(const float2 pos)
 ///
 /// @param p The input position for domain warping
 /// @return The result of domain warping applied to the input position
-float3 domain_warping(const float2 p)
+float domain_warping(const float2 p)
 {
     // Initialize the displacement vector r to (0, 0)
     float2 r = float2(0.0f, 0.0f);
@@ -185,11 +185,11 @@ float3 domain_warping(const float2 p)
     {
         // Calculate the fractional Brownian motion at the current x position
         float posX = fractional_brownian_motion(
-            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i]).y;
+            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + i]);
 
         // Calculate the fractional Brownian motion at the current y position
         float posY = fractional_brownian_motion(
-            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + 1]).y;
+            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + i + 1]);
 
         // Update the displacement vector r with the newly calculated x and y positions
         r = float2(posX, posY);
@@ -228,12 +228,12 @@ void make_vertices(uint3 id, const float half_width, const float half_height)
         }
         else
         {
-            float3 value = domain_warping(samples);
+            float value = domain_warping(samples);
 
             // Determine the vertex's position in world space relative to the top-left corner of the map.
             const float top_left_x = map_width / -2.0f - 1;
             const float top_left_z = map_height / -2.0f - 1;
-            vertex = float3(top_left_x + (id.x * 0.5f), value.y, top_left_z + (id.y * 0.5f));
+            vertex = float3(top_left_x + (id.x * 0.5f), value, top_left_z + (id.y * 0.5f));
         }
 
         _Vertex_Buffer[vertex_index] = vertex; // Update the vertex buffer with the generated vertex.
