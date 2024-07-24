@@ -6,7 +6,6 @@
  */
 
 using _Scripts.Helpers;
-using _Scripts.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -27,84 +26,63 @@ namespace _Scripts.Manager
         /// <param name="uvs">An array of Vector2 that defines the UVs of the mesh.</param>
         /// <param name="normals">An array of Vector3 that defines the normals of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
-        /// <param name="managers">The terrain generation managers.</param>
-        /// <param name="shaders">The shaders used.</param>
-        /// <param name="settings">The terrain settings.</param>
         /// <param name="meshFilter">The MeshFilter component to apply the mesh to.</param>
-        public void CreateMesh(TerrainGenerationManagers managers, Shaders shaders, TerrainSettings settings,
-            MeshFilter meshFilter, string name, Vector3[] vertices, Vector2[] uvs, Vector3[] normals, int[] triangles)
+        public void CreateMesh(MeshFilter meshFilter, string name, Vector3[] vertices, Vector2[] uvs, Vector3[] normals,
+            int[] triangles)
         {
-            // Creates a new Mesh object.
-            // Sets the mesh of the MeshFilter to the newly created mesh.
+            // Create and configure a new Mesh.
             Mesh mesh = new Mesh
             {
-                name = name,
-                indexFormat = IndexFormat.UInt32,
+                name = name, // Set the name of the mesh.
+                indexFormat = IndexFormat.UInt32 // Use 32-bit indices to support larger meshes.
             };
 
-            // Clears all previous data in the mesh.
-            mesh.Clear();
+            mesh.Clear(); // Clear previous mesh data.
 
-            // Sets the vertices of the mesh.
-            mesh.vertices = vertices;
+            mesh.vertices = vertices; // Set vertex positions.
+            mesh.uv = uvs; // Set UV coordinates.
+            mesh.normals = CalculateNormals(vertices, triangles); // Compute normals for proper lighting.
+            mesh.triangles = triangles; // Define triangle indices.
 
-            // Sets the uvs of the mesh.
-            mesh.uv = uvs;
+            mesh.RecalculateBounds(); // Recalculate the bounds of the mesh.
+            mesh.RecalculateTangents(); // Recalculate tangents for better lighting effects.
 
-            // Sets the normals of the mesh.
-            // mesh.normals = normals;
-
-            // mesh.normals = CalculateNormals(managers, shaders, settings, vertices, triangles);
-            
-            // Sets the triangles of the mesh.
-            mesh.triangles = triangles;
-
-            // Recalculates the normals of the mesh based on the vertices and triangles.
-            mesh.RecalculateBounds();
-            mesh.RecalculateNormals();
-            mesh.RecalculateTangents();
-
-            meshFilter.mesh = meshFilter.sharedMesh = mesh;
+            meshFilter.mesh = meshFilter.sharedMesh = mesh; // Assign the mesh to the MeshFilter.
         }
 
         /// <summary>
         ///     Calculates the normals for the mesh based on the vertices and triangles.
         /// </summary>
-        /// <param name="managers">The terrain generation managers.</param>
-        /// <param name="shaders">The shaders used.</param>
-        /// <param name="settings">The terrain settings.</param>
         /// <param name="vertices">An array of Vector3 that defines the vertices of the mesh.</param>
         /// <param name="triangles">An array of int that defines the indices of the vertices forming the triangles of the mesh.</param>
         /// <returns>An array of Vector3 representing the normals of the mesh.</returns>
-        private Vector3[] CalculateNormals(TerrainGenerationManagers managers, Shaders shaders,
-            TerrainSettings settings, Vector3[] vertices, int[] triangles)
+        private Vector3[] CalculateNormals(Vector3[] vertices, int[] triangles)
         {
-            Vector3[] vertexNormals = new Vector3[vertices.Length];
-            int triangleCount = triangles.Length / 3;
+            Vector3[] normals = new Vector3[vertices.Length];
 
-            // Compute normals for each vertex based on triangles.
-            for (int i = 0; i < triangleCount; i++)
+            // Calculate the normals for each triangle.
+            for (int i = 0; i < triangles.Length; i += 3)
             {
-                int normalTriangleIndex = i * 3;
+                int index0 = triangles[i];
+                int index1 = triangles[i + 1];
+                int index2 = triangles[i + 2];
 
-                int vertexIndexA = triangles[normalTriangleIndex];
-                int vertexIndexB = triangles[normalTriangleIndex + 1];
-                int vertexIndexC = triangles[normalTriangleIndex + 2];
+                // Compute the normal of the triangle using helper method.
+                Vector3 normal = SurfaceNormalFromIndices(index0, index1, index2, vertices);
 
-                Vector3 triangleNormal = SurfaceNormalFromIndices(vertexIndexA, vertexIndexB, vertexIndexC, vertices);
-
-                vertexNormals[vertexIndexA] += triangleNormal;
-                vertexNormals[vertexIndexB] += triangleNormal;
-                vertexNormals[vertexIndexC] += triangleNormal;
+                // Add the normal to the corresponding vertices.
+                normals[index0] += normal;
+                normals[index1] += normal;
+                normals[index2] += normal;
             }
 
-            // Normalize the vertex normals.
-            for (int i = 0; i < vertexNormals.Length; i++)
+            // Normalize the normals.
+            for (int i = 0; i < normals.Length; i++)
             {
-                vertexNormals[i].Normalize();
+                normals[i] = normals[i].normalized;
             }
 
-            return vertexNormals;
+            return normals;
         }
 
         /// <summary>

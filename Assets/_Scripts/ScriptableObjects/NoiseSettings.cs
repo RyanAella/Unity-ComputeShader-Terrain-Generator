@@ -37,7 +37,7 @@ namespace _Scripts.ScriptableObjects
 
         [Header("General Noise Settings")]
         [Tooltip("The scale for noise generation, affecting the frequency of noise.")]
-        [Range(0.0001f, 10.0f)]
+        [Range(0.1f, 10.0f)]
         public float noiseScale = 0.5f; // The scale for noise generation, affecting the frequency of noise.
 
         [Header("FBM")]
@@ -60,8 +60,6 @@ namespace _Scripts.ScriptableObjects
         [Tooltip("Array of the noise function of each layer.")]
         // public NoiseLayer[] noiseLayers = Array.Empty<NoiseLayer>(); // Array of the noise function of each layer.
         public NoiseLayerSettings[] noiseLayerSettings = Array.Empty<NoiseLayerSettings>();
-
-        [HideInInspector] public Vector2[] noiseLayerOffsetVectors; // Offset vectors for noise layers.
 
         [Header("Domain Warping")] [Tooltip("The number of steps for domain warping.")]
         public int warpSteps = 3; // The number of steps for domain warping.

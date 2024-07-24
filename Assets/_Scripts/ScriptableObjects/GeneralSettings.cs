@@ -23,13 +23,8 @@ namespace _Scripts.ScriptableObjects
 
         public Vector2Int resolution = new(20, 20); // Resolution of the generated mesh
 
-        // public Vector2Int chunkSize = new(241, 241); // Size of the chunks in the mesh
+        public Vector2 chunkSize = new(256, 256); // Size of the mesh
 
-        // [Range(0, 6)] public int levelOfDetail; // For i = 2, 4, 6, 8, 10, 12
-        //
-        // public int meshSimplificationIncrement;
-        
-        //
         [Tooltip("The maximum height of the terrain.")]
         [Range(1, 200)]
         public float maxTerrainHeight = 180.0f; // The maximum height of the terrain.

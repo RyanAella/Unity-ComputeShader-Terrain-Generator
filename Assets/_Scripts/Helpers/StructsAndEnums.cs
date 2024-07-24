@@ -27,17 +27,20 @@ namespace _Scripts.Helpers
     public struct TerrainGenerationManagers
     {
         public NoiseGenerationManager NoiseGenerationManager { get; set; } // Manages noise generation.
+        public ValueClampManager ValueClampManager { get; set; } // Manages value clamping.
         public FalloffMapManager FalloffMapManager { get; set; } // Manages falloff map generation.
         public MeshGenerationManager MeshGenerationManager { get; set; } // Manages mesh generation.
         public ColourGenerationManager ColourGenerationManager { get; set; } // Manages color generation.
 
         public TerrainGenerationManagers(
             NoiseGenerationManager noiseGenerationManager,
+            ValueClampManager valueClampManager,
             FalloffMapManager falloffMapManager,
             MeshGenerationManager meshGenerationManager,
             ColourGenerationManager colourGenerationManager)
         {
             NoiseGenerationManager = noiseGenerationManager;
+            ValueClampManager = valueClampManager;
             FalloffMapManager = falloffMapManager;
             MeshGenerationManager = meshGenerationManager;
             ColourGenerationManager = colourGenerationManager;

@@ -1,5 +1,21 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [0.20.0] - 2024-07-24
+### Added
+- Added `CalculateNormals` to `MeshGenerationManager` on the CPU.
+- Unified comment style in `NoiseGeneration.compute`.
+- Added consistent and precise comments in `EnvironmentGenerator.cs`.
+
+### Removed
+- Removed `make_normals` from `NoiseGeneration.compute` (it was not working correctly).
+
+### Code Cleanup
+- Improved consistent commenting and formatting in `EnvironmentGenerator.cs`.
+  - Simplified and clarified comments.
+  - Introduced a uniform format for comment blocks.
+  - Optimized method and field descriptions.
+  - Removed redundant comments and enhanced clarity.
+
 ## [0.19.0] - 2024-06-27
 ### Added
 - Introduced `BaseGenerator` class, serving as a base class for both `GroundGenerator` and `WaterGenerator`.

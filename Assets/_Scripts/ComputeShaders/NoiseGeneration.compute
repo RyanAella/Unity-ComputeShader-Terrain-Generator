@@ -13,57 +13,62 @@
 
 #define SQRT_2 1.41421356237 // Precomputed square root of 2
 
-// Unsigned integer variables for the dimensions of the noise map.
-uint map_width; // Width of the noise map
-uint map_height; // Height of the noise map
+float2 chunk_size;
+float step_size_x;
+float step_size_z;
+
+uint2 map_size;
+uint map_width;
+uint map_height;
 
 // Parameters for noise generation.
-float2 seed_offset; // Offset for the noise seed
-float noise_scale; // Scale of the noise
-float noise_height; // Height factor for the noise
+float2 seed_offset;
+float noise_scale;
 
 // FBM
-int octaves; // Number of noise octaves
-float amplitude; // Amplitude of the noise
-float frequency; // Frequency of the noise
+int octaves;
+float amplitude;
+float frequency;
 float persistence; // Amplitude multiplier for each octave
 float lacunarity; // Frequency multiplier for each octave
 
 // Domain Warping
-int warp_steps; // Number of domain warping steps
-float domain_warping_multiplicative; // Multiplicative factor for domain warping
+int warp_steps;
+float domain_warping_mul;
 
-float2 offset; // Offset for the noise
-
-float max_terrain_height; // Maximum height of the terrain
-
-int triangle_count; // Number of triangles
-int noise_type; // Type of noise
+// int triangle_count;
+int noise_type;
 
 bool is_water; // Indicates if it's a water mesh
 
 // Read-write structured buffers for noise data and mesh information.
-RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
-RWStructuredBuffer<float2> _UV_Buffer; // Stores UV coordinates
-RWStructuredBuffer<float3> _Normals_Buffer; // Stores normals of the mesh
-RWStructuredBuffer<int> _Triangle_Buffer; // Stores the indices for mesh triangles
-RWStructuredBuffer<int> _Noise_Layer_Buffer; // Buffer for noise layers
-RWStructuredBuffer<float2> _Noise_Layer_Offset_Vectors; // Offset vectors for noise layers
-RWStructuredBuffer<float2> _Domain_Warping_Offset_Vectors; // Offset vectors for domain warping
+RWStructuredBuffer<float3> _Vertex_Buffer;
+RWStructuredBuffer<float2> _UV_Buffer;
+RWStructuredBuffer<float3> _Normals_Buffer;
+RWStructuredBuffer<int> _Triangle_Buffer;
+RWStructuredBuffer<int> _Noise_Layer_Buffer;
+RWStructuredBuffer<float2> _DW_Offsets; // Offset vectors for domain warping
 
-// This function generates pseudo-random numbers using a commonly employed technique in shader programming.
-// It uses a dot product and a sine function to create pseudo-random values efficiently.
-// This method is widely found in shader tutorials, examples, and open-source projects.
-// It represents general graphics programming knowledge rather than being sourced from a specific origin.
+/**
+ * This function generates pseudo-random numbers using a commonly employed technique in shader programming.
+ * It uses a dot product and a sine function to create pseudo-random values efficiently.
+ * This method is widely found in shader tutorials, examples, and open-source projects.
+ * It represents general graphics programming knowledge rather than being sourced from a specific origin.
+ *
+ * @param uv The UV coordinates used for generating the random number.
+ * @return A pseudo-random number between 0 and 1.
+ */
 float rand(const float2 uv)
 {
     // Dot product and sine function used for pseudo-random number generation
     return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
 }
 
-/// Generates a random number within the specified range.
-/// 
-/// @return Random number between -100000 and 100000
+/**
+ * Generates a random number between -100000 and 100000.
+ *
+ * @return A random number within the specified range.
+ */
 float random_between()
 {
     // Define the range for the random value
@@ -77,75 +82,50 @@ float random_between()
     return min + rand * (max - min);
 }
 
-/// Generates noise values based on the input coordinates.
-/// 
-/// @param xy The input coordinates for noise generation
-/// @return The generated noise value
-float noise(const float2 xy)
-{
-    // Calculate UV coordinates for noise generation.
-    const float2 uv = xy / float2(map_width, map_height);
-
-    // Generate Simplex noise and add it to the accumulated value.
-    float value = SimplexNoise(uv);
-
-    return value;
-}
-
-/// Returns the absolute value of the input value.
-/// 
-/// @param value The input value whose absolute value needs to be calculated.
-/// @return The absolute value of the input value.
+/**
+ * Applies billow noise transformation to the input value.
+ *
+ * @param value The input noise value.
+ * @return The transformed noise value using the billow algorithm.
+ */
 float billow(float value)
 {
-    // Calculate the absolute value of the input value.
-    value = abs(value);
-    return value; // Return the absolute value.
+    return abs(value);
 }
 
-/// Calculates the ridge value based on the input value.
-/// The ridge value is obtained by subtracting the billow value from 1.
-/// 
-/// @param value The input value for ridge calculation.
-/// @return The calculated ridge value.
+/**
+ * Applies ridge noise transformation to the input value.
+ *
+ * @param value The input noise value.
+ * @return The transformed noise value using the ridge algorithm.
+ */
 float ridge(float value)
 {
-    // Calculate the ridge value by subtracting the billow value from 1.
-    value = 1 - billow(value);
-    return value; // Return the calculated ridge value.
+    return 1 - billow(value);
 }
 
-/// Generates fractional Brownian motion noise based on the specified position.
-/// 
-/// @param pos The position for which noise is generated.
-/// @return The generated fractional Brownian motion noise value.
-float fractional_brownian_motion(const float2 pos)
+/**
+ * Generates fractional Brownian motion noise based on the specified position.
+ *
+ * @param pos The position used for noise generation.
+ * @return The generated fractional Brownian motion noise value.
+ */
+float fbm(const float2 pos)
 {
-    // Initialize the accumulated noise value.
-    float value = 0.0f;
-    // Initialize the initial amplitude for noise generation.
-    float amp = amplitude;
-    // Initialize the initial frequency for noise generation.
-    float freq = frequency;
+    float value = 0.0f; // Initialize the accumulated noise value
+    float amp = amplitude; // Initial amplitude for noise generation
+    float freq = frequency; // Initial frequency for noise generation
 
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {
-        // Calculate the offset for the current octave.
-        float2 octave_offset = float2(random_between() + _Noise_Layer_Offset_Vectors[o].x,
-                                      random_between() + _Noise_Layer_Offset_Vectors[o].y);
-
-        // Calculate UV coordinates for noise generation.
-        const float2 uv = pos * freq + octave_offset;
-
         // Generate Simplex noise and add it to the accumulated value.
-        float noise_value = noise(uv);
+        float noise_value = SimplexNoise(pos * freq);
 
         // Apply noise transformation based on the noise layer type.
         switch (_Noise_Layer_Buffer[o])
         {
-        case 0: // Regular noise
-            // No transformation for regular noise
+        case 0: // Regular noise - No transformation
             break;
         case 1: // Billow noise
             noise_value = billow(noise_value);
@@ -153,13 +133,11 @@ float fractional_brownian_motion(const float2 pos)
         case 2: // Ridge noise
             noise_value = ridge(noise_value);
             break;
-        default:
-            // Default case, do nothing
+        default: // Default case, do nothing
             break;
         }
 
-        // Accumulate the noise value with amplitude.
-        value += amp * noise_value;
+        value += amp * noise_value; // Accumulate the noise value with amplitude.
 
         // Increase the amplitude and frequency for the next octave to add more detail to the noise.
         amp *= persistence;
@@ -170,11 +148,12 @@ float fractional_brownian_motion(const float2 pos)
     return value;
 }
 
-/// Performs domain warping on the input position p.
-/// Domain warping is applied iteratively based on the number of warp steps specified.
-///
-/// @param p The input position for domain warping
-/// @return The result of domain warping applied to the input position
+/**
+ * Performs domain warping on the input position p.
+ *
+ * @param p The input position for domain warping.
+ * @return The result of domain warping applied to the input position.
+ */
 float domain_warping(const float2 p)
 {
     // Initialize the displacement vector r to (0, 0)
@@ -184,65 +163,65 @@ float domain_warping(const float2 p)
     for (int i = 0; i < warp_steps; i++)
     {
         // Calculate the fractional Brownian motion at the current x position
-        float posX = fractional_brownian_motion(
-            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + i]);
+        r.x = fbm(p + domain_warping_mul * r + _DW_Offsets[i + i]);
 
         // Calculate the fractional Brownian motion at the current y position
-        float posY = fractional_brownian_motion(
-            p + domain_warping_multiplicative * r + _Domain_Warping_Offset_Vectors[i + i + 1]);
+        r.y = fbm(p + domain_warping_mul * r + _DW_Offsets[i + i + 1]);
 
-        // Update the displacement vector r with the newly calculated x and y positions
-        r = float2(posX, posY);
+        // // Update the displacement vector r with the newly calculated x and y positions
+        // r = float2(posX, posY);
     }
 
     // Return the result of domain warping applied to the input position
-    return fractional_brownian_motion(p + domain_warping_multiplicative * r);
+    return fbm(p + domain_warping_mul * r);
 }
 
-/// Generates the vertices of the terrain mesh based on noise generation.
-/// 
-/// @param id The unique identifier of the current vertex.
-/// @param half_width Half of the width of the noise map.
-/// @param half_height Half of the height of the noise map.
-void make_vertices(uint3 id, const float half_width, const float half_height)
+/**
+ * Generates the vertices of the terrain mesh based on noise generation.
+ *
+ * @param id The unique identifier of the current vertex.
+ * @param half_width Half of the noise map's width.
+ * @param half_height Half of the noise map's height.
+ * @param noise_scale The scale applied to the noise generation.
+ * @param seed_offset The offset applied to the seed for noise generation.
+ * @param is_water Indicates if it's a water mesh.
+ */
+void make_vertices(uint3 id, const float half_width, const float half_height, const float noise_scale,
+                   const float2 seed_offset, const bool is_water)
 {
-    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
-    if (id.y < map_height && id.x < map_width)
+    // Check map dimensions validity and bounds of the thread ID.
+    if (map_width == 0 || map_height == 0 || id.y >= map_height || id.x >= map_width) return;
+
+    // Compute the index of the vertex within the buffer.
+    const int vertex_index = id.y * map_width + id.x;
+
+    // Adjust the x and y coordinates for noise sampling based on the map's center.
+    float2 samples = (float2((id.x + seed_offset.x), (id.y + seed_offset.y)) - float2(half_width, half_height)) *
+        noise_scale;
+
+    float value;
+
+    // Generate the noise value for the current vertex.
+    if (is_water)
     {
-        // Compute the index of the vertex within the buffer.
-        const int vertex_index = id.y * map_width + id.x;
-
-        // Adjust the x and y coordinates for noise sampling based on the map's center.
-        float2 samples = (float2((id.x + seed_offset.x) * 0.5f, (id.y + seed_offset.y) * 0.5f) - float2(
-            half_width, half_height)) * noise_scale;
-
-        float3 vertex;
-
-        // Generate the noise value for the current vertex.
-        if (is_water)
-        {
-            // Determine the vertex's position in world space relative to the top-left corner of the map.
-            const float top_left_x = map_width / -2.0f - 1;
-            const float top_left_z = map_height / -2.0f - 1;
-            vertex = float3(top_left_x + (id.x * 0.5f), 0, top_left_z + (id.y * 0.5f));
-        }
-        else
-        {
-            float value = domain_warping(samples);
-
-            // Determine the vertex's position in world space relative to the top-left corner of the map.
-            const float top_left_x = map_width / -2.0f - 1;
-            const float top_left_z = map_height / -2.0f - 1;
-            vertex = float3(top_left_x + (id.x * 0.5f), value, top_left_z + (id.y * 0.5f));
-        }
-
-        _Vertex_Buffer[vertex_index] = vertex; // Update the vertex buffer with the generated vertex.
+        value = 0;
     }
+    else
+    {
+        value = domain_warping(samples);
+    }
+
+    float3 vertex = float3(id.x * step_size_x, value, id.y * step_size_z);
+
+    // Update the vertex buffer with the generated vertex.
+    _Vertex_Buffer[vertex_index] = vertex;
 }
 
-/// Generates UV coordinates for a vertex based on the thread ID.
-/// 
-/// @param id The thread ID used to calculate UV coordinates.
+/**
+ * Generates UV coordinates for a vertex based on the thread ID.
+ *
+ * @param id The thread ID used to calculate UV coordinates.
+ */
 void make_uvs(uint3 id)
 {
     // Verify if the current thread's ID is within the bounds of the noise map dimensions.
@@ -259,9 +238,11 @@ void make_uvs(uint3 id)
     }
 }
 
-/// Generates triangles for the terrain mesh based on the current thread ID.
-/// 
-/// @param id The thread ID used to generate triangles.
+/**
+ * Generates triangles for the terrain mesh based on the current thread ID.
+ *
+ * @param id The thread ID used to generate triangles.
+ */
 void make_triangles(uint3 id)
 {
     // Check if the current thread ID is within the valid height range
@@ -289,25 +270,21 @@ void make_triangles(uint3 id)
     }
 }
 
-/// <summary>
-/// Generates noise for each thread ID within the map dimensions.
-/// </summary>
-/// <param name="id">The thread ID.</param>
-/// <returns>The generated noise value for the thread ID.</returns>
+/**
+ * Main function to generate noise and terrain mesh.
+ *
+ * @param id The thread ID used in the noise generation and terrain mesh creation.
+ */
 [numthreads(16, 16, 1)]
 void Noise_Generator(uint3 id : SV_DispatchThreadID)
 {
-    // // Calculate the maximum valid x and y coordinates based on the map dimensions.
-    // uint max_id_x = map_width - 1;
-    // uint max_id_y = map_height - 1;
-    //
-    // // Ensure the thread ID is within the map dimensions.
-    // // This prevents out-of-bounds access to the map data.
-    // if (id.x > max_id_x || id.y > max_id_y)
-    // {
-    //     return; // Exit early if out of bounds
-    // }
+    map_width = map_size.x;
+    map_height = map_size.y;
 
+    step_size_x = chunk_size.x / ((float)map_width - 1);
+    step_size_z = chunk_size.y / ((float)map_height - 1);
+
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
     // Ensure the thread ID is within the map dimensions.
     if (id.x >= map_width || id.y >= map_height)
     {
@@ -316,12 +293,12 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
 
     // Calculate half the width and height of the map to center the sampling around the middle.
     // This ensures that the noise generation is symmetrical and centered on the map.
-    float half_width = map_width / 2.0f - 1;
-    float half_height = map_height / 2.0f - 1;
+    float half_width = map_width / 2.0f;
+    float half_height = map_height / 2.0f;
 
     // Generate vertices for the terrain mesh using the current thread ID and the map dimensions.
     // The vertices represent the corners of the triangles that will form the terrain mesh.
-    make_vertices(id, half_width, half_height);
+    make_vertices(id, half_width, half_height, noise_scale, seed_offset, is_water);
 
     // Generate UV coordinates for the terrain mesh.
     make_uvs(id);
@@ -329,17 +306,4 @@ void Noise_Generator(uint3 id : SV_DispatchThreadID)
     // Generate triangles for the terrain mesh using the previously generated vertices.
     // Each triangle represents a small section of the terrain surface.
     make_triangles(id);
-
-    // // Calculate wave movement for water meshes.
-    // // Adjusts the vertex height based on a sine wave.
-    // if (is_water)
-    // {
-    //     const int vertex_index = id.y * map_width + id.x;
-    //     
-    //     // Calculate the wave movement
-    //     float wave_movement = clamp(sin(_Vertex_Buffer[vertex_index].y * 100 + time), 0.0f, 1.0f); // Adjust the multiplier and time variable as needed
-    //
-    //     // Modify the original height with the wave movement
-    //     _Vertex_Buffer[vertex_index].y *= wave_movement;
-    // }
 }

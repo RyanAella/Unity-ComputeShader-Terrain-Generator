@@ -1,88 +1,26 @@
 /*
 * Author: Rebecca Biebl
 * Creation Date: 02-05-2024
-* Description: Compute Shader for coloring a mesh based on height and a color palette.
+* Description: Compute Shader for colouring a mesh based on height and a colour palette.
 * License: MIT Licence
 */
 
-// Define the kernel function for coloring the mesh.
-#pragma kernel Colour_Mesh 0
+// Define the kernel function for colouring the mesh.
+#pragma kernel Colour_Mesh
 
-// Buffer for storing the vertices of the mesh.
-RWStructuredBuffer<float3> Vertex_Buffer; // Stores the vertices of the mesh.
+// Buffers for storing mesh vertices, colours, colour palette, and palette heights.
+RWStructuredBuffer<float3> Vertex_Buffer; // Vertex positions.
+RWStructuredBuffer<float4> Colour_Buffer; // Vertex colours.
+RWStructuredBuffer<float4> Colour_Palette_Buffer; // Colour palette.
+RWStructuredBuffer<float> Colour_Palette_Heights_Buffer; // Colour palette heights.
 
-// Buffer for storing the colors of the mesh vertices.
-RWStructuredBuffer<float4> Colour_Buffer; // Stores the colors of the mesh vertices.
-
-// Buffer for storing the color palette used for coloring.
-RWStructuredBuffer<float4> Colour_Palette_Buffer; // Stores the color palette used for coloring.
-RWStructuredBuffer<float> Colour_Palette_Heights_Buffer; // Stores the heights of the color palette.
-
-// Number of colors in the color palette.
-int colour_count; // Number of colors in the color palette.
-
-// Dimensions of the map (width and height).
-int map_width; // Width of the map.
-int map_height; // Height of the map.
-
-// Minimum and maximum height values of the terrain.
-float min_height; // Minimum height value of the terrain.
-float max_height; // Maximum height value of the terrain.
-
+// Shader parameters.
+int colour_count; // Number of colours in the palette.
+int map_width, map_height; // Dimensions of the map.
+float min_height, max_height; // Height range for the terrain.
 float time; // Time variable.
-
-bool is_water; // Flag indicating if the terrain represents water.
-
-// Total length of the vertex buffer.
-int vertices_buffer_length;
-
-/// <summary>
-/// Get the height of a vertex and color it based on the height and color palette.
-/// </summary>
-/// <param name="index">The index of the vertex in the buffer.</param>
-void get_height(const int index)
-{
-    // Get the height of the vertex
-    const float height = Vertex_Buffer[index].y;
-
-    // Check if the height is within the range [0, 1]
-    if (height >= 0 && height <= 1)
-    {
-        // Iterate through the color palette to find the appropriate color for the vertex height
-        for (int k = 0; k < colour_count - 1; k++)
-        {
-            // Calculate the range of heights for this color range
-            const float range_start = (float)k / (colour_count - 1);
-            const float range_end = (float)(k + 1) / (colour_count - 1);
-
-            // Check if the vertex height falls within this color range
-            if (height >= range_start && height <= range_end)
-            {
-                // Calculate the interpolation factor based on the height within the range
-                const float t = (height - range_start) / (range_end - range_start);
-                
-                // Interpolate the color using the color palette
-                float4 startColor = Colour_Palette_Buffer[k];
-                float4 endColor = Colour_Palette_Buffer[k + 1];
-
-                float4 colour = lerp(startColor, endColor, t);
-                
-                // Set alpha value based on the gradient's alpha value
-                // We assume here that the alpha value is the same for both start and end colors
-                colour.a = lerp(startColor.a, endColor.a, t);
-
-                // Assign the calculated color to the vertex in the color buffer
-                Colour_Buffer[index] = colour;
-                break;
-            }
-        }
-    }
-    else
-    {
-        // Set the color to black for vertices outside the range [0, 1]
-        Colour_Buffer[index] = float4(1, 1, 1, 0);
-    }
-}
+int vertices_buffer_length; // Total length of the vertex buffer.
+float max_terrain_height; // Maximum height of the terrain.
 
 /// <summary>
 /// Smoothly interpolates between two edges based on the input value.
@@ -93,85 +31,63 @@ void get_height(const int index)
 /// <returns>The smoothed interpolation value between the edges.</returns>
 float smooth(float edge0, float edge1, float x)
 {
-    // Calculate the interpolation factor
-    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, max_height);
-
-    // Smoothly interpolate between the edges
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
     return t * t * (3.0 - 2.0 * t);
 }
 
 /// <summary>
-/// Determines the color for a vertex based on its height and the color palette.
+/// Determines the colour for a vertex based on its height and the colour palette.
 /// </summary>
 /// <param name="index">The index of the vertex in the buffer.</param>
 void determine_colour(const int index)
 {
     // Get the height of the vertex
     float height = Vertex_Buffer[index].y;
-
-    float4 colour = float4(0, 0, 0, 0);
-
-    const bool in_range = height >= min_height && height <= max_height;
-
-    if (in_range)
+	
+    if (height < min_height || height > max_height)
     {
-        float range_end;
-        float range_start;
-
-        // Iterate through the color palette to find the appropriate color for the vertex height
+        // Assign a colour if the height is outside the valid range
+        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
+    }
+    else
+    {
+        // Iterate through the colour palette to find the appropriate colour for the vertex height
         for (int k = 0; k < colour_count; k++)
         {
-            if (k == 0)
-            {
-                range_start = 0.0f;
-                range_end = Colour_Palette_Heights_Buffer[k];
-            }
-            else
-            {
-                range_start = Colour_Palette_Heights_Buffer[k - 1];
-                range_end = Colour_Palette_Heights_Buffer[k];
-            }
-            
+            // Determine the range of the current colour palette segment
+            float range_start = (k == 0) ? 0.0f : Colour_Palette_Heights_Buffer[k - 1];
+            float range_end = Colour_Palette_Heights_Buffer[k];
+			
             if (height >= range_start && height <= range_end)
             {
                 // Calculate the interpolation factor
                 float t = smoothstep(range_start, range_end, height);
-                
-                // Interpolate the color using the color palette
+				
+                // Interpolate the colour using the colour palette
                 float4 start_colour = (k == 0) ? float4(0, 0, 0, 0) : Colour_Palette_Buffer[k - 1];
-                float4 end_colour = Colour_Palette_Buffer[k];                
-
-                colour = lerp(start_colour, end_colour, t);
-
+                float4 end_colour = Colour_Palette_Buffer[k];
+                float4 colour = lerp(start_colour, end_colour, t);
+				
                 // Set alpha value based on the gradient's alpha value
-                // We assume here that the alpha value is the same for both start and end colors
                 colour.a = lerp(start_colour.a, end_colour.a, t);
-
-                // Store the determined color in a separate buffer or texture
+				
+                // Store the determined colour in the buffer
                 Colour_Buffer[index] = colour;
-
-                break;
+				
+                break; // Exit the loop once the correct colour is found
             }
         }
     }
-    else if (height < min_height)
-    {
-        // Assign a color if the height is below the minimum height
-        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
-    }
-    else if (height > max_height)
-    {
-        // Assign the color from the color palette if the height exceeds the maximum height
-        // Colour_Buffer[index] = Colour_Palette_Buffer[colour_count - 1];
-        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
-    }
+	
+    // Apply terrain height scaling
+    // Vertex_Buffer[index].y *= max_terrain_height;
 }
 
 /// <summary>
-/// Color the mesh based on the vertex height and color palette.
+/// Colour the mesh based on the vertex height and colour palette.
 /// </summary>
 /// <param name="id">The thread ID.</param>
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void Colour_Mesh(uint3 id : SV_DispatchThreadID)
 {
     // Calculate the index based on the thread ID
@@ -183,6 +99,6 @@ void Colour_Mesh(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    // Call the function to determine the color for the vertex
+    // Call the function to determine the colour for the vertex
     determine_colour(index);
 }

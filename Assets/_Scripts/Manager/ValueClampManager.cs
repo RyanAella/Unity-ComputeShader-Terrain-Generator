@@ -5,15 +5,16 @@
  * License: MIT Licence
  */
 
+using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
 
-namespace _Scripts.Helpers
+namespace _Scripts.Manager
 {
     /// <summary>
     /// Contains functions for generating terrain using compute shaders.
     /// </summary>
-    public static class GeneratorFunctions
+    public class ValueClampManager
     {
         #region Variables
 
@@ -43,7 +44,7 @@ namespace _Scripts.Helpers
         /// <param name="resolution">The chunkSize of the compute shader.</param>
         /// <param name="shaders">The shaders object.</param>
         /// <param name="verticesBuffer">The buffer containing the vertices.</param>
-        public static void CompareHeightValues(Vector2Int resolution, Shaders shaders,
+        public void CompareHeightValues(Vector2Int resolution, Shaders shaders,
             ComputeBuffer verticesBuffer)
         {
             ComputeShader computeShader = shaders.valueClampComputeShader;
@@ -72,7 +73,7 @@ namespace _Scripts.Helpers
         /// <param name="resolution">The chunkSize of the compute shader.</param>
         /// <param name="computeShader">The compute shader to use for the computation.</param>
         /// <param name="verticesBuffer">The buffer containing the vertices.</param>
-        private static void ComputeLocalMinMax(Vector2Int resolution, ComputeShader computeShader,
+        private void ComputeLocalMinMax(Vector2Int resolution, ComputeShader computeShader,
             ComputeBuffer verticesBuffer)
         {
             // Calculate vertices per line
@@ -112,7 +113,7 @@ namespace _Scripts.Helpers
         /// <param name="resolution">The chunkSize of the compute shader.</param>
         /// <param name="computeShader">The compute shader to use for the computation.</param>
         /// <returns>The array of global minimum and maximum values.</returns>
-        private static void ComputeGlobalMinMax(Vector2Int resolution, ComputeShader computeShader)
+        private void ComputeGlobalMinMax(Vector2Int resolution, ComputeShader computeShader)
         {
             // Find the compute shader kernel for computing global min-max
             var computeGlobal = computeShader.FindKernel("Compute_Global_Min_Max");
@@ -139,7 +140,7 @@ namespace _Scripts.Helpers
         /// <param name="computeShader">The compute shader to use for clamping the height values.</param>
         /// <param name="verticesBuffer">The buffer containing the vertices of the terrain.</param>
         /// <param name="resolution">The chunkSize of the terrain.</param>
-        private static void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
+        private void ClampHeightValues(ComputeShader computeShader, ComputeBuffer verticesBuffer,
             Vector2Int resolution)
         {
             // Find the kernel in the compute shader for clamping height values.

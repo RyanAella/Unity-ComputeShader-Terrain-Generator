@@ -17,8 +17,8 @@ namespace _Scripts.Manager
     /// </summary>
     public class NoiseGenerationManager
     {
-        private static readonly int MapWidth = Shader.PropertyToID("map_width"); // ID for map width
-        private static readonly int MapHeight = Shader.PropertyToID("map_height"); // ID for map height
+        private static readonly int ChunkSize = Shader.PropertyToID("chunk_size"); // ID for chunk size
+        private static readonly int MapSize = Shader.PropertyToID("map_size"); // ID for map size
         private static readonly int SeedOffset = Shader.PropertyToID("seed_offset"); // ID for seed offset
         private static readonly int NoiseScale = Shader.PropertyToID("noise_scale"); // ID for noise scale
         private static readonly int Octaves = Shader.PropertyToID("octaves"); // ID for number of octaves
@@ -39,15 +39,15 @@ namespace _Scripts.Manager
         private static readonly int Amplitude = Shader.PropertyToID("amplitude"); // ID for amplitude
         private static readonly int Frequency = Shader.PropertyToID("frequency"); // ID for frequency
         private static readonly int WarpSteps = Shader.PropertyToID("warp_steps"); // ID for warp steps
-        private static readonly int DomainWarpingMultiplicative = Shader.PropertyToID("domain_warping_multiplicative"); // ID for domain warping
-        private static readonly int DomainWarpingOffsetVectors = Shader.PropertyToID("_Domain_Warping_Offset_Vectors"); // ID for domain warping
-        private static readonly int NoiseLayerOffsetVectors = Shader.PropertyToID("_Noise_Layer_Offset_Vectors"); // ID for noise layer offset vectors
+        private static readonly int DomainWarpingMultiplicative = Shader.PropertyToID("domain_warping_mul"); // ID for domain warping
+        private static readonly int DomainWarpingOffsetVectors = Shader.PropertyToID("_DW_Offsets"); // ID for domain warping
         private static readonly int TriangleCount = Shader.PropertyToID("triangle_count"); // ID for triangle count
         private static readonly int IsWater = Shader.PropertyToID("is_water"); // ID for is water
 
         /// <summary>
         /// Generates mesh parameters (vertices and triangles) using a compute shader.
         /// </summary>
+        /// <param name="managers">The terrain generation managers.</param>
         /// <param name="shaders">The shaders used for rendering.</param>
         /// <param name="terrainSettings">The settings related to the terrain.</param>
         /// <param name="noiseSettings">The noise settings for generating the mesh.</param>
@@ -57,7 +57,7 @@ namespace _Scripts.Manager
         /// <param name="triangles">Array to store the generated triangles.</param>
         /// <param name="isWater">Flag indicating if the mesh represents water.</param>
         /// <returns>An array containing the minimum and maximum height values of the generated mesh.</returns>
-        public static void GenerateNoiseParameters(Shaders shaders, TerrainSettings terrainSettings,
+        public void GenerateNoiseParameters(TerrainGenerationManagers managers, Shaders shaders, TerrainSettings terrainSettings,
             NoiseSettings noiseSettings, Vector3[] vertices, Vector2[] uv, Vector3[] normals, int[] triangles,
             bool isWater)
         {
@@ -65,7 +65,7 @@ namespace _Scripts.Manager
             GenerateNoise(shaders, noiseSettings, terrainSettings.GeneralSettings, isWater);
 
             // Compare the height values of the generated vertices.
-            GeneratorFunctions.CompareHeightValues(terrainSettings.GeneralSettings.resolution, shaders,
+            managers.ValueClampManager.CompareHeightValues(terrainSettings.GeneralSettings.resolution, shaders,
                 ComputeBufferManager.Instance.VerticesBuffer);
 
             // NOTE: For single chunks, if an island is desired
@@ -73,7 +73,7 @@ namespace _Scripts.Manager
             // {
             //     managers.FalloffMapManager.ApplyFalloffMap(generalSettings, shaders, ComputeBufferManager.Instance.VerticesBuffer);
             // }
-
+            
             // Retrieve the generated vertices, UVs, normals, and triangles from the compute buffers.
             ComputeBufferManager.Instance.VerticesBuffer.GetData(vertices);
             ComputeBufferManager.Instance.UVBuffer.GetData(uv);
@@ -116,10 +116,12 @@ namespace _Scripts.Manager
             var noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
 
             // Set shader properties
-            noiseComputeShader.SetInt(MapWidth, verticesPerLineX);
-            noiseComputeShader.SetInt(MapHeight, verticesPerLineZ);
+            Vector2 mapSize = new Vector2(verticesPerLineX, verticesPerLineZ);
+            
+            noiseComputeShader.SetVector(ChunkSize, generalSettings.chunkSize);
+            noiseComputeShader.SetVector(MapSize, mapSize);
             noiseComputeShader.SetVector(SeedOffset, seedOffset);
-            noiseComputeShader.SetFloat(NoiseScale, noiseSettings.noiseScale);
+            noiseComputeShader.SetFloat(NoiseScale, noiseSettings.noiseScale / 100f); // div by magic number in order to decrease noise_scale
             
             // Set up FBM parameters
             noiseComputeShader.SetInt(Octaves, noiseSettings.octaves);
@@ -131,10 +133,6 @@ namespace _Scripts.Manager
             // Set up Domain Warping parameters
             noiseComputeShader.SetInt(WarpSteps, noiseSettings.warpSteps);
             noiseComputeShader.SetFloat(DomainWarpingMultiplicative, noiseSettings.domainWarpingMultiplicative);
-            noiseComputeShader.SetVector(Offset, noiseSettings.offset);
-
-            // Set general settings
-            noiseComputeShader.SetFloat(MaxTerrainHeight, generalSettings.maxTerrainHeight);
 
             // Calculate triangle count
             noiseComputeShader.SetInt(TriangleCount, ((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6) / 3);
@@ -156,10 +154,6 @@ namespace _Scripts.Manager
             noiseComputeShader.SetBuffer(noiseKernel, NormalsBuffer, ComputeBufferManager.Instance.NormalsBuffer);
             noiseComputeShader.SetBuffer(noiseKernel, TriangleBuffer, ComputeBufferManager.Instance.TrianglesBuffer);
             noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerBuffer, ComputeBufferManager.Instance.NoiseLayerBuffer);
-
-            ComputeBufferManager.Instance.NoiseLayerOffsetVectors.SetData(noiseSettings.noiseLayerOffsetVectors);
-            noiseComputeShader.SetBuffer(noiseKernel, NoiseLayerOffsetVectors,
-                ComputeBufferManager.Instance.NoiseLayerOffsetVectors);
 
             ComputeBufferManager.Instance.DomainWarpingOffsetBuffer.SetData(noiseSettings.offsetVectors);
             noiseComputeShader.SetBuffer(noiseKernel, DomainWarpingOffsetVectors,
