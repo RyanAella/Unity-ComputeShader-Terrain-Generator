@@ -25,8 +25,8 @@ namespace _Scripts.Generators
         [SerializeField] private NoiseSettings noiseSettings; // Noise generation settings
         [SerializeField] private Shaders shaders; // Shader settings for compute shaders
 
-        [Tooltip("Toggle between using color or greyscale palette")] 
-        [SerializeField] private bool useColourPalette;
+        [Tooltip("Toggle between using color or greyscale gradient")] 
+        [SerializeField] private bool useColourGradient;
         [SerializeField] private ColourGradient colourGradient; // Color gradient for terrain
         [SerializeField] private ColourGradient greyscaleGradient; // Greyscale gradient for terrain
 
@@ -36,9 +36,9 @@ namespace _Scripts.Generators
         [SerializeField] private TerrainGenerator groundGenerator; // Prefab for ground generation
         [SerializeField] private TerrainGenerator waterGenerator; // Prefab for water generation
 
-        [Header("References")] [SerializeField]
-        private bool spawnPlayer; // Toggle player spawning
-        [SerializeField] private GameObject player; // Player object prefab
+        // [Header("References")] [SerializeField]
+        // private bool spawnPlayer; // Toggle player spawning
+        // [SerializeField] private GameObject player; // Player object prefab
 
         private TerrainSettings _terrainSettings; // Settings for terrain generation
         private TerrainGenerationManagers _managers; // Managers for terrain generation
@@ -69,12 +69,16 @@ namespace _Scripts.Generators
 
             Generate(); // Generate terrain and possibly instantiate the player
 
-            SpawnPlayer();
+            // SpawnPlayer();
         }
 
         // private void Update()
         // {
-        //     Generate();
+        //     Init(); // Initialize components and settings
+        //
+        //     Generate(); // Generate terrain and possibly instantiate the player
+        //
+        //     // SpawnPlayer();
         // }
 
         /// <summary>
@@ -156,7 +160,7 @@ namespace _Scripts.Generators
         private void InitializeColourPalette()
         {
             // Initialize Colour Palettes
-            if (useColourPalette)
+            if (useColourGradient)
             {
                 _colourPalette =
                     ColourGenerationManager.GetColorPalette(colourGradient.colours, out _colourCount,
@@ -284,16 +288,17 @@ namespace _Scripts.Generators
             }
         }
 
-        private void SpawnPlayer()
-        {
-            // If the terrain generation was successful, instantiate the player at the top of the terrain
-            if (spawnPlayer)
-            {
-                Vector3 position = new Vector3(transform.position.x,
-                    transform.position.y + generalSettings.maxTerrainHeight, transform.position.z);
-                Instantiate(player, position, Quaternion.identity);
-            }
-        }
+        // Uncomment if player is needed
+        // private void SpawnPlayer()
+        // {
+        //     // If the terrain generation was successful, instantiate the player at the top of the terrain
+        //     if (spawnPlayer)
+        //     {
+        //         Vector3 position = new Vector3(transform.position.x,
+        //             transform.position.y + generalSettings.maxTerrainHeight, transform.position.z);
+        //         Instantiate(player, position, Quaternion.identity);
+        //     }
+        // }
 
         #endregion
     }

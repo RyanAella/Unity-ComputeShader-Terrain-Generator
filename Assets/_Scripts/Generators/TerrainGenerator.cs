@@ -58,7 +58,7 @@ namespace _Scripts.Generators
                 ApplyColourToMesh(managers, terrainSettings, shaders, colourGradient, colourHeights, meshFilter, colourCount);
 
                 // Adjust the mesh height.
-                // AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
+                AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
             }
         }
 
@@ -113,27 +113,27 @@ namespace _Scripts.Generators
                 colourGradient.ToArray(), colourHeights, colourCount, terrainSettings.GeneralSettings);
         }
         
-        // /// <summary>
-        // /// Adjusts the height of the mesh vertices based on the specified height multiplier.
-        // /// </summary>
-        // /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
-        // /// <param name="generalSettings">The general settings including the maximum terrain height.</param>
-        // protected static void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
-        // {
-        //     Mesh mesh = meshFilter.sharedMesh;
-        //     Vector3[] meshVertices = mesh.vertices;
-        //     float heightMultiplier = generalSettings.maxTerrainHeight;
-        //
-        //     // Adjust each vertex's height based on the multiplier
-        //     for (int i = 0; i < meshVertices.Length; i++)
-        //     {
-        //         meshVertices[i].y *= heightMultiplier;
-        //     }
-        //
-        //     // Update the mesh vertices and recalculate normals for proper lighting
-        //     mesh.vertices = meshVertices;
-        //     mesh.RecalculateNormals();
-        // }
+        /// <summary>
+        /// Adjusts the height of the mesh vertices based on the specified height multiplier.
+        /// </summary>
+        /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
+        /// <param name="generalSettings">The general settings including the maximum terrain height.</param>
+        protected static void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
+        {
+            Mesh mesh = meshFilter.sharedMesh;
+            Vector3[] meshVertices = mesh.vertices;
+            float heightMultiplier = generalSettings.maxTerrainHeight;
+        
+            // Adjust each vertex's height based on the multiplier
+            for (int i = 0; i < meshVertices.Length; i++)
+            {
+                meshVertices[i].y *= heightMultiplier;
+            }
+        
+            // Update the mesh vertices and recalculate normals for proper lighting
+            mesh.vertices = meshVertices;
+            mesh.RecalculateNormals();
+        }
             
         #endregion
             

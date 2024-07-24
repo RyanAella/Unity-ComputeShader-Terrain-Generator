@@ -245,30 +245,25 @@ void make_uvs(uint3 id)
  */
 void make_triangles(uint3 id)
 {
-    // Check if the current thread ID is within the valid height range
-    if (id.y < map_height - 1)
+    // Ensure the thread ID is within the valid range
+    if (id.x < map_width - 1 && id.y < map_height - 1)
     {
-        // Check if the current thread ID is within the valid width range
-        if (id.x < map_width - 1)
-        {
-            // Calculate the base index for the current triangle
-            const int triangle_index = (id.y * (map_width - 1) + id.x) * 6;
+        // Calculate the base vertex index for the current square
+        const int base_vertex = id.y * map_width + id.x;
+        const int triangle_index = (id.y * (map_width - 1) + id.x) * 6;
 
-            // Calculate the base index for the vertices
-            const int vertex_index = id.y * map_width + id.x;
+        // Indices for the first triangle in the square
+        _Triangle_Buffer[triangle_index + 0] = base_vertex;
+        _Triangle_Buffer[triangle_index + 1] = base_vertex + map_width;
+        _Triangle_Buffer[triangle_index + 2] = base_vertex + 1;
 
-            // Indices for the first triangle in the square (0, 1, 3)
-            _Triangle_Buffer[triangle_index + 0] = vertex_index;
-            _Triangle_Buffer[triangle_index + 1] = vertex_index + map_width;
-            _Triangle_Buffer[triangle_index + 2] = vertex_index + 1;
-
-            // Indices for the second triangle in the square (1, 3, 4)
-            _Triangle_Buffer[triangle_index + 3] = vertex_index + 1;
-            _Triangle_Buffer[triangle_index + 4] = vertex_index + map_width;
-            _Triangle_Buffer[triangle_index + 5] = vertex_index + map_width + 1;
-        }
+        // Indices for the second triangle in the square
+        _Triangle_Buffer[triangle_index + 3] = base_vertex + 1;
+        _Triangle_Buffer[triangle_index + 4] = base_vertex + map_width;
+        _Triangle_Buffer[triangle_index + 5] = base_vertex + map_width + 1;
     }
 }
+
 
 /**
  * Main function to generate noise and terrain mesh.

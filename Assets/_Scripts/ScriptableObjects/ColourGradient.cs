@@ -13,7 +13,7 @@ namespace _Scripts.ScriptableObjects
     /// <summary>
     /// ScriptableObject representing a Colour Gradient for terrain
     /// </summary>
-    [CreateAssetMenu(fileName = "ColourGradients", menuName = "ColourGradient")]
+    [CreateAssetMenu(menuName = "ScriptableObjects/ColourGradient")]
     public class ColourGradient : ScriptableObject
     {
         #region Variables

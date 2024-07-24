@@ -14,7 +14,7 @@ namespace _Scripts.ScriptableObjects
     /// <summary>
     /// Scriptable object that stores the shaders used in the project.
     /// </summary>
-    [CreateAssetMenu(fileName = "Shaders", menuName = "Shaders")]
+    [CreateAssetMenu(menuName = "ScriptableObjects/Shaders")]
     [Serializable]
     public class Shaders : ScriptableObject
     {
@@ -24,7 +24,7 @@ namespace _Scripts.ScriptableObjects
         [Header("Compute Shader Settings")]
         public ComputeShader noiseGenerationComputeShader; // Compute shader for noise generation
 
-        public ComputeShader meshGenerationComputeShader; // Compute shader for mesh generation
+        // public ComputeShader meshGenerationComputeShader; // Compute shader for mesh generation
         
         public ComputeShader valueClampComputeShader; // Compute shader for noise generation
         
@@ -32,7 +32,7 @@ namespace _Scripts.ScriptableObjects
 
         public ComputeShader colourGenerationComputeShader; // Compute shader for colourGradient generation
         
-        public ComputeShader waterMovementComputeShader; // Compute shader for water movement
+        // public ComputeShader waterMovementComputeShader; // Compute shader for water movement
 
         #endregion
     }
