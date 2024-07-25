@@ -5,7 +5,6 @@
  * License: MIT Licence
  */
 
-using System.Globalization;
 using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -93,20 +92,11 @@ namespace _Scripts.Manager
         {
             // Get the resolution
             Vector2Int resolution = generalSettings.resolution;
-            
-            // Calculate vertices per line
             int verticesPerLineX = resolution.x * 2 + 1;
             int verticesPerLineZ = resolution.y * 2 + 1;
 
             // Get the noise compute shader
             ComputeShader noiseComputeShader = shaders.noiseGenerationComputeShader;
-
-            // Ensure the noise scale is not too low to avoid a flat mesh
-            noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
-
-            // Check if a random seed is wanted
-            if (noiseSettings.useRandomSeed)
-                noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
 
             // Calculate seed offset
             float seedOffsetBase = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
@@ -114,10 +104,9 @@ namespace _Scripts.Manager
 
             // Find the kernel in the compute shader.
             var noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
-
-            // Set shader properties
             Vector2 mapSize = new Vector2(verticesPerLineX, verticesPerLineZ);
             
+            // Shader property setup
             noiseComputeShader.SetVector(ChunkSize, generalSettings.chunkSize);
             noiseComputeShader.SetVector(MapSize, mapSize);
             noiseComputeShader.SetVector(SeedOffset, seedOffset);
