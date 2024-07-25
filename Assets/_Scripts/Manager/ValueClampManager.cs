@@ -77,14 +77,17 @@ namespace _Scripts.Manager
             ComputeBuffer verticesBuffer)
         {
             // Calculate vertices per line
-            int verticesPerLineX = resolution.x * 2 + 1;
-            int verticesPerLineZ = resolution.y * 2 + 1;
+            // int verticesPerLineX = resolution.x * 2 + 1;
+            // int verticesPerLineZ = resolution.y * 2 + 1;
+            int resolutionX = resolution.x + 1;
+            int resolutionZ = resolution.y + 1;
             
             // Find the kernel for the compute shader
             var computeLocal = computeShader.FindKernel("Compute_Local_Min_Max");
 
             // Set the size of the vertices buffer
-            computeShader.SetInt(VerticesBufferLength, verticesPerLineX * verticesPerLineZ);
+            // computeShader.SetInt(VerticesBufferLength, verticesPerLineX * verticesPerLineZ);
+            computeShader.SetInt(VerticesBufferLength, resolutionX * resolutionZ);
 
             // Set the length of the local min-max buffer
             computeShader.SetInt(LocalMinMaxBufferLength, 2);
@@ -100,8 +103,10 @@ namespace _Scripts.Manager
             computeShader.SetBuffer(computeLocal, LocalMinMaxBuffer, ComputeBufferManager.Instance.LocalMinMaxBuffer);
 
             // Calculate the dispatch dimensions
-            var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
-            var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
+            // var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
+            // var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
+            var dispatchX = Mathf.CeilToInt(resolutionX / 16f);
+            var dispatchY = Mathf.CeilToInt(resolutionZ / 16f);
 
             // Dispatch the compute shader
             computeShader.Dispatch(computeLocal, dispatchX, dispatchY, 1);

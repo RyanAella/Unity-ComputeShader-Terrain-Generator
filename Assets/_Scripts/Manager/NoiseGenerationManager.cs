@@ -5,7 +5,6 @@
  * License: MIT Licence
  */
 
-using System.Globalization;
 using _Scripts.Helpers;
 using _Scripts.ScriptableObjects;
 using UnityEngine;
@@ -93,31 +92,25 @@ namespace _Scripts.Manager
         {
             // Get the resolution
             Vector2Int resolution = generalSettings.resolution;
-            
-            // Calculate vertices per line
             int verticesPerLineX = resolution.x * 2 + 1;
             int verticesPerLineZ = resolution.y * 2 + 1;
+            int resolutionX = resolution.x + 1;
+            int resolutionZ = resolution.y + 1;
 
             // Get the noise compute shader
             ComputeShader noiseComputeShader = shaders.noiseGenerationComputeShader;
 
-            // Ensure the noise scale is not too low to avoid a flat mesh
-            noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
-
-            // Check if a random seed is wanted
-            if (noiseSettings.useRandomSeed)
-                noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
-
             // Calculate seed offset
             float seedOffsetBase = noiseSettings.GetSeed().GetHashCode() / noiseSettings.seedScale;
-            Vector2 seedOffset = new Vector2(seedOffsetBase / verticesPerLineX, seedOffsetBase * verticesPerLineZ);
+            // Vector2 seedOffset = new Vector2(seedOffsetBase / verticesPerLineX, seedOffsetBase * verticesPerLineZ);
+            Vector2 seedOffset = new Vector2(seedOffsetBase / resolutionX, seedOffsetBase * resolutionZ);
 
             // Find the kernel in the compute shader.
             var noiseKernel = noiseComputeShader.FindKernel("Noise_Generator");
-
-            // Set shader properties
-            Vector2 mapSize = new Vector2(verticesPerLineX, verticesPerLineZ);
+            // Vector2 mapSize = new Vector2(verticesPerLineX, verticesPerLineZ);
+            Vector2 mapSize = new Vector2(resolutionX, resolutionZ);
             
+            // Shader property setup
             noiseComputeShader.SetVector(ChunkSize, generalSettings.chunkSize);
             noiseComputeShader.SetVector(MapSize, mapSize);
             noiseComputeShader.SetVector(SeedOffset, seedOffset);
@@ -135,7 +128,8 @@ namespace _Scripts.Manager
             noiseComputeShader.SetFloat(DomainWarpingMultiplicative, noiseSettings.domainWarpingMultiplicative);
 
             // Calculate triangle count
-            noiseComputeShader.SetInt(TriangleCount, ((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6) / 3);
+            // noiseComputeShader.SetInt(TriangleCount, ((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6) / 3);
+            noiseComputeShader.SetInt(TriangleCount, ((resolutionX - 1) * (resolutionZ - 1) * 6) / 3);
 
             // Set water flag
             noiseComputeShader.SetBool(IsWater, isWater);
@@ -160,8 +154,10 @@ namespace _Scripts.Manager
                 ComputeBufferManager.Instance.DomainWarpingOffsetBuffer);
 
             // Calculate the number of thread groups to dispatch
-            var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
-            var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
+            // var dispatchX = Mathf.CeilToInt(verticesPerLineX / 16f);
+            // var dispatchY = Mathf.CeilToInt(verticesPerLineZ / 16f);
+            var dispatchX = Mathf.CeilToInt(resolutionX / 16f);
+            var dispatchY = Mathf.CeilToInt(resolutionZ / 16f);
 
             // Dispatch the compute shader to generate the mesh parameters
             noiseComputeShader.Dispatch(noiseKernel, dispatchX, dispatchY, 1);

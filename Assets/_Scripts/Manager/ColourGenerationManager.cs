@@ -72,8 +72,10 @@ namespace _Scripts.Manager
             }
 
             // Calculate vertices per line
-            int verticesPerLineX = resolution.x * 2 + 1;
-            int verticesPerLineZ = resolution.y * 2 + 1;
+            // int verticesPerLineX = resolution.x * 2 + 1;
+            // int verticesPerLineZ = resolution.y * 2 + 1;
+            int resolutionX = resolution.x + 1;
+            int resolutionZ = resolution.y + 1;
 
             // Get the Mesh and vertices
             Mesh mesh = meshFilter.sharedMesh;
@@ -96,16 +98,20 @@ namespace _Scripts.Manager
 
             // Set shader parameters
             computeShader.SetInt(ColourCount, colourCount);
-            computeShader.SetInt(MapWidth, verticesPerLineX);
-            computeShader.SetInt(MapHeight, verticesPerLineZ);
+            // computeShader.SetInt(MapWidth, verticesPerLineX);
+            // computeShader.SetInt(MapHeight, verticesPerLineZ);
+            computeShader.SetInt(MapWidth, resolutionX);
+            computeShader.SetInt(MapHeight, resolutionZ);
             computeShader.SetFloat(MinHeight, minMax[0]);
             computeShader.SetFloat(MaxHeight, minMax[1]);
-            computeShader.SetInt(VerticesBufferLength, verticesPerLineX * verticesPerLineZ);
+            // computeShader.SetInt(VerticesBufferLength, verticesPerLineX * verticesPerLineZ);
+            computeShader.SetInt(VerticesBufferLength, resolutionX * resolutionZ);
             computeShader.SetFloat(Time, UnityEngine.Time.time);
             computeShader.SetFloat(MaxTerrainHeight, settings.maxTerrainHeight);
 
             // Dispatch compute shader
-            computeShader.Dispatch(kernel, Mathf.CeilToInt(verticesPerLineX / 16f), Mathf.CeilToInt(verticesPerLineZ / 16f), 1);
+            // computeShader.Dispatch(kernel, Mathf.CeilToInt(verticesPerLineX / 16f), Mathf.CeilToInt(verticesPerLineZ / 16f), 1);
+            computeShader.Dispatch(kernel, Mathf.CeilToInt(resolutionX / 16f), Mathf.CeilToInt(resolutionZ / 16f), 1);
 
             // Get and apply colors
             Color[] colours = new Color[vertices.Length];

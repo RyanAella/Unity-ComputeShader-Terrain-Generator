@@ -58,8 +58,10 @@ namespace _Scripts.Helpers
         /// <param name="colourCount">The number of colors in the color palette.</param>
         private void InitBuffers(Vector2Int resolution, NoiseSettings noiseSettings, int colourCount)
         {
-            int verticesPerLineX = resolution.x * 2 + 1;
-            int verticesPerLineZ = resolution.y * 2 + 1;
+            // int verticesPerLineX = resolution.x * 2 + 1;
+            // int verticesPerLineZ = resolution.y * 2 + 1;
+            int verticesPerLineX = resolution.x + 1;
+            int verticesPerLineZ = resolution.y + 1;
 
             VerticesBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
             UVBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 2);

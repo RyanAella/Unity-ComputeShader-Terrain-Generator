@@ -6,6 +6,7 @@
  */
 
 using _Scripts.Helpers;
+using _Scripts.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -83,6 +84,28 @@ namespace _Scripts.Manager
             }
 
             return normals;
+        }
+        
+        /// <summary>
+        /// Adjusts the height of the mesh vertices based on the specified height multiplier.
+        /// </summary>
+        /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
+        /// <param name="generalSettings">The general settings including the maximum terrain height.</param>
+        public void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
+        {
+            Mesh mesh = meshFilter.sharedMesh;
+            Vector3[] meshVertices = mesh.vertices;
+            float heightMultiplier = generalSettings.maxTerrainHeight;
+        
+            // Adjust each vertex's height based on the multiplier
+            for (int i = 0; i < meshVertices.Length; i++)
+            {
+                meshVertices[i].y *= heightMultiplier;
+            }
+        
+            // Update the mesh vertices and recalculate normals for proper lighting
+            mesh.vertices = meshVertices;
+            mesh.normals = CalculateNormals(meshVertices, mesh.triangles);
         }
 
         /// <summary>

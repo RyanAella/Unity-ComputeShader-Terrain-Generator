@@ -58,7 +58,7 @@ namespace _Scripts.Generators
                 ApplyColourToMesh(managers, terrainSettings, shaders, colourGradient, colourHeights, meshFilter, colourCount);
 
                 // Adjust the mesh height.
-                AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
+                managers.MeshGenerationManager.AdjustMeshHeight(meshFilter, terrainSettings.GeneralSettings);
             }
         }
 
@@ -76,8 +76,10 @@ namespace _Scripts.Generators
         {
             Vector2Int resolution = terrainSettings.GeneralSettings.resolution;
 
-            int verticesPerLineX = resolution.x * 2 + 1;
-            int verticesPerLineZ = resolution.y * 2 + 1;
+            // int verticesPerLineX = resolution.x * 2 + 1;
+            // int verticesPerLineZ = resolution.y * 2 + 1;
+            int verticesPerLineX = resolution.x + 1;
+            int verticesPerLineZ = resolution.y + 1;
 
             if (_vertices == null || _vertices.Length != verticesPerLineX * verticesPerLineZ)
             {
@@ -111,28 +113,6 @@ namespace _Scripts.Generators
             managers.ColourGenerationManager.ColourMesh(shaders.colourGenerationComputeShader, meshFilter,
                 terrainSettings.GeneralSettings.resolution, new[] { 0.0f, 1f },
                 colourGradient.ToArray(), colourHeights, colourCount, terrainSettings.GeneralSettings);
-        }
-        
-        /// <summary>
-        /// Adjusts the height of the mesh vertices based on the specified height multiplier.
-        /// </summary>
-        /// <param name="meshFilter">The MeshFilter containing the mesh to adjust.</param>
-        /// <param name="generalSettings">The general settings including the maximum terrain height.</param>
-        protected static void AdjustMeshHeight(MeshFilter meshFilter, GeneralSettings generalSettings)
-        {
-            Mesh mesh = meshFilter.sharedMesh;
-            Vector3[] meshVertices = mesh.vertices;
-            float heightMultiplier = generalSettings.maxTerrainHeight;
-        
-            // Adjust each vertex's height based on the multiplier
-            for (int i = 0; i < meshVertices.Length; i++)
-            {
-                meshVertices[i].y *= heightMultiplier;
-            }
-        
-            // Update the mesh vertices and recalculate normals for proper lighting
-            mesh.vertices = meshVertices;
-            mesh.RecalculateNormals();
         }
             
         #endregion

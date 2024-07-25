@@ -78,9 +78,6 @@ void determine_colour(const int index)
             }
         }
     }
-	
-    // Apply terrain height scaling
-    // Vertex_Buffer[index].y *= max_terrain_height;
 }
 
 /// <summary>
@@ -90,15 +87,19 @@ void determine_colour(const int index)
 [numthreads(16, 16, 1)]
 void Colour_Mesh(uint3 id : SV_DispatchThreadID)
 {
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
+    // Ensure the thread ID is within the map dimensions.
+    if (id.x >= map_width || id.y >= map_height)
+    {
+        return; // Exit early if out of bounds
+    }
+
     // Calculate the index based on the thread ID
     const int index = id.y * map_width + id.x;
 
-    // Prevent out-of-bounds access
-    if (index < 0 || index >= vertices_buffer_length)
-    {
-        return;
-    }
-
     // Call the function to determine the colour for the vertex
     determine_colour(index);
+
+    // // Apply terrain height scaling
+    // Vertex_Buffer[index].y *= max_terrain_height;
 }

@@ -167,9 +167,6 @@ float domain_warping(const float2 p)
 
         // Calculate the fractional Brownian motion at the current y position
         r.y = fbm(p + domain_warping_mul * r + _DW_Offsets[i + i + 1]);
-
-        // // Update the displacement vector r with the newly calculated x and y positions
-        // r = float2(posX, posY);
     }
 
     // Return the result of domain warping applied to the input position
@@ -266,7 +263,7 @@ void make_triangles(uint3 id)
 
 
 /**
- * Main function to generate noise and terrain mesh.
+ * Main function to generate mesh parameters.
  *
  * @param id The thread ID used in the noise generation and terrain mesh creation.
  */

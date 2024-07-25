@@ -7,6 +7,7 @@
  */
 
 using System.Collections.Generic;
+using System.Globalization;
 using _Scripts.Helpers;
 using _Scripts.Manager;
 using _Scripts.ScriptableObjects;
@@ -25,16 +26,19 @@ namespace _Scripts.Generators
         [SerializeField] private NoiseSettings noiseSettings; // Noise generation settings
         [SerializeField] private Shaders shaders; // Shader settings for compute shaders
 
-        [Tooltip("Toggle between using color or greyscale gradient")] 
-        [SerializeField] private bool useColourGradient;
+        [Header("Colours")] [Tooltip("Toggle between using color or greyscale gradient")] [SerializeField]
+        private bool useColourGradient;
+
         [SerializeField] private ColourGradient colourGradient; // Color gradient for terrain
         [SerializeField] private ColourGradient greyscaleGradient; // Greyscale gradient for terrain
 
-        [Header("Generators")] 
-        [Tooltip("Toggle water generation")] 
-        [SerializeField] private bool generateWater;
+        [Header("Generators")] [Tooltip("Toggle water generation")] [SerializeField]
+        private bool generateWater;
+
         [SerializeField] private TerrainGenerator groundGenerator; // Prefab for ground generation
         [SerializeField] private TerrainGenerator waterGenerator; // Prefab for water generation
+
+        public bool autoUpdate; // Toggle auto update
 
         // [Header("References")] [SerializeField]
         // private bool spawnPlayer; // Toggle player spawning
@@ -81,6 +85,12 @@ namespace _Scripts.Generators
         //     // SpawnPlayer();
         // }
 
+        public void StartGeneration()
+        {
+            Init();
+            Generate();
+        }
+
         /// <summary>
         /// Initializes settings, managers, and components for terrain generation.
         /// </summary>
@@ -109,11 +119,17 @@ namespace _Scripts.Generators
         /// </summary>
         private void ValidateParameters()
         {
-            // Ensure noise settings lacunarity is at least 1
-            if (noiseSettings.lacunarity < 1)
+            if (noiseSettings.noiseScale <= 0)
             {
-                noiseSettings.lacunarity = 1;
+                noiseSettings.noiseScale = 0.1f;
             }
+
+            // Ensure the noise scale is not too low to avoid a flat mesh
+            noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
+
+            // Check if a random seed is wanted
+            if (noiseSettings.useRandomSeed)
+                noiseSettings.SetSeed(Time.realtimeSinceStartup.ToString(CultureInfo.InvariantCulture));
 
             // Instantiate ground generator if not already done
             if (_ground == null)
@@ -236,15 +252,11 @@ namespace _Scripts.Generators
             {
                 _ground.GenerateTerrain(_managers, _terrainSettings, shaders, _colourPalette, _colourHeights.ToArray(),
                     _groundMeshFilter, _colourCount, false, _terrainSettings.GeneralSettings.maxTerrainHeight);
+                _groundCollider.sharedMesh = _groundMeshFilter.sharedMesh;
             }
             else
             {
                 Debug.LogError("MeshFilter or MeshCollider component not found on the ground object.");
-            }
-
-            if (groundComponentsPresent)
-            {
-                _groundCollider.sharedMesh = _groundMeshFilter.sharedMesh;
             }
 
             if (generateWater)
@@ -254,16 +266,16 @@ namespace _Scripts.Generators
                     _water.GenerateTerrain(_managers, _terrainSettings, shaders, _colourPalette,
                         _colourHeights.ToArray(),
                         _waterMeshFilter, _colourCount, true, _terrainSettings.GeneralSettings.maxTerrainHeight);
+                    _waterCollider.sharedMesh = _waterMeshFilter.sharedMesh;
                 }
                 else
                 {
                     Debug.LogError("MeshFilter or MeshCollider component not found on the water object.");
                 }
-
-                if (waterComponentsPresent)
-                {
-                    _waterCollider.sharedMesh = _waterMeshFilter.sharedMesh;
-                }
+            }
+            else if (waterComponentsPresent)
+            {
+                DestroyImmediate(_water.gameObject);
             }
 
             // Release the buffers
