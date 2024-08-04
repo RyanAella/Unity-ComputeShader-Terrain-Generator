@@ -116,6 +116,12 @@ float fbm(const float2 pos)
     float amp = amplitude; // Initial amplitude for noise generation
     float freq = frequency; // Initial frequency for noise generation
 
+    // Check if octaves are 0, apply Simplex Noise directly once
+    if (octaves == 0)
+    {
+        value = SimplexNoise(pos);
+    }
+
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {

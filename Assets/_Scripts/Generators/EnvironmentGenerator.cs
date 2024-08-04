@@ -119,11 +119,6 @@ namespace _Scripts.Generators
         /// </summary>
         private void ValidateParameters()
         {
-            if (noiseSettings.noiseScale <= 0)
-            {
-                noiseSettings.noiseScale = 0.1f;
-            }
-
             // Ensure the noise scale is not too low to avoid a flat mesh
             noiseSettings.noiseScale = Mathf.Max(0.0001f, noiseSettings.noiseScale);
 

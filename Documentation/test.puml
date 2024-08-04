@@ -193,27 +193,75 @@ actor User as U
 U -> EnvGen : Start()
 
 EnvGen -> EnvGen : Init()
+EnvGen -> EnvGen : Generate()
 
-EnvGen -> TerrGen : GenTerrain()
+EnvGen -> TerrGen : GenerateTerrain()
 
-TerrGen -> NoiseMgr : GenNoiseParams()
-NoiseMgr -> NoiseGen : GenNoise()
-NoiseMgr -> ValClampMgr : CompareHeights()
+TerrGen -> TerrGen : GenerateNoiseAndMesh()
 
-ValClampMgr -> ValClamp : ComputeHeights()
-note right of ValClamp
-    - LocalMinMax()
-    - GlobalMinMax()
-    - ClampValues()
-end note
+TerrGen -> NoiseMgr : GenerateNoiseParameters()
+
+NoiseMgr -> NoiseMgr : GenerateNoise()
+
+NoiseMgr -> NoiseGen : Noise_Generator()
+
+NoiseMgr -> ValClampMgr : CompareHeightValues()
+
+ValClampMgr -> ValClampMgr : ComputeLocalMinMax()
+ValClampMgr -> ValClamp : Compute_Local_Min_Max()
+
+ValClampMgr -> ValClampMgr : ComputeGlobalMinMax()
+ValClampMgr -> ValClamp : Compute_Global_Min_Max()
+
+ValClampMgr -> ValClampMgr : ClampValues()
+ValClampMgr -> ValClamp : Clamp_Height_Values()
+
+ValClampMgr -> ValClampMgr : ComputeLocalMinMax()
+ValClampMgr -> ValClamp : Compute_Local_Min_Max()
+
+ValClampMgr -> ValClampMgr : ComputeGlobalMinMax()
+ValClampMgr -> ValClamp : Compute_Global_Min_Max()
 
 TerrGen -> MeshMgr : CreateMesh()
 
-alt isWater
+TerrGen -> TerrGen : ApplyColourToMesh()
+TerrGen -> ColGenMgr : ColourMesh()
+ColGenMgr -> ColGen : ColourMesh()
+    
+TerrGen -> MeshMgr :  AdjustMeshHeight()
+
+alt generateWater
+    EnvGen -> TerrGen : GenerateTerrain()
+    
+    TerrGen -> TerrGen : GenerateNoiseAndMesh()
+    
+    TerrGen -> NoiseMgr : GenerateNoiseParameters()
+    
+    NoiseMgr -> NoiseMgr : GenerateNoise()
+    
+    NoiseMgr -> NoiseGen : Noise_Generator()
+    
+    NoiseMgr -> ValClampMgr : CompareHeightValues()
+    
+ValClampMgr -> ValClampMgr : ComputeLocalMinMax()
+ValClampMgr -> ValClamp : Compute_Local_Min_Max()
+
+ValClampMgr -> ValClampMgr : ComputeGlobalMinMax()
+ValClampMgr -> ValClamp : Compute_Global_Min_Max()
+
+ValClampMgr -> ValClampMgr : ClampValues()
+ValClampMgr -> ValClamp : Clamp_Height_Values()
+
+ValClampMgr -> ValClampMgr : ComputeLocalMinMax()
+ValClampMgr -> ValClamp : Compute_Local_Min_Max()
+
+ValClampMgr -> ValClampMgr : ComputeGlobalMinMax()
+ValClampMgr -> ValClamp : Compute_Global_Min_Max()
+    
+    TerrGen -> MeshMgr : CreateMesh()
+    
     TerrGen -> TerrGen : SetWaterPos()
 else
-    TerrGen -> ColGenMgr : ApplyColor()
-    ColGenMgr -> ColGen : ColourMesh()
 end
 
 legend

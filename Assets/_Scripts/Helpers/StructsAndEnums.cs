@@ -56,6 +56,7 @@ namespace _Scripts.Helpers
     {
         public float height; // The height at which this color applies.
         public Color colour; // The color associated with the height.
+        public float smoothness;
     }
 
     /// <summary>

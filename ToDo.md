@@ -2,8 +2,9 @@
 
 - Normals auf GPU berechnen
 - Kommentare vereinheitlichen
-
-- FBM implementieren
+- Farbe des Meshes an einen Material Shader direkt übergeben, wie bei Marcii?
+- Variablen-Namen vereinheitlichen
+- FalloffMap wieder einbauen? Abfrage, ob mehrere Chunks oder nur einer. Bei einem Chunk, kann Insel gemacht werden
 
 
 Method Parameters:

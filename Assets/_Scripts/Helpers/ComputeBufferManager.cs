@@ -63,11 +63,21 @@ namespace _Scripts.Helpers
             int verticesPerLineX = resolution.x + 1;
             int verticesPerLineZ = resolution.y + 1;
 
+            int count;
+            if (noiseSettings.octaves == 0)
+            {
+                count = 1;
+            }
+            else
+            {
+                count = noiseSettings.octaves;
+            }
+
             VerticesBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
             UVBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 2);
             NormalsBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float) * 3);
             TrianglesBuffer = new ComputeBuffer((verticesPerLineX - 1) * (verticesPerLineZ - 1) * 6, sizeof(int));
-            NoiseLayerBuffer = new ComputeBuffer(noiseSettings.octaves, sizeof(int));
+            NoiseLayerBuffer = new ComputeBuffer(count, sizeof(int));
             DomainWarpingOffsetBuffer = new ComputeBuffer(Mathf.Max(noiseSettings.offsetVectors.Length, 1), sizeof(float) * 2);
             FalloffMapBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));
             LocalMinMaxBuffer = new ComputeBuffer(verticesPerLineX * verticesPerLineZ, sizeof(float));

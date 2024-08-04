@@ -1,0 +1,36 @@
+@startmindmap
+
+top to bottom direction
+
+<style>
+mindmapDiagram {
+  .csharp {
+    BackgroundColor lightgreen
+  }
+  .compute_shader {
+    BackgroundColor lightblue
+  }
+  .orange {
+    BackgroundColor orange
+  }
+}
+</style>
+
+* EnvironmentGenerator <<orange>>
+
+** TerrainGenerator <<csharp>>
+
+*** NoiseGenerationManager <<csharp>>
+
+**** NoiseGeneration.compute <<compute_shader>>
+**** ValueClampManager <<csharp>>
+
+***** ValueClamp.compute <<compute_shader>>
+
+*** ColourGenerationManager <<csharp>>
+
+**** ColourGeneration.compute <<compute_shader>>
+
+*** MeshGenerationManager <<csharp>>
+
+@endmindmap
