@@ -1,5 +1,17 @@
 # Changelog Unity Compute Shader Terrain Generator
 
+## [1.0.0] - 2024-08-06
+### Added
+- Introduced `EnvironmentGeneratorEditor` to enhance the user interface for terrain generation settings.
+
+### Changed
+- Performed extensive cleanup and refactoring across the codebase to improve readability and maintainability.
+- Enhanced editor and script functionality for a more streamlined development experience.
+- Added diagrams to the documentation to illustrate key concepts and workflows.
+
+### Fixed
+- Implemented minor changes and fixes to ensure smoother operation.
+
 ## [0.20.0] - 2024-07-24
 ### Added
 - Added `CalculateNormals` to `MeshGenerationManager` on the CPU.

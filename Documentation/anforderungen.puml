@@ -1,0 +1,36 @@
+@startmindmap
+
+<style>
+mindmapDiagram {
+  .yellow {
+    BackgroundColor yellow
+  }
+  .funktional {
+    BackgroundColor lightgreen
+  }
+  .rose {
+    BackgroundColor #FFBBCC
+  }
+  .orange {
+    BackgroundColor orange
+  }
+  .nicht_funktional {
+    BackgroundColor lightblue
+  }
+}
+</style>
+
+* Anforderungen <<orange>>
+
+** Funktional <<funktional>>
+
+*** Terrain-Mesh-Generierung <<funktional>>
+*** FBM-basierte Gelände-Generierung <<funktional>>
+*** Unterstützung von Domain Warping <<funktional>>
+*** Parametersteuerung / Settings <<funktional>>
+
+** Nicht-funktional <<nicht_funktional>>
+
+*** Effiziente Berechnung des Terrain-Meshes \nmittels Compute Shadern <<nicht_funktional>>
+
+@endmindmap

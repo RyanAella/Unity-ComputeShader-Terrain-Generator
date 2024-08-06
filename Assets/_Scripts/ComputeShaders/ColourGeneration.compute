@@ -16,7 +16,7 @@ RWStructuredBuffer<float> Colour_Palette_Heights_Buffer; // Colour palette heigh
 
 // Shader parameters.
 int colour_count; // Number of colours in the palette.
-int map_width, map_height; // Dimensions of the map.
+uint map_width, map_height; // Dimensions of the map.
 float min_height, max_height; // Height range for the terrain.
 float time; // Time variable.
 int vertices_buffer_length; // Total length of the vertex buffer.

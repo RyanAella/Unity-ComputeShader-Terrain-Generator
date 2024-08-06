@@ -76,15 +76,6 @@ namespace _Scripts.Generators
             // SpawnPlayer();
         }
 
-        // private void Update()
-        // {
-        //     Init(); // Initialize components and settings
-        //
-        //     Generate(); // Generate terrain and possibly instantiate the player
-        //
-        //     // SpawnPlayer();
-        // }
-
         public void StartGeneration()
         {
             Init();
@@ -227,10 +218,6 @@ namespace _Scripts.Generators
             _groundCollider = _ground.GetComponent<MeshCollider>();
             _waterMeshFilter = _water.GetComponent<MeshFilter>();
             _waterCollider = _water.GetComponent<MeshCollider>();
-
-            // Set cooking options for MeshColliders
-            _groundCollider.cookingOptions = MeshColliderCookingOptions.None;
-            _waterCollider.cookingOptions = MeshColliderCookingOptions.None;
         }
 
         /// <summary>
