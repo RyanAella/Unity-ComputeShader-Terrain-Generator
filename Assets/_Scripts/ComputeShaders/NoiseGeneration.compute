@@ -115,19 +115,16 @@ float fbm(const float2 pos)
     float value = 0.0f; // Initialize the accumulated noise value
     float amp = amplitude; // Initial amplitude for noise generation
     float freq = frequency; // Initial frequency for noise generation
-
-    // Check if octaves are 0, apply Simplex Noise directly once
-    if (octaves == 0)
-    {
-        value = SimplexNoise(pos);
-    }
-
+	
+    // Directly apply Simplex Noise if no octaves
+    if (octaves == 0) value = SimplexNoise(pos);
+	
     // Loop through the specified number of octaves to generate noise.
     for (int o = 0; o < octaves; o++)
     {
         // Generate Simplex noise and add it to the accumulated value.
         float noise_value = SimplexNoise(pos * freq);
-
+		
         // Apply noise transformation based on the noise layer type.
         switch (_Noise_Layer_Buffer[o])
         {
@@ -142,16 +139,15 @@ float fbm(const float2 pos)
         default: // Default case, do nothing
             break;
         }
-
+		
         value += amp * noise_value; // Accumulate the noise value with amplitude.
-
-        // Increase the amplitude and frequency for the next octave to add more detail to the noise.
+		
+        // Increase the amplitude and frequency for the next octave.
         amp *= persistence;
         freq *= lacunarity;
     }
-
-    // Return the accumulated noise value.
-    return value;
+	
+    return value; // Return the accumulated noise value.
 }
 
 /**
@@ -164,17 +160,17 @@ float domain_warping(const float2 p)
 {
     // Initialize the displacement vector r to (0, 0)
     float2 r = float2(0.0f, 0.0f);
-
+	
     // Iterate through the warp steps for domain warping
     for (int i = 0; i < warp_steps; i++)
     {
         // Calculate the fractional Brownian motion at the current x position
         r.x = fbm(p + domain_warping_mul * r + _DW_Offsets[i + i]);
-
+		
         // Calculate the fractional Brownian motion at the current y position
         r.y = fbm(p + domain_warping_mul * r + _DW_Offsets[i + i + 1]);
     }
-
+	
     // Return the result of domain warping applied to the input position
     return fbm(p + domain_warping_mul * r);
 }
@@ -189,33 +185,23 @@ float domain_warping(const float2 p)
  * @param seed_offset The offset applied to the seed for noise generation.
  * @param is_water Indicates if it's a water mesh.
  */
-void make_vertices(uint3 id, const float half_width, const float half_height, const float noise_scale,
-                   const float2 seed_offset, const bool is_water)
+void make_vertices(uint3 id, const float half_width, const float half_height, const float noise_scale, const float2 seed_offset, const bool is_water)
 {
     // Check map dimensions validity and bounds of the thread ID.
     if (map_width == 0 || map_height == 0 || id.y >= map_height || id.x >= map_width) return;
-
+	
     // Compute the index of the vertex within the buffer.
     const int vertex_index = id.y * map_width + id.x;
-
+	
     // Adjust the x and y coordinates for noise sampling based on the map's center.
     float2 samples = (float2((id.x + seed_offset.x), (id.y + seed_offset.y)) - float2(half_width, half_height)) *
-        noise_scale;
-
-    float value;
-
+    noise_scale;
+	
     // Generate the noise value for the current vertex.
-    if (is_water)
-    {
-        value = 0;
-    }
-    else
-    {
-        value = domain_warping(samples);
-    }
-
+    float value = is_water ? 0 : domain_warping(samples);
+	
     float3 vertex = float3(id.x * step_size_x, value, id.y * step_size_z);
-
+	
     // Update the vertex buffer with the generated vertex.
     _Vertex_Buffer[vertex_index] = vertex;
 }

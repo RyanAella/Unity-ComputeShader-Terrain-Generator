@@ -1,13 +1,12 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 29-05-2024
- * Description: 
- * License: mit Licence
+* Description: ScriptableObject containing general settings for terrain generation, including mesh resolution, size, 
+ *              maximum height, and water level.
+ * License: MIT License
  */
 
-
 using System;
-using _Scripts.Helpers;
 using UnityEngine;
 
 namespace _Scripts.ScriptableObjects

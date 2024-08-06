@@ -41,17 +41,15 @@ float smooth(float edge0, float edge1, float x)
 /// <param name="index">The index of the vertex in the buffer.</param>
 void determine_colour(const int index)
 {
-    // Get the height of the vertex
-    float height = Vertex_Buffer[index].y;
+    float height = Vertex_Buffer[index].y; // Get the height of the vertex
 	
     if (height < min_height || height > max_height)
     {
-        // Assign a colour if the height is outside the valid range
-        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
+        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75); // Colour for out-of-range height
     }
     else
     {
-        // Iterate through the colour palette to find the appropriate colour for the vertex height
+        // Find the color for the vertex height from the palette
         for (int k = 0; k < colour_count; k++)
         {
             // Determine the range of the current colour palette segment
@@ -60,19 +58,16 @@ void determine_colour(const int index)
 			
             if (height >= range_start && height <= range_end)
             {
-                // Calculate the interpolation factor
-                float t = smoothstep(range_start, range_end, height);
+                float t = smoothstep(range_start, range_end, height); // Interpolation factor
 				
                 // Interpolate the colour using the colour palette
                 float4 start_colour = (k == 0) ? float4(0, 0, 0, 0) : Colour_Palette_Buffer[k - 1];
                 float4 end_colour = Colour_Palette_Buffer[k];
                 float4 colour = lerp(start_colour, end_colour, t);
 				
-                // Set alpha value based on the gradient's alpha value
-                colour.a = lerp(start_colour.a, end_colour.a, t);
+                colour.a = lerp(start_colour.a, end_colour.a, t); // Set alpha based on gradient
 				
-                // Store the determined colour in the buffer
-                Colour_Buffer[index] = colour;
+                Colour_Buffer[index] = colour; // Store the determined colour in the buffer
 				
                 break; // Exit the loop once the correct colour is found
             }

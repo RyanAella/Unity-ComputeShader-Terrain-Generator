@@ -1,7 +1,8 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 26-06-2024
- * Description: A brief description of the script.
+ * Description: Base class for generating various types of terrain using noise and mesh generation. This script handles
+ *              the creation and coloring of terrain meshes, supporting both land and water terrains.
  * License: MIT License
  */
 

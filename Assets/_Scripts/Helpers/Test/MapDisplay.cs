@@ -2,7 +2,7 @@
  * Author: Rebecca Biebl
  * Creation Date: 27-05-2024
  * Description: This script is responsible for displaying and updating a map using a Texture2D.
- * License: Licence
+ * License: MIT Licence
  */
 
 using UnityEngine;

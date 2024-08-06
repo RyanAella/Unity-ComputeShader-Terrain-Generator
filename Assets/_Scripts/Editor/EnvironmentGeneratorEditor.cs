@@ -1,13 +1,15 @@
 /*
  * Author: Rebecca Biebl
  * Creation Date: 25-07-2024
- * Description: A brief description of the script.
- * License: Licence
+ * Description: Custom Editor script for the EnvironmentGenerator component.
+ *              This script extends the Unity Editor to provide a custom
+ *              Inspector interface for the EnvironmentGenerator, allowing
+ *              for automatic updates and manual generation of terrain.
+
+ * License: MIT Licence
  */
 
 
-using System.Collections;
-using System.Collections.Generic;
 using _Scripts.Generators;
 using UnityEditor;
 using UnityEngine;
