@@ -1,0 +1,15 @@
+@startuml
+
+start
+
+:Initialisierung;
+
+:Wertegenerierung;
+
+:Visualisierung;
+
+:Färbung;
+
+stop
+
+@enduml

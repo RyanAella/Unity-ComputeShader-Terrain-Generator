@@ -1,0 +1,173 @@
+/*
+* Author: Rebecca Biebl
+* Creation Date: 26-04-2024
+* Description: Compute shader for noise-based mesh generation.
+* License: MIT Licence
+*/
+
+// Define kernel functions for the compute shader.
+#pragma kernel Compute_Local_Min_Max 0
+#pragma kernel Compute_Global_Min_Max 1
+#pragma kernel Clamp_Height_Values 2
+
+// Define constants for minimum and maximum float values.
+#define FLT_MAX 3.402823466e+38
+#define FLT_MIN 1.175494351e-38
+
+// Unsigned integer variables for the dimensions of the noise map.
+uint map_width; // Width of the noise map
+uint map_height; // Height of the noise map
+
+// Minimum and maximum float values.
+float float_min_value; // Minimum float value
+float float_max_value; // Maximum float value
+
+float min_value; // Minimum value used for clamping
+float max_value; // Maximum value used for clamping
+
+// Length of buffers for vertices and local Min/Max values.
+int vertices_buffer_length; // Total length of the vertex buffer
+int local_min_max_buffer_length; // Total length of the local Min/Max buffer
+
+// Read-write structured buffers for noise data and mesh information.
+RWStructuredBuffer<float3> _Vertex_Buffer; // Stores the vertices of the mesh
+RWStructuredBuffer<float2> _Local_Min_Max_Buffer; // Buffer to store local Min/Max values
+RWStructuredBuffer<float> _Global_Min_Max_Buffer; // Buffer to store global Min/Max values
+RWStructuredBuffer<float3> _Clamped_Buffer; // Stores clamped vertex data
+
+/// <summary>
+/// Performs linear interpolation between two values.
+/// </summary>
+/// <param name="from">The start value of the interpolation.</param>
+/// <param name="to">The end value of the interpolation.</param>
+/// <param name="value">The value to interpolate.</param>
+/// <returns>The interpolated value based on the input parameters.</returns>
+/// <remarks>
+/// If the start and end values are the same, the function returns 0.
+/// </remarks>
+float inverse_lerp(const float from, const float to, const float value)
+{
+    // Check if the start and end values are the same to avoid division by zero.
+    if (from == to)
+    {
+        // Return 0 if from and to are the same.
+        return 0.0f;
+    }
+
+    // Calculate the range between from and to.
+    float range = to - from;
+
+    // Perform linear interpolation calculation using multiplication.
+    const float result = (value - from) / range;
+
+    // Clamp the result between 0 and 1.
+    return clamp(result, 0.0f, 1.0f);
+}
+
+/// <summary>
+/// Computes the local minimum and maximum values within the thread group.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+[numthreads(16, 16, 1)] // Thread group size
+void Compute_Local_Min_Max(uint3 id : SV_DispatchThreadID)
+{
+    // Calculate the index based on the thread ID
+    const int index = id.y * map_width + id.x;
+
+    // Prevent out-of-bounds access
+    if (index >= vertices_buffer_length)
+    {
+        return; // Exit early to avoid errors
+    }
+
+    // Initialize local Min/Max with extreme values
+    float min = float_max_value;
+    float max = float_min_value;
+
+    // Calculate local Min/Max within the thread group
+    for (int i = 0; i < 16; ++i)
+    {
+        // Ensure the index is within bounds
+        if (index + i < vertices_buffer_length)
+        {
+            // Get the 'y' coordinate from the VertexBuffer
+            const float value = _Vertex_Buffer[index + i].y;
+
+            // Update min and max based on the value
+            if (value > max)
+            {
+                max = value;
+            }
+            else if (value < min)
+            {
+                min = value;
+            }
+        }
+    }
+
+    // Store the calculated local Min/Max values
+    _Local_Min_Max_Buffer[index] = float2(min, max);
+}
+
+/// <summary>
+/// Computes the global minimum and maximum values from local Min/Max values.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+[numthreads(1, 1, 1)]
+void Compute_Global_Min_Max(uint3 id : SV_DispatchThreadID)
+{
+    // Initialize global Min/Max values with extreme values for comparison.
+    float min = float_max_value; // Initialize min with maximum float value
+    float max = float_min_value; // Initialize max with minimum float value
+
+    // Loop through all local Min/Max values to find the global Min/Max
+    for (int i = 0; i < local_min_max_buffer_length; ++i)
+    {
+        // Retrieve the local Min/Max values at index i
+        float2 min_max = _Local_Min_Max_Buffer[i];
+
+        // Update global Min/Max based on the local values
+        if (min_max.x < min)
+        {
+            min = min_max.x; // Update min if a lower value is found
+        }
+        if (min_max.y > max)
+        {
+            max = min_max.y; // Update max if a higher value is found
+        }
+    }
+
+    // Store the computed global Min/Max values in the buffer
+    _Global_Min_Max_Buffer[0] = min; // Store the minimum value at index 0
+    _Global_Min_Max_Buffer[1] = max; // Store the maximum value at index 1
+}
+
+/// <summary>
+/// Clamps the height values of vertices within the map dimensions using global Min/Max values.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+[numthreads(16, 16, 1)]
+void Clamp_Height_Values(uint3 id : SV_DispatchThreadID)
+{
+    // Check if the thread ID is within the map dimensions
+    if (id.x >= map_width || id.y >= map_height)
+    {
+        return; // Exit the function early if out of bounds
+    }
+
+    // Initialize local Min/Max with extreme values
+    min_value = _Global_Min_Max_Buffer[0];
+    max_value = _Global_Min_Max_Buffer[1];
+    
+    // Calculate the buffer index based on the thread ID
+    const int index = id.y * map_width + id.x;
+
+    // Retrieve the vertex at the current index
+    float3 vertex = _Vertex_Buffer[index];
+
+    // Normalize the height value
+    float normalized_height = inverse_lerp(min_value, max_value, vertex.y);
+
+    // Update the vertex with the clamped height value
+    _Vertex_Buffer[index] = float3(vertex.x, normalized_height, vertex.z);
+}

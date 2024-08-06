@@ -1,0 +1,105 @@
+/*
+* Author: Rebecca Biebl
+* Creation Date: 02-05-2024
+* Description: Compute Shader for colouring a mesh based on height and a colour palette.
+* License: MIT Licence
+*/
+
+// Define the kernel function for colouring the mesh.
+#pragma kernel Colour_Mesh
+
+// Buffers for storing mesh vertices, colours, colour palette, and palette heights.
+RWStructuredBuffer<float3> Vertex_Buffer; // Vertex positions.
+RWStructuredBuffer<float4> Colour_Buffer; // Vertex colours.
+RWStructuredBuffer<float4> Colour_Palette_Buffer; // Colour palette.
+RWStructuredBuffer<float> Colour_Palette_Heights_Buffer; // Colour palette heights.
+
+// Shader parameters.
+int colour_count; // Number of colours in the palette.
+uint map_width, map_height; // Dimensions of the map.
+float min_height, max_height; // Height range for the terrain.
+float time; // Time variable.
+int vertices_buffer_length; // Total length of the vertex buffer.
+float max_terrain_height; // Maximum height of the terrain.
+
+/// <summary>
+/// Smoothly interpolates between two edges based on the input value.
+/// </summary>
+/// <param name="edge0">The lower edge value.</param>
+/// <param name="edge1">The upper edge value.</param>
+/// <param name="x">The input value to interpolate.</param>
+/// <returns>The smoothed interpolation value between the edges.</returns>
+float smooth(float edge0, float edge1, float x)
+{
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
+/// <summary>
+/// Determines the colour for a vertex based on its height and the colour palette.
+/// </summary>
+/// <param name="index">The index of the vertex in the buffer.</param>
+void determine_colour(const int index)
+{
+    // Get the height of the vertex
+    float height = Vertex_Buffer[index].y;
+	
+    if (height < min_height || height > max_height)
+    {
+        // Assign a colour if the height is outside the valid range
+        Colour_Buffer[index] = float4(0.75, 0.68, 0.50, 0.75);
+    }
+    else
+    {
+        // Iterate through the colour palette to find the appropriate colour for the vertex height
+        for (int k = 0; k < colour_count; k++)
+        {
+            // Determine the range of the current colour palette segment
+            float range_start = (k == 0) ? 0.0f : Colour_Palette_Heights_Buffer[k - 1];
+            float range_end = Colour_Palette_Heights_Buffer[k];
+			
+            if (height >= range_start && height <= range_end)
+            {
+                // Calculate the interpolation factor
+                float t = smoothstep(range_start, range_end, height);
+				
+                // Interpolate the colour using the colour palette
+                float4 start_colour = (k == 0) ? float4(0, 0, 0, 0) : Colour_Palette_Buffer[k - 1];
+                float4 end_colour = Colour_Palette_Buffer[k];
+                float4 colour = lerp(start_colour, end_colour, t);
+				
+                // Set alpha value based on the gradient's alpha value
+                colour.a = lerp(start_colour.a, end_colour.a, t);
+				
+                // Store the determined colour in the buffer
+                Colour_Buffer[index] = colour;
+				
+                break; // Exit the loop once the correct colour is found
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Colour the mesh based on the vertex height and colour palette.
+/// </summary>
+/// <param name="id">The thread ID.</param>
+[numthreads(16, 16, 1)]
+void Colour_Mesh(uint3 id : SV_DispatchThreadID)
+{
+    // Verify if the current thread's ID is within the bounds of the noise map dimensions.
+    // Ensure the thread ID is within the map dimensions.
+    if (id.x >= map_width || id.y >= map_height)
+    {
+        return; // Exit early if out of bounds
+    }
+
+    // Calculate the index based on the thread ID
+    const int index = id.y * map_width + id.x;
+
+    // Call the function to determine the colour for the vertex
+    determine_colour(index);
+
+    // // Apply terrain height scaling
+    // Vertex_Buffer[index].y *= max_terrain_height;
+}

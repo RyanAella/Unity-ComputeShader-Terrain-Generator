@@ -23,7 +23,7 @@ To explore the integration of these techniques in Unity, this project follows th
 1. **Research**: Conduct extensive literature reviews to understand the techniques and their applications.
 2. **Concept Development**: Develop a detailed concept for integrating Compute Shaders, FBM, and Domain Warping in Unity, including steps for implementation and identifying possible challenges.
 3. **Implementation**: Implement the concept in Unity, integrating Compute Shaders, FBM, and Domain Warping. Visualize and test the generated terrain within the Unity environment.
-4. **Analysis and Documentation**: Analyze and document the effects of these techniques on the generated terrain.
+4. **Documentation**: Document the effects of these techniques on the generated terrain.
 
 ## Getting Started
 To set up and run the project, follow these steps:
@@ -33,7 +33,7 @@ To set up and run the project, follow these steps:
 3. **Build and Run**: Compile and run the project to see the procedural terrain generation in action.
 
 ## License
-This project is licensed under [License Name]. See the LICENSE file for more information.
+This project is licensed under MIT License. See the LICENSE file for more information.
 
 ## Contact
 If you have any questions or suggestions, feel free to open an issue in this repository or contact the maintainers.
